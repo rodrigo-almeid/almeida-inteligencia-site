@@ -2,18 +2,16 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
 from backend.core.database import engine
 from backend.core import models
 
-from backend.contas.routers import (
-    auth, senhas, pessoas, contas, categorias,
-    dividas, recorrencias, relatorios, abastecimentos,
-    csv as csv_router, perfis as perfis_router,
-)
+from backend.auth.routers import auth, perfis as perfis_router
+from backend.credenciais.routers import senhas, pessoas, csv as csv_router
+from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios
+from backend.combustivel.routers import abastecimentos
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -26,19 +24,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
+# Auth
 app.include_router(auth.router)
 app.include_router(perfis_router.router)
+
+# Credenciais
 app.include_router(senhas.router)
 app.include_router(pessoas.router)
+app.include_router(csv_router.router)
+
+# Financeiro
 app.include_router(categorias.router)
 app.include_router(contas.router)
 app.include_router(dividas.router)
 app.include_router(recorrencias.router)
 app.include_router(relatorios.router)
-app.include_router(abastecimentos.router)
-app.include_router(csv_router.router)
 
-# Frontend estático — servido pelo FastAPI
+# Combustível
+app.include_router(abastecimentos.router)
+
+# Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
