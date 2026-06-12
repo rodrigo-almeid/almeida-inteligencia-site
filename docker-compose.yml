@@ -1,7 +1,38 @@
 services:
-  almeida-site:
+
+  db:
+    image: postgres:15-alpine
+    container_name: almeida-db
+    environment:
+      POSTGRES_DB: almeida
+      POSTGRES_USER: almeida
+      POSTGRES_PASSWORD: almeida123
+    volumes:
+      - almeida_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: almeida-backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: almeida
+      DB_USER: almeida
+      DB_PASS: almeida123
+      SECRET_KEY: "almeida-super-secret-2025"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  site:
     build: .
     container_name: almeida-inteligencia
     ports:
       - "8080:80"
+    depends_on:
+      - backend
     restart: unless-stopped
+
+volumes:
+  almeida_pgdata:

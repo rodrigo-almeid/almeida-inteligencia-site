@@ -794,18 +794,38 @@
   function closeModalOutside(e) {
     if (e.target === document.getElementById('modalOverlay')) closeModal();
   }
-  function doLogin() {
-    const user = document.getElementById('loginUser').value.trim();
-    const pass = document.getElementById('loginPass').value.trim();
+  async function doLogin() {
+    const email = document.getElementById('loginUser').value.trim();
+    const senha = document.getElementById('loginPass').value;
     const toast = document.getElementById('loginToast');
     const loading = document.getElementById('loginLoading');
     toast.style.display = 'none';
-    if (!user || !pass) { toast.style.display = 'block'; return; }
+    if (!email || !senha) { toast.style.display = 'block'; return; }
     loading.style.display = 'block';
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha })
+      });
+      const data = await res.json();
+      loading.style.display = 'none';
+      if (!res.ok) { toast.style.display = 'block'; return; }
+      localStorage.setItem('admin_token', data.token);
+      localStorage.setItem('admin_nome', data.nome);
+      if (data.perfil === 'admin') {
+        window.location.href = '/admin/';
+      } else {
+        toast.textContent = `Bem-vindo, ${data.nome}!`;
+        toast.style.background = 'rgba(61,219,130,0.1)';
+        toast.style.borderColor = 'rgba(61,219,130,0.3)';
+        toast.style.color = '#3DDB82';
+        toast.style.display = 'block';
+      }
+    } catch (e) {
       loading.style.display = 'none';
       toast.style.display = 'block';
-    }, 1800);
+    }
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
