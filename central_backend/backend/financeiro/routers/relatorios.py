@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import io
-import pandas as pd
+import openpyxl
+from openpyxl.styles import PatternFill, Font, Alignment
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
@@ -23,24 +24,39 @@ def exportar_excel_contas(db: Session = Depends(get_db), current_user: models.Us
     # Puxa apenas as contas do utilizador logado
     contas = db.query(models.Conta).filter(models.Conta.user_id == current_user.id).all()
 
-    dados = []
-    for c in contas:
-        dados.append({
-            "ID": c.id,
-            "Descrição": c.descricao,
-            "Vencimento": c.vencimento.strftime("%d/%m/%Y"),
-            "Tipo": c.tipo_despesa or "",
-            "Valor (R$)": c.valor,
-            "Natureza": c.natureza or "",  # Removido o .value pois no Postgres gravámos como String pura
-            "Status": c.status or ""
-        })
-
-    df = pd.DataFrame(dados)
     output = io.BytesIO()
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Minhas Contas"
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Minhas Contas')
+    # Cabeçalho estilizado
+    cabecalho = ["ID", "Descrição", "Vencimento", "Tipo", "Valor (R$)", "Natureza", "Status"]
+    ws.append(cabecalho)
+    header_fill = PatternFill("solid", fgColor="1A241C")
+    header_font = Font(bold=True, color="3DDB82")
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
 
+    # Dados
+    for c in contas:
+        ws.append([
+            c.id,
+            c.descricao,
+            c.vencimento.strftime("%d/%m/%Y"),
+            c.tipo_despesa or "",
+            c.valor,
+            c.natureza or "",
+            c.status or "",
+        ])
+
+    # Ajusta largura das colunas
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = max(max_len + 2, 10)
+
+    wb.save(output)
     output.seek(0)
     return StreamingResponse(
         output,
