@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Book — Almeida Inteligência</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --green-primary: #3DDB82;
+    --green-dark: #18A558;
+    --green-deep: #0F7A40;
+    --black-tech: #0A0F0A;
+    --black-green: #1A241C;
+    --gray-moss: #5C6B5E;
+    --gray-light: #A8B8AA;
+    --white-cold: #F7FAF7;
+    --white-pure: #FFFFFF;
+    --radius: 12px;
+    --radius-lg: 20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--white-cold);
+    color: var(--black-tech);
+    line-height: 1.6;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: var(--black-tech);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px;
+    page-break-after: always;
+  }
+  .cover-logo { display: flex; align-items: center; gap: 20px; }
+  .cover-wordmark { display: flex; flex-direction: column; gap: 4px; }
+  .cover-name { font-size: 28px; font-weight: 600; color: #fff; letter-spacing: -0.02em; }
+  .cover-name span { color: var(--green-primary); }
+  .cover-tagline { font-size: 11px; color: var(--gray-moss); letter-spacing: 0.18em; text-transform: uppercase; }
+  .cover-center { text-align: center; }
+  .cover-title { font-size: 52px; font-weight: 600; color: #fff; letter-spacing: -0.03em; line-height: 1.1; }
+  .cover-title span { color: var(--green-primary); }
+  .cover-subtitle { font-size: 16px; color: var(--gray-moss); margin-top: 16px; letter-spacing: 0.04em; }
+  .cover-footer {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-top: 0.5px solid #1E2E20;
+    padding-top: 24px;
+  }
+  .cover-footer-text { font-size: 12px; color: var(--gray-moss); }
+  .cover-version { font-size: 11px; color: #2A3A2C; font-family: monospace; }
+
+  /* ── LAYOUT ── */
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 60px;
+  }
+
+  .section {
+    margin-bottom: 80px;
+    page-break-inside: avoid;
+  }
+
+  .section-number {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--green-dark);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--black-tech);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .section-desc {
+    font-size: 15px;
+    color: var(--gray-moss);
+    margin-bottom: 36px;
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 0.5px solid #E0E8E2;
+    margin: 60px 0;
+  }
+
+  /* ── LOGO ── */
+  .logo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .logo-dark-box {
+    background: var(--black-tech);
+    border-radius: var(--radius-lg);
+    padding: 48px 40px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 32px;
+  }
+  .logo-light-box {
+    background: var(--white-cold);
+    border: 0.5px solid #D4E2D6;
+    border-radius: var(--radius-lg);
+    padding: 48px 40px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 32px;
+  }
+  .logo-combo { display: flex; align-items: center; gap: 16px; }
+  .logo-text-dark .name { font-size: 20px; font-weight: 600; color: #fff; letter-spacing: -0.02em; line-height:1; }
+  .logo-text-dark .name span { color: var(--green-primary); }
+  .logo-text-dark .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 4px; }
+  .logo-text-light .name { font-size: 20px; font-weight: 600; color: var(--black-tech); letter-spacing: -0.02em; line-height:1; }
+  .logo-text-light .name span { color: var(--green-dark); }
+  .logo-text-light .tag { font-size: 9px; color: var(--gray-light); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 4px; }
+  .logo-caption {
+    font-size: 11px;
+    color: var(--gray-moss);
+    text-align: center;
+    margin-top: 12px;
+  }
+  .logo-symbol-row {
+    display: flex; align-items: center; gap: 32px; justify-content: center;
+  }
+  .symbol-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .symbol-item span { font-size: 10px; color: var(--gray-moss); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* ── COLORS ── */
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .color-chip { border-radius: var(--radius); overflow: hidden; border: 0.5px solid #E0E8E2; }
+  .color-swatch { height: 100px; }
+  .color-info { padding: 14px 16px; background: #fff; }
+  .color-name { font-size: 13px; font-weight: 500; color: var(--black-tech); }
+  .color-hex { font-size: 12px; color: var(--gray-moss); font-family: monospace; margin-top: 2px; }
+  .color-use { font-size: 11px; color: var(--gray-light); margin-top: 4px; }
+  .color-row { display: flex; gap: 0; margin-top: 24px; border-radius: var(--radius); overflow: hidden; }
+  .color-swatch-sm { height: 48px; flex: 1; }
+  .color-row-label { font-size: 11px; color: var(--gray-moss); text-align: center; margin-top: 8px; }
+
+  /* ── TYPOGRAPHY ── */
+  .type-table { width: 100%; border-collapse: collapse; }
+  .type-table tr { border-bottom: 0.5px solid #E0E8E2; }
+  .type-table tr:last-child { border-bottom: none; }
+  .type-table td { padding: 20px 0; vertical-align: middle; }
+  .type-meta { width: 160px; }
+  .type-label { font-size: 10px; color: var(--gray-light); text-transform: uppercase; letter-spacing: 0.1em; }
+  .type-spec { font-size: 12px; color: var(--gray-moss); font-family: monospace; margin-top: 3px; }
+  .type-use { font-size: 10px; color: var(--green-dark); margin-top: 3px; }
+
+  /* ── TAGLINES ── */
+  .tagline-list { display: flex; flex-direction: column; gap: 12px; }
+  .tagline-item {
+    display: flex; align-items: flex-start; gap: 20px;
+    background: #fff;
+    border: 0.5px solid #E0E8E2;
+    border-left: 3px solid var(--green-primary);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 18px 22px;
+  }
+  .tagline-num { font-size: 11px; color: var(--green-primary); font-family: monospace; padding-top: 3px; min-width: 24px; }
+  .tagline-text { font-size: 16px; font-weight: 500; color: var(--black-tech); line-height: 1.4; }
+  .tagline-use { font-size: 11px; color: var(--gray-light); margin-top: 5px; }
+
+  /* ── ICONS ── */
+  .icon-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .icon-box {
+    width: 96px; height: 96px;
+    border: 0.5px solid #E0E8E2;
+    border-radius: var(--radius);
+    background: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  }
+  .icon-box svg { width: 32px; height: 32px; }
+  .icon-box span { font-size: 10px; color: var(--gray-moss); text-align: center; }
+
+  /* ── APP ICONS ── */
+  .app-icon-row { display: flex; gap: 28px; align-items: flex-end; flex-wrap: wrap; }
+  .app-icon-item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .app-icon-item > span { font-size: 11px; color: var(--gray-moss); }
+  .app-icon-item > small { font-size: 10px; color: var(--gray-light); font-family: monospace; }
+
+  /* ── SOCIAL ── */
+  .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .social-card { border-radius: var(--radius); overflow: hidden; border: 0.5px solid #E0E8E2; }
+  .social-preview { background: var(--black-tech); }
+  .social-meta { background: #fff; padding: 12px 16px; }
+  .social-meta-name { font-size: 12px; font-weight: 500; color: var(--black-tech); }
+  .social-meta-size { font-size: 10px; color: var(--gray-light); font-family: monospace; margin-top: 2px; }
+
+  /* Instagram post preview */
+  .ig-post {
+    aspect-ratio: 1;
+    padding: 28px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .ig-header { display: flex; align-items: center; gap: 10px; }
+  .ig-footer .category { font-size: 9px; color: var(--green-primary); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
+  .ig-footer .headline { font-size: 18px; font-weight: 600; color: #fff; line-height: 1.3; }
+  .ig-footer .headline span { color: var(--green-primary); }
+
+  /* LinkedIn banner */
+  .li-banner { aspect-ratio: 4/1; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .li-banner .brand-name { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+  .li-banner .brand-name span { color: var(--green-primary); }
+  .li-banner .brand-tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 4px; }
+
+  /* LinkedIn post */
+  .li-post { aspect-ratio: 1.91/1; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; }
+  .li-post .cat { font-size: 9px; color: var(--green-primary); letter-spacing: 0.14em; text-transform: uppercase; }
+  .li-post .headline { font-size: 20px; font-weight: 600; color: #fff; line-height: 1.3; }
+  .li-post .headline span { color: var(--green-primary); }
+  .li-post .brand { font-size: 10px; color: var(--gray-moss); }
+
+  /* Stories */
+  .stories-wrap { display: flex; justify-content: center; }
+  .story-card { width: 160px; border-radius: var(--radius); overflow: hidden; border: 0.5px solid #E0E8E2; }
+  .story-preview { background: var(--black-tech); aspect-ratio: 9/16; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; }
+  .story-meta { background: #fff; padding: 10px 12px; }
+
+  /* ── SPACING / GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── USAGE RULES ── */
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .rule-card {
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    border: 0.5px solid #E0E8E2;
+    background: #fff;
+  }
+  .rule-card.do { border-left: 3px solid var(--green-primary); }
+  .rule-card.dont { border-left: 3px solid #E24B4A; }
+  .rule-card .rule-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .rule-card.do .rule-label { color: var(--green-dark); }
+  .rule-card.dont .rule-label { color: #A32D2D; }
+  .rule-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .rule-card li { font-size: 13px; color: var(--gray-moss); padding-left: 14px; position: relative; }
+  .rule-card li::before { position: absolute; left: 0; }
+  .rule-card.do li::before { content: "✓"; color: var(--green-dark); }
+  .rule-card.dont li::before { content: "✗"; color: #A32D2D; }
+
+  /* ── PRINT ── */
+  @media print {
+    .cover { min-height: 100vh; }
+    .section { page-break-inside: avoid; }
+    body { background: #fff; }
+  }
+
+  /* ── TOC ── */
+  .toc { background: #fff; border-radius: var(--radius-lg); border: 0.5px solid #E0E8E2; padding: 36px 40px; margin-bottom: 60px; }
+  .toc-title { font-size: 14px; font-weight: 500; color: var(--black-tech); margin-bottom: 20px; letter-spacing: -0.01em; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .toc-list li { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--gray-moss); }
+  .toc-num { font-family: monospace; font-size: 11px; color: var(--green-dark); min-width: 28px; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted #D4E2D6; }
+  .toc-pg { font-size: 11px; font-family: monospace; color: var(--gray-light); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ CAPA ══════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">
+    <svg viewBox="0 0 56 56" width="52" height="52">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+      <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+      <line x1="28" y1="4" x2="28" y2="17" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+    </svg>
+    <div class="cover-wordmark">
+      <div class="cover-name">Almeida <span>Inteligência</span></div>
+      <div class="cover-tagline">Processos · IA · Resultados</div>
+    </div>
+  </div>
+
+  <div class="cover-center">
+    <div class="cover-title">Brand<br><span>Identity</span><br>System</div>
+    <div class="cover-subtitle">Guia completo de identidade visual</div>
+  </div>
+
+  <div class="cover-footer">
+    <div>
+      <div class="cover-footer-text">Almeida Inteligência — Análise e otimização de processos com IA</div>
+      <div class="cover-footer-text" style="margin-top:4px;">Uso interno e comunicação institucional</div>
+    </div>
+    <div class="cover-version">v1.0 · 2025</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CONTEÚDO ══════════════════════ -->
+<div class="page">
+
+  <!-- Índice -->
+  <div class="toc">
+    <div class="toc-title">Conteúdo</div>
+    <ul class="toc-list">
+      <li><span class="toc-num">01</span> Logotipo e símbolo <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">02</span> Paleta de cores <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">03</span> Tipografia <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">04</span> Taglines e voz da marca <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">05</span> Ícones de serviço <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">06</span> Ícone de app <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">07</span> Formatos para redes sociais <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+      <li><span class="toc-num">08</span> Regras de uso <span class="toc-dots"></span> <span class="toc-pg">—</span></li>
+    </ul>
+  </div>
+
+  <!-- ── 01 LOGO ── -->
+  <div class="section">
+    <div class="section-number">01 — Logotipo</div>
+    <h2 class="section-title">Logo e símbolo</h2>
+    <p class="section-desc">O símbolo é um hexágono com nós conectados internamente — referência a estrutura, precisão, redes e inteligência artificial. Use sempre nas proporções originais, sem distorcer.</p>
+
+    <div class="logo-grid">
+      <!-- Dark -->
+      <div>
+        <div class="logo-dark-box">
+          <div class="logo-combo">
+            <svg viewBox="0 0 56 56" width="52" height="52">
+              <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+              <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+              <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+              <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+              <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+              <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+              <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+              <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+              <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+              <line x1="28" y1="4" x2="28" y2="17" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+            </svg>
+            <div class="logo-text-dark">
+              <div class="name">Almeida <span>Inteligência</span></div>
+              <div class="tag">Processos · IA · Resultados</div>
+            </div>
+          </div>
+          <!-- Symbol only -->
+          <div class="logo-symbol-row">
+            <div class="symbol-item">
+              <svg viewBox="0 0 56 56" width="44" height="44">
+                <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+                <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+                <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+                <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+                <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+                <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+                <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+                <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+                <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+              </svg>
+              <span style="color:#5C6B5E;font-size:10px;">Símbolo</span>
+            </div>
+          </div>
+        </div>
+        <p class="logo-caption">Versão principal — fundo escuro (digital, apps, dark mode)</p>
+      </div>
+
+      <!-- Light -->
+      <div>
+        <div class="logo-light-box">
+          <div class="logo-combo">
+            <svg viewBox="0 0 56 56" width="52" height="52">
+              <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#18A558" stroke-width="1.5"/>
+              <circle cx="28" cy="20" r="3" fill="#18A558"/>
+              <circle cx="18" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+              <circle cx="38" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+              <circle cx="28" cy="36" r="2" fill="#18A558" opacity="0.5"/>
+              <line x1="28" y1="23" x2="18" y2="28" stroke="#18A558" stroke-width="0.8" opacity="0.6"/>
+              <line x1="28" y1="23" x2="38" y2="28" stroke="#18A558" stroke-width="0.8" opacity="0.6"/>
+              <line x1="18" y1="32" x2="28" y2="34" stroke="#18A558" stroke-width="0.8" opacity="0.4"/>
+              <line x1="38" y1="32" x2="28" y2="34" stroke="#18A558" stroke-width="0.8" opacity="0.4"/>
+              <line x1="28" y1="4" x2="28" y2="17" stroke="#18A558" stroke-width="0.8" opacity="0.4"/>
+            </svg>
+            <div class="logo-text-light">
+              <div class="name">Almeida <span>Inteligência</span></div>
+              <div class="tag">Processos · IA · Resultados</div>
+            </div>
+          </div>
+          <div class="logo-symbol-row">
+            <div class="symbol-item">
+              <svg viewBox="0 0 56 56" width="44" height="44">
+                <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#18A558" stroke-width="1.5"/>
+                <circle cx="28" cy="20" r="3" fill="#18A558"/>
+                <circle cx="18" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+                <circle cx="38" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+                <circle cx="28" cy="36" r="2" fill="#18A558" opacity="0.5"/>
+                <line x1="28" y1="23" x2="18" y2="28" stroke="#18A558" stroke-width="0.8" opacity="0.6"/>
+                <line x1="28" y1="23" x2="38" y2="28" stroke="#18A558" stroke-width="0.8" opacity="0.6"/>
+                <line x1="18" y1="32" x2="28" y2="34" stroke="#18A558" stroke-width="0.8" opacity="0.4"/>
+                <line x1="38" y1="32" x2="28" y2="34" stroke="#18A558" stroke-width="0.8" opacity="0.4"/>
+              </svg>
+              <span style="font-size:10px;color:#A8B8AA;">Símbolo</span>
+            </div>
+          </div>
+        </div>
+        <p class="logo-caption">Versão secundária — fundo claro (impressos, documentos, e-mail)</p>
+      </div>
+    </div>
+
+    <!-- Significado do símbolo -->
+    <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:24px 28px;margin-top:8px;">
+      <div style="font-size:13px;font-weight:500;color:var(--black-tech);margin-bottom:12px;">Significado do símbolo</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--green-dark);margin-bottom:4px;">Hexágono</div>
+          <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Estrutura, precisão, estabilidade — a base sólida dos processos.</div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--green-dark);margin-bottom:4px;">Nós conectados</div>
+          <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Redes, IA, inteligência distribuída — sistemas que se comunicam.</div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--green-dark);margin-bottom:4px;">Verde vibrante</div>
+          <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Inovação, crescimento, resultados — energia sobre fundo premium.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 02 CORES ── -->
+  <div class="section">
+    <div class="section-number">02 — Paleta de cores</div>
+    <h2 class="section-title">Cores da marca</h2>
+    <p class="section-desc">A paleta combina verde tecnológico vibrante com preto premium. O contraste alto transmite autoridade e modernidade. Use as cores primárias como âncora e as neutras para respiração visual.</p>
+
+    <div class="color-grid">
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#3DDB82;"></div>
+        <div class="color-info">
+          <div class="color-name">Verde IA</div>
+          <div class="color-hex">#3DDB82</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 61 · 219 · 130</div>
+          <div class="color-use">Destaque principal · ícones · CTAs</div>
+        </div>
+      </div>
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#18A558;"></div>
+        <div class="color-info">
+          <div class="color-name">Verde Almeida</div>
+          <div class="color-hex">#18A558</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 24 · 165 · 88</div>
+          <div class="color-use">Logo em fundo claro · botões</div>
+        </div>
+      </div>
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#0F7A40;"></div>
+        <div class="color-info">
+          <div class="color-name">Verde Profundo</div>
+          <div class="color-hex">#0F7A40</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 15 · 122 · 64</div>
+          <div class="color-use">Hover · bordas em fundo claro</div>
+        </div>
+      </div>
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#0A0F0A;"></div>
+        <div class="color-info">
+          <div class="color-name">Preto Tech</div>
+          <div class="color-hex">#0A0F0A</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 10 · 15 · 10</div>
+          <div class="color-use">Background premium · cover</div>
+        </div>
+      </div>
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#1A241C;"></div>
+        <div class="color-info">
+          <div class="color-name">Preto Verde</div>
+          <div class="color-hex">#1A241C</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 26 · 36 · 28</div>
+          <div class="color-use">Superfícies cards escuros</div>
+        </div>
+      </div>
+      <div class="color-chip">
+        <div class="color-swatch" style="background:#F7FAF7;border-bottom:0.5px solid #D4E2D6;"></div>
+        <div class="color-info">
+          <div class="color-name">Branco Frio</div>
+          <div class="color-hex">#F7FAF7</div>
+          <div style="font-size:11px;color:#A8B8AA;margin-top:2px;">RGB 247 · 250 · 247</div>
+          <div class="color-use">Backgrounds claros · documentos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ramp visual -->
+    <div style="margin-top:28px;">
+      <div style="font-size:11px;color:var(--gray-light);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Escala de verdes</div>
+      <div class="color-row">
+        <div class="color-swatch-sm" style="background:#C8F5DA;"></div>
+        <div class="color-swatch-sm" style="background:#8FEAAF;"></div>
+        <div class="color-swatch-sm" style="background:#3DDB82;"></div>
+        <div class="color-swatch-sm" style="background:#18A558;"></div>
+        <div class="color-swatch-sm" style="background:#0F7A40;"></div>
+        <div class="color-swatch-sm" style="background:#0A5530;"></div>
+        <div class="color-swatch-sm" style="background:#052E1A;"></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 03 TIPOGRAFIA ── -->
+  <div class="section">
+    <div class="section-number">03 — Tipografia</div>
+    <h2 class="section-title">Tipografia</h2>
+    <p class="section-desc">Fonte principal: <strong>Inter</strong> (Google Fonts, gratuita). Apenas dois pesos — 400 regular e 500/600 medium/semibold. Hierarquia clara e leitura eficiente em qualquer tela.</p>
+
+    <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);overflow:hidden;">
+      <table class="type-table" style="width:100%;padding:0 28px;">
+        <tbody>
+          <tr>
+            <td class="type-meta" style="padding:24px 0 24px 28px;">
+              <div class="type-label">Display</div>
+              <div class="type-spec">40px / 600</div>
+              <div class="type-use">Headlines de impacto</div>
+            </td>
+            <td style="padding:24px 28px 24px 0;">
+              <div style="font-size:36px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;color:var(--black-tech);">Processos inteligentes.</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="type-meta" style="padding:20px 0 20px 28px;">
+              <div class="type-label">Heading 1</div>
+              <div class="type-spec">24px / 600</div>
+              <div class="type-use">Títulos de seção</div>
+            </td>
+            <td style="padding:20px 28px 20px 0;">
+              <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;color:var(--black-tech);">Transforme seus processos com IA</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="type-meta" style="padding:20px 0 20px 28px;">
+              <div class="type-label">Heading 2</div>
+              <div class="type-spec">18px / 500</div>
+              <div class="type-use">Subtítulos</div>
+            </td>
+            <td style="padding:20px 28px 20px 0;">
+              <div style="font-size:18px;font-weight:500;color:var(--black-tech);">Análise e otimização de RH e operações</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="type-meta" style="padding:20px 0 20px 28px;">
+              <div class="type-label">Body</div>
+              <div class="type-spec">15px / 400</div>
+              <div class="type-use">Texto corrido</div>
+            </td>
+            <td style="padding:20px 28px 20px 0;">
+              <div style="font-size:15px;font-weight:400;line-height:1.7;color:var(--gray-moss);">Mapeamos, analisamos e automatizamos os processos internos da sua empresa. Usando inteligência artificial e sistemas integrados, entregamos eficiência real e mensurável.</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="type-meta" style="padding:20px 0 20px 28px;border-bottom:none;">
+              <div class="type-label">Caption</div>
+              <div class="type-spec">11px / 400</div>
+              <div class="type-use">Legendas · labels</div>
+            </td>
+            <td style="padding:20px 28px 20px 0;border-bottom:none;">
+              <div style="font-size:11px;color:var(--gray-light);letter-spacing:0.1em;text-transform:uppercase;">Processos · Tecnologia · Resultados</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:var(--white-cold);border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:18px 22px;margin-top:12px;">
+      <div style="font-size:12px;font-weight:500;color:var(--black-tech);margin-bottom:8px;">Como instalar a fonte</div>
+      <div style="font-size:12px;color:var(--gray-moss);line-height:1.6;">
+        <strong>Google Fonts (web):</strong> <code style="background:#E8F2EA;padding:2px 6px;border-radius:4px;font-size:11px;">fonts.google.com/specimen/Inter</code><br>
+        <strong>Canva / Figma:</strong> buscar "Inter" na biblioteca de fontes — já disponível.<br>
+        <strong>PowerPoint / Word:</strong> baixar e instalar via Google Fonts ou fontsource.io/packages/inter
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 04 TAGLINES ── -->
+  <div class="section">
+    <div class="section-number">04 — Taglines e voz da marca</div>
+    <h2 class="section-title">Taglines</h2>
+    <p class="section-desc">A voz da Almeida Inteligência é direta, estratégica e confiante. Evite jargão excessivo — foque em transformação real e resultado tangível.</p>
+
+    <div class="tagline-list">
+      <div class="tagline-item">
+        <div class="tagline-num">01</div>
+        <div>
+          <div class="tagline-text">"Inteligência que transforma processos."</div>
+          <div class="tagline-use">Tagline principal · LinkedIn, apresentações, proposta comercial, e-mail signature</div>
+        </div>
+      </div>
+      <div class="tagline-item">
+        <div class="tagline-num">02</div>
+        <div>
+          <div class="tagline-text">"Seu processo tem potencial. A gente ativa."</div>
+          <div class="tagline-use">Instagram, post de engajamento, pitch rápido, stories</div>
+        </div>
+      </div>
+      <div class="tagline-item">
+        <div class="tagline-num">03</div>
+        <div>
+          <div class="tagline-text">"IA aplicada. Resultado garantido."</div>
+          <div class="tagline-use">Anúncios digitais, banners, card de serviço, Google Ads</div>
+        </div>
+      </div>
+      <div class="tagline-item">
+        <div class="tagline-num">04</div>
+        <div>
+          <div class="tagline-text">"De processo lento a motor de crescimento."</div>
+          <div class="tagline-use">Storytelling, case de sucesso, apresentação de resultado, site hero</div>
+        </div>
+      </div>
+      <div class="tagline-item">
+        <div class="tagline-num">05</div>
+        <div>
+          <div class="tagline-text">"Processos · IA · Resultados"</div>
+          <div class="tagline-use">Subtítulo fixo da marca · rodapé, tagline do logo, bio Instagram/LinkedIn</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tom de voz -->
+    <div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:18px;">
+        <div style="font-size:13px;font-weight:500;color:var(--green-dark);margin-bottom:8px;">Estratégico</div>
+        <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Fala o idioma de quem decide. Foca em impacto de negócio, não em features técnicas.</div>
+      </div>
+      <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:18px;">
+        <div style="font-size:13px;font-weight:500;color:var(--green-dark);margin-bottom:8px;">Direto</div>
+        <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Frases curtas e assertivas. Vai direto ao problema e à solução. Sem enrolação.</div>
+      </div>
+      <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:18px;">
+        <div style="font-size:13px;font-weight:500;color:var(--green-dark);margin-bottom:8px;">Premium</div>
+        <div style="font-size:12px;color:var(--gray-moss);line-height:1.5;">Confiante sem ser arrogante. Comunica expertise com elegância e resultado concreto.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 05 ÍCONES ── -->
+  <div class="section">
+    <div class="section-number">05 — Ícones de serviço</div>
+    <h2 class="section-title">Ícones</h2>
+    <p class="section-desc">Use ícones da biblioteca <strong>Tabler Icons</strong> (tabler.io) — outline style, peso 1.5px, cor #18A558 em fundo claro ou #3DDB82 em fundo escuro. Consistência garantida em todos os canais.</p>
+
+    <div class="icon-grid">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="19" r="1"/>
+          <line x1="12" y1="12" x2="19" y2="5"/><line x1="12" y1="12" x2="5" y2="19"/>
+          <path d="M12 3c0 0 3 2 3 9s-3 9-3 9"/><path d="M9 12c0 0 2-3 9-3s9 3 9 3" transform="translate(-6,0)"/>
+        </svg>
+        <span>Análise</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12"/>
+          <path d="M12 7v5l3 3"/>
+        </svg>
+        <span>Processos</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>RH</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3h18v18H3z" rx="2"/>
+          <path d="M3 9h18"/><path d="M9 21V9"/>
+        </svg>
+        <span>Sistemas</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        <span>Resultados</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+        <span>IA</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+          <path d="M13 13h4M13 17h4M7 13h1M7 17h1"/>
+        </svg>
+        <span>Dashboard</span>
+      </div>
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#18A558" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <span>Inovação</span>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding:16px 20px;background:#F0F7F2;border-radius:var(--radius);font-size:12px;color:var(--gray-moss);">
+      <strong style="color:var(--green-deep);">Biblioteca recomendada:</strong> tabler.io/icons — mais de 5.800 ícones outline, gratuitos, SVG. Busque por: chart-dots, settings-automation, users, brain, route, trending-up, building-factory, rocket.
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 06 APP ICON ── -->
+  <div class="section">
+    <div class="section-number">06 — Ícone de app</div>
+    <h2 class="section-title">Ícone de aplicativo</h2>
+    <p class="section-desc">O ícone usa o símbolo hexagonal centralizado sobre fundo preto tech. Simplificado progressivamente para tamanhos menores — mantendo legibilidade mesmo em 16px.</p>
+
+    <div class="app-icon-row">
+      <div class="app-icon-item">
+        <div style="width:120px;height:120px;background:var(--black-tech);border-radius:28px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 56 56" width="76" height="76">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+            <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+            <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+            <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+            <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+            <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+            <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+          </svg>
+        </div>
+        <span>App Store</span>
+        <small>1024 × 1024</small>
+      </div>
+      <div class="app-icon-item">
+        <div style="width:80px;height:80px;background:var(--black-tech);border-radius:18px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 56 56" width="50" height="50">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+            <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+            <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+            <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+          </svg>
+        </div>
+        <span>192px</span>
+        <small>Android</small>
+      </div>
+      <div class="app-icon-item">
+        <div style="width:60px;height:60px;background:var(--black-tech);border-radius:14px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 56 56" width="38" height="38">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="2"/>
+            <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+            <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+          </svg>
+        </div>
+        <span>60px</span>
+        <small>iPhone</small>
+      </div>
+      <div class="app-icon-item">
+        <div style="width:40px;height:40px;background:var(--black-tech);border-radius:9px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 56 56" width="26" height="26">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="2.5"/>
+            <circle cx="28" cy="20" r="4" fill="#3DDB82"/>
+          </svg>
+        </div>
+        <span>40px</span>
+        <small>Notificação</small>
+      </div>
+      <div class="app-icon-item">
+        <div style="width:24px;height:24px;background:var(--black-tech);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 56 56" width="16" height="16">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="3"/>
+            <circle cx="28" cy="22" r="5" fill="#3DDB82"/>
+          </svg>
+        </div>
+        <span>Favicon</span>
+        <small>16 × 16</small>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 07 SOCIAL ── -->
+  <div class="section">
+    <div class="section-number">07 — Formatos para redes sociais</div>
+    <h2 class="section-title">Redes sociais</h2>
+    <p class="section-desc">Referência de formatos e aplicação da identidade nas principais plataformas. Use sempre o fundo preto tech como base e o verde IA como destaque de texto ou elemento.</p>
+
+    <div class="social-grid">
+      <!-- Instagram post -->
+      <div class="social-card">
+        <div class="ig-post social-preview">
+          <div class="ig-header">
+            <svg viewBox="0 0 56 56" width="24" height="24">
+              <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="2"/>
+              <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+              <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+              <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            </svg>
+            <span style="font-size:11px;color:var(--gray-moss);letter-spacing:0.1em;text-transform:uppercase;">Almeida Inteligência</span>
+          </div>
+          <div class="ig-footer">
+            <div class="category">Processos · IA</div>
+            <div class="headline">Seu processo tem potencial.<br><span>A gente ativa.</span></div>
+          </div>
+        </div>
+        <div class="social-meta">
+          <div class="social-meta-name">Post Instagram (feed)</div>
+          <div class="social-meta-size">1080 × 1080px · 1:1</div>
+        </div>
+      </div>
+
+      <!-- LinkedIn post -->
+      <div class="social-card">
+        <div class="li-post social-preview">
+          <div class="cat">Case de resultado</div>
+          <div>
+            <div class="headline">De processo lento a<br><span>motor de crescimento.</span></div>
+            <div class="brand" style="margin-top:10px;">Almeida Inteligência</div>
+          </div>
+        </div>
+        <div class="social-meta">
+          <div class="social-meta-name">Post LinkedIn</div>
+          <div class="social-meta-size">1200 × 628px · 1.91:1</div>
+        </div>
+      </div>
+
+      <!-- LinkedIn banner -->
+      <div class="social-card" style="grid-column:span 2;">
+        <div class="li-banner social-preview">
+          <div>
+            <div class="brand-name">Almeida <span>Inteligência</span></div>
+            <div class="brand-tag">Processos · IA · Resultados</div>
+          </div>
+          <svg viewBox="0 0 56 56" width="44" height="44">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+            <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+            <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+            <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+            <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+            <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="social-meta">
+          <div class="social-meta-name">Banner LinkedIn (capa do perfil)</div>
+          <div class="social-meta-size">1584 × 396px · 4:1</div>
+        </div>
+      </div>
+
+      <!-- Stories -->
+      <div class="social-card">
+        <div style="background:var(--black-tech);padding:20px;display:flex;flex-direction:column;justify-content:space-between;min-height:200px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:20px;height:20px;border:1.5px solid var(--green-primary);border-radius:50%;"></div>
+            <span style="font-size:10px;color:var(--gray-moss);">almeidainteligencia</span>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#fff;line-height:1.4;">IA aplicada.<br><span style="color:var(--green-primary);">Resultado garantido.</span></div>
+            <div style="font-size:9px;color:var(--gray-moss);margin-top:10px;text-align:center;letter-spacing:0.1em;">VER MAIS ↑</div>
+          </div>
+        </div>
+        <div class="social-meta">
+          <div class="social-meta-name">Stories / Reels</div>
+          <div class="social-meta-size">1080 × 1920px · 9:16</div>
+        </div>
+      </div>
+
+      <!-- WhatsApp / profile -->
+      <div class="social-card">
+        <div style="background:var(--black-tech);padding:20px;display:flex;align-items:center;justify-content:center;min-height:200px;">
+          <div style="width:100px;height:100px;background:var(--black-green);border-radius:50%;border:2px solid var(--green-primary);display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 56 56" width="56" height="56">
+              <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+              <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+              <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+              <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+              <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+              <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+            </svg>
+          </div>
+        </div>
+        <div class="social-meta">
+          <div class="social-meta-name">Foto de perfil (todas as redes)</div>
+          <div class="social-meta-size">400 × 400px · 1:1 · círculo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── 08 REGRAS ── -->
+  <div class="section">
+    <div class="section-number">08 — Regras de uso</div>
+    <h2 class="section-title">O que fazer e evitar</h2>
+    <p class="section-desc">Consistência é o que transforma uma identidade visual em uma marca reconhecível. Siga estas diretrizes para manter a força da marca em todos os canais.</p>
+
+    <div class="rule-grid">
+      <div class="rule-card do">
+        <div class="rule-label">✓ Faça</div>
+        <ul>
+          <li>Use sempre o logo na proporção original</li>
+          <li>Mantenha o espaço mínimo ao redor do logo</li>
+          <li>Use verde IA (#3DDB82) em fundo escuro</li>
+          <li>Use verde Almeida (#18A558) em fundo claro</li>
+          <li>Prefira a fonte Inter em comunicações digitais</li>
+          <li>Use ícones Tabler outline com espessura 1.5px</li>
+          <li>Mantenha o contraste alto entre texto e fundo</li>
+        </ul>
+      </div>
+      <div class="rule-card dont">
+        <div class="rule-label">✗ Evite</div>
+        <ul>
+          <li>Não distorça ou rotacione o logo</li>
+          <li>Não mude as cores do símbolo hexagonal</li>
+          <li>Não use o logo sobre fundos com baixo contraste</li>
+          <li>Não use outros tons de verde além da paleta</li>
+          <li>Não use fontes decorativas ou serifadas</li>
+          <li>Não adicione sombras ou efeitos no logo</li>
+          <li>Não use o símbolo menor que 16px de largura</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Espaçamento mínimo -->
+    <div style="background:#fff;border:0.5px solid #E0E8E2;border-radius:var(--radius);padding:24px 28px;margin-top:20px;">
+      <div style="font-size:13px;font-weight:500;color:var(--black-tech);margin-bottom:16px;">Espaço de proteção do logo</div>
+      <div style="display:flex;align-items:center;gap:32px;">
+        <div style="border:1.5px dashed #D4E2D6;padding:24px;border-radius:8px;display:inline-flex;align-items:center;gap:12px;">
+          <svg viewBox="0 0 56 56" width="36" height="36">
+            <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#18A558" stroke-width="1.5"/>
+            <circle cx="28" cy="20" r="3" fill="#18A558"/>
+            <circle cx="18" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+            <circle cx="38" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+          </svg>
+          <span style="font-size:15px;font-weight:600;color:var(--black-tech);">Almeida <span style="color:#18A558;">Inteligência</span></span>
+        </div>
+        <div style="font-size:12px;color:var(--gray-moss);line-height:1.6;">
+          A área tracejada representa o espaço mínimo de proteção.<br>
+          Nenhum elemento visual deve entrar nessa área.<br>
+          <strong style="color:var(--black-tech);">Mínimo:</strong> altura da letra "A" do logotipo em todos os lados.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div style="border-top:0.5px solid #E0E8E2;padding-top:32px;margin-top:40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg viewBox="0 0 56 56" width="24" height="24">
+        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#18A558" stroke-width="2"/>
+        <circle cx="28" cy="20" r="3" fill="#18A558"/>
+        <circle cx="18" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+        <circle cx="38" cy="30" r="2.5" fill="#18A558" opacity="0.7"/>
+      </svg>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--black-tech);">Almeida <span style="color:#18A558;">Inteligência</span></div>
+        <div style="font-size:10px;color:var(--gray-light);letter-spacing:0.1em;text-transform:uppercase;">Processos · IA · Resultados</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--gray-light);text-align:right;">
+      Brand Identity System v1.0 · 2025<br>
+      Uso interno e comunicação institucional
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
