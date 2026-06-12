@@ -197,6 +197,7 @@ def listar_usuarios(token=Depends(require_admin)):
 @app.post("/api/usuarios", status_code=201)
 def criar_usuario(body: UserCreate, token=Depends(require_admin)):
     senha_hash = bcrypt.hashpw(body.senha.encode(), bcrypt.gensalt()).decode()
+    conn = None
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -206,10 +207,12 @@ def criar_usuario(body: UserCreate, token=Depends(require_admin)):
         )
         new_id = cur.fetchone()["id"]
         conn.commit()
-        conn.close()
         return {"id": new_id, "mensagem": "Usuário criado"}
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.put("/api/usuarios/{user_id}")
@@ -274,6 +277,7 @@ def listar_perfis(token=Depends(require_admin)):
 @app.post("/api/perfis", status_code=201)
 def criar_perfil(body: PerfilCreate, token=Depends(require_admin)):
     slug = body.nome.lower().strip().replace(" ", "_")
+    conn = None
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -283,10 +287,12 @@ def criar_perfil(body: PerfilCreate, token=Depends(require_admin)):
         for sid in body.sistemas:
             cur.execute("INSERT INTO perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
         conn.commit()
-        conn.close()
         return {"id": perfil_id, "mensagem": "Perfil criado"}
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(status_code=409, detail="Perfil com esse nome já existe")
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.put("/api/perfis/{perfil_id}")

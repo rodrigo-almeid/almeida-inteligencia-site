@@ -23,12 +23,12 @@ def exportar_csv(db: Session = Depends(get_db), current_user: User = Depends(get
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # 3. Escreve o cabeçalho
-    writer.writerow(["Sistema", "Usuario", "Senha_Criptografada"])
+    # 3. Escreve o cabeçalho (senha não é exportada por segurança)
+    writer.writerow(["Sistema", "Usuario"])
 
-    # 4. Escreve as linhas de dados (Processamento leve)
+    # 4. Escreve as linhas de dados sem expor senhas
     for item in dados:
-        writer.writerow([item.sistema, item.usuario_sistema, item.senha_criptografada])
+        writer.writerow([item.sistema, item.usuario_sistema])
 
     # 5. Prepara o stream para envio
     output.seek(0)

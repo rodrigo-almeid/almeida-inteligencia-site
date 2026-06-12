@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.core.models import User
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "insecure-default-key")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY não definida. Defina a variável de ambiente.")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
