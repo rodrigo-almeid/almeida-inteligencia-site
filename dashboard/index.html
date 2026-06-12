@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal — Almeida Inteligência</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #3DDB82; --green-dark: #18A558; --green-deep: #0F7A40;
+      --black: #0A0F0A; --black-green: #1A241C;
+      --gray: #5C6B5E; --gray-light: #A8B8AA;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--black); color: #fff; min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 48px; height: 64px;
+      background: rgba(10,15,10,0.9); backdrop-filter: blur(12px);
+      border-bottom: 0.5px solid rgba(61,219,130,0.1);
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .topbar-logo .name { font-size: 15px; font-weight: 600; color: #fff; }
+    .topbar-logo .name span { color: var(--green); }
+    .topbar-logo .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
+    .topbar-right { display: flex; align-items: center; gap: 20px; }
+    .topbar-user { text-align: right; }
+    .topbar-user .name { font-size: 14px; font-weight: 500; }
+    .topbar-user .role { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 1px; }
+    .btn-logout {
+      background: transparent; border: 0.5px solid rgba(255,255,255,0.12);
+      color: var(--gray); font-size: 13px; font-family: 'Inter', sans-serif;
+      padding: 7px 16px; border-radius: 6px; cursor: pointer; transition: all .2s;
+    }
+    .btn-logout:hover { border-color: #E24B4A; color: #E24B4A; }
+
+    /* ── CONTEÚDO ── */
+    .content { padding: 100px 48px 60px; max-width: 1100px; margin: 0 auto; }
+
+    .greeting { margin-bottom: 48px; }
+    .greeting-time { font-size: 12px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; }
+    .greeting-name { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; }
+    .greeting-name span { color: var(--green); }
+    .greeting-sub { font-size: 15px; color: var(--gray); margin-top: 8px; }
+
+    /* ── MÓDULOS ── */
+    .modules-label {
+      font-size: 11px; color: var(--gray); text-transform: uppercase;
+      letter-spacing: 0.12em; margin-bottom: 20px;
+    }
+    .modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+    .module-card {
+      background: var(--black-green);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 28px;
+      cursor: pointer; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column;
+      transition: border-color .25s, transform .2s, background .2s;
+      position: relative; overflow: hidden;
+    }
+    .module-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at top left, rgba(61,219,130,0.06), transparent 60%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .module-card:hover { border-color: rgba(61,219,130,0.35); transform: translateY(-3px); }
+    .module-card:hover::before { opacity: 1; }
+
+    .module-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: rgba(61,219,130,0.08);
+      border: 0.5px solid rgba(61,219,130,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin-bottom: 20px;
+    }
+    .module-card.admin-card .module-icon { background: rgba(61,219,130,0.12); border-color: rgba(61,219,130,0.3); }
+
+    .module-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .module-desc { font-size: 13px; color: var(--gray); line-height: 1.6; flex: 1; }
+    .module-arrow {
+      margin-top: 20px; padding-top: 16px;
+      border-top: 0.5px solid rgba(255,255,255,0.06);
+      font-size: 12px; color: var(--green);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .module-arrow::after { content: '→'; transition: transform .2s; }
+    .module-card:hover .module-arrow::after { transform: translateX(4px); }
+
+    /* ── SEM ACESSO ── */
+    .no-access {
+      text-align: center; padding: 80px 20px;
+      color: var(--gray);
+    }
+    .no-access .icon { font-size: 48px; margin-bottom: 16px; }
+    .no-access h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    .no-access p { font-size: 14px; line-height: 1.6; }
+
+    @media (max-width: 768px) {
+      .topbar { padding: 0 20px; }
+      .content { padding: 88px 20px 40px; }
+      .modules-grid { grid-template-columns: 1fr; }
+      .greeting-name { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="/" class="topbar-logo">
+    <svg viewBox="0 0 56 56" width="28" height="28">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Portal de Sistemas</div>
+    </div>
+  </a>
+  <div class="topbar-right">
+    <div class="topbar-user">
+      <div class="name" id="topNome">—</div>
+      <div class="role" id="topPerfil">—</div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="content">
+  <div class="greeting">
+    <div class="greeting-time" id="greetingTime"></div>
+    <div class="greeting-name">Olá, <span id="greetingNome">—</span></div>
+    <div class="greeting-sub">Selecione um módulo para começar.</div>
+  </div>
+
+  <div class="modules-label">Seus módulos</div>
+  <div class="modules-grid" id="modulesGrid">
+    <div style="color:var(--gray);padding:40px 0;">Carregando...</div>
+  </div>
+</div>
+
+<script>
+  // Definição de todos os módulos disponíveis
+  const TODOS_MODULOS = [
+    {
+      slug: 'central_sistemas',
+      title: 'Central de Sistemas',
+      desc: 'Portal principal com acesso unificado a todas as ferramentas e microsserviços.',
+      icon: '🏠',
+      href: 'http://147.15.47.151:8000'
+    },
+    {
+      slug: 'gerenciador_credenciais',
+      title: 'Gerenciador de Credenciais',
+      desc: 'Governança e custódia de senhas corporativas com controle de acesso seguro.',
+      icon: '🔐',
+      href: '#'
+    },
+    {
+      slug: 'automacao_financeira',
+      title: 'Automação Financeira',
+      desc: 'Controle de lançamentos, amortizações e auditoria automatizada de movimentações.',
+      icon: '💰',
+      href: '#'
+    },
+    {
+      slug: 'classificador_emails',
+      title: 'Classificador de E-mails (IA)',
+      desc: 'Triagem automática de e-mails corporativos por urgência, categoria e filial.',
+      icon: '🤖',
+      href: '#'
+    },
+    {
+      slug: 'conciliacao_bancaria',
+      title: 'Conciliação Bancária',
+      desc: 'Robô RPA que cruza extratos e aponta divergências automaticamente.',
+      icon: '🏦',
+      href: '#'
+    },
+    {
+      slug: 'extracao_documentos',
+      title: 'Extração de Documentos',
+      desc: 'OCR e parsing de PDFs e notas fiscais, alimentando o banco sem digitação manual.',
+      icon: '📄',
+      href: '#'
+    },
+  ];
+
+  const MODULO_ADMIN = {
+    slug: 'admin',
+    title: 'Painel Administrativo',
+    desc: 'Gerencie usuários, perfis de acesso e permissões de todos os módulos do sistema.',
+    icon: '⚙️',
+    href: '/admin/',
+    admin: true
+  };
+
+  function getGreeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Bom dia';
+    if (h < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/';
+  }
+
+  function init() {
+    const token = localStorage.getItem('admin_token');
+    const nome  = localStorage.getItem('admin_nome');
+
+    if (!token) { window.location.href = '/'; return; }
+
+    // Decodifica token (sem verificação de assinatura — só leitura)
+    let payload;
+    try {
+      payload = JSON.parse(atob(token.split('.')[1]));
+    } catch(e) { logout(); return; }
+
+    // Verifica expiração
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      logout(); return;
+    }
+
+    const perfil = payload.perfil || '';
+    const menus  = payload.menus  || [];
+    const isAdmin = perfil === 'admin';
+
+    // Topbar
+    document.getElementById('topNome').textContent   = nome || payload.email;
+    document.getElementById('topPerfil').textContent = isAdmin ? 'Administrador' : perfil;
+
+    // Saudação
+    document.getElementById('greetingTime').textContent = getGreeting() + ',';
+    document.getElementById('greetingNome').textContent  = (nome || '').split(' ')[0] || 'usuário';
+
+    // Módulos visíveis
+    const visiveis = isAdmin
+      ? TODOS_MODULOS  // admin vê tudo
+      : TODOS_MODULOS.filter(m => menus.includes(m.slug));
+
+    const grid = document.getElementById('modulesGrid');
+
+    if (!visiveis.length && !isAdmin) {
+      grid.innerHTML = `
+        <div class="no-access" style="grid-column:1/-1;">
+          <div class="icon">🔒</div>
+          <h3>Nenhum módulo disponível</h3>
+          <p>Seu perfil ainda não tem acesso a nenhum módulo.<br>Entre em contato com o administrador.</p>
+        </div>`;
+      return;
+    }
+
+    const cards = visiveis.map(m => `
+      <a class="module-card" href="${m.href}">
+        <div class="module-icon">${m.icon}</div>
+        <div class="module-title">${m.title}</div>
+        <div class="module-desc">${m.desc}</div>
+        <div class="module-arrow">Acessar módulo</div>
+      </a>
+    `).join('');
+
+    // Card admin só para admins
+    const adminCard = isAdmin ? `
+      <a class="module-card admin-card" href="${MODULO_ADMIN.href}">
+        <div class="module-icon">${MODULO_ADMIN.icon}</div>
+        <div class="module-title">${MODULO_ADMIN.title}</div>
+        <div class="module-desc">${MODULO_ADMIN.desc}</div>
+        <div class="module-arrow">Acessar painel</div>
+      </a>` : '';
+
+    grid.innerHTML = cards + adminCard;
+  }
+
+  init();
+</script>
+</body>
+</html>

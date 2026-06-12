@@ -813,8 +813,8 @@
       if (!res.ok) { toast.style.display = 'block'; return; }
       localStorage.setItem('admin_token', data.token);
       localStorage.setItem('admin_nome', data.nome);
-      if (data.perfil === 'admin') {
-        window.location.href = '/admin/';
+      if (data.perfil === 'admin' || data.menus?.length > 0) {
+        window.location.href = '/dashboard/';
       } else {
         toast.textContent = `Bem-vindo, ${data.nome}!`;
         toast.style.background = 'rgba(61,219,130,0.1)';
