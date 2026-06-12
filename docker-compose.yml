@@ -25,6 +25,38 @@ services:
       - db
     restart: unless-stopped
 
+  email-db:
+    image: postgres:15-alpine
+    container_name: email-db
+    environment:
+      POSTGRES_DB: email_manager
+      POSTGRES_USER: email_user
+      POSTGRES_PASSWORD: email_pass_2025
+    volumes:
+      - email_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U email_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  email-backend:
+    build: ./email_classifier
+    container_name: email-backend
+    environment:
+      DATABASE_URL: "postgresql://email_user:email_pass_2025@email-db:5432/email_manager"
+      FERNET_SECRET_KEY: "_Vst7BJB0-lkH4_WBLn2K7OzOwBOS-pG49AYLlAKyuY="
+      JWT_SECRET_KEY: "f970d76284788d78273ab4bbe58e627190232299468af188c788eb973546148e"
+      JWT_ALGORITHM: "HS256"
+      JWT_EXPIRE_MINUTES: "480"
+    depends_on:
+      email-db:
+        condition: service_healthy
+    volumes:
+      - email_models:/app/models
+    restart: unless-stopped
+
   site:
     build: .
     container_name: almeida-inteligencia
@@ -32,7 +64,10 @@ services:
       - "8080:80"
     depends_on:
       - backend
+      - email-backend
     restart: unless-stopped
 
 volumes:
   almeida_pgdata:
+  email_pgdata:
+  email_models:

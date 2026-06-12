@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-950 text-white font-sans flex h-screen overflow-hidden">
+
+  <aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-screen flex-shrink-0 hidden lg:flex">
+    <div class="px-5 py-5 border-b border-gray-800 flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+        <i class="fa-solid fa-envelope-open-text text-sm"></i>
+      </div>
+      <span class="font-semibold text-sm">Email Manager</span>
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <a href="/email/dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-300 text-sm font-medium">
+        <i class="fa-solid fa-inbox w-4 text-center"></i> Caixa de E-mails
+      </a>
+      <button onclick="abrirModalContas()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
+        <i class="fa-solid fa-at w-4 text-center"></i> Contas IMAP
+      </button>
+      <button onclick="abrirModalTreinar()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
+        <i class="fa-solid fa-brain w-4 text-center"></i> Treinar IA
+      </button>
+      <button onclick="exportarDataset()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
+        <i class="fa-solid fa-file-export w-4 text-center"></i> Exportar Dataset
+      </button>
+    </nav>
+    <div class="px-3 py-4 border-t border-gray-800">
+      <div class="px-3 py-2 text-xs text-gray-500 mb-1" id="sidebar-usuario"></div>
+      <button onclick="fazerLogout()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/30 text-red-400 text-sm transition">
+        <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sair
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+
+    <header class="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-4 flex items-center gap-3 sticky top-0 z-10">
+      <i class="fa-solid fa-inbox text-indigo-400"></i>
+      <span class="font-semibold flex-1">Caixa de E-mails</span>
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+        <span id="badge-pendentes" class="hidden bg-yellow-900 text-yellow-300 text-xs px-2.5 py-1 rounded-full font-medium"></span>
+        <span id="badge-modelo" class="hidden text-xs px-2.5 py-1 rounded-full font-medium"></span>
+        <span id="badge-total" class="hidden bg-gray-800 text-gray-300 text-xs px-2.5 py-1 rounded-full"></span>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 w-full space-y-4">
+
+      <!-- Aviso sem contas -->
+      <div id="aviso-sem-conta" class="hidden bg-yellow-900/30 border border-yellow-700 rounded-xl p-4 flex items-center gap-3">
+        <i class="fa-solid fa-triangle-exclamation text-yellow-400 text-lg"></i>
+        <div>
+          <p class="text-sm font-medium text-yellow-300">Nenhuma conta IMAP configurada</p>
+          <p class="text-xs text-yellow-500 mt-0.5">Adicione uma conta para começar a extrair e-mails.</p>
+        </div>
+        <button onclick="abrirModalContas()" class="ml-auto bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-3 py-1.5 rounded-lg transition">
+          Configurar agora
+        </button>
+      </div>
+
+      <!-- Barra de ações -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-extrair" onclick="executarExtracao()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <i class="fa-solid fa-download"></i> Extrair E-mails
+        </button>
+        <button id="btn-classificar" onclick="executarClassificacao()"
+          class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 opacity-50 cursor-not-allowed"
+          disabled title="Treine o modelo antes de classificar">
+          <i class="fa-solid fa-brain"></i> Classificar E-mails
+        </button>
+        <div class="relative flex-1 min-w-[180px]">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+          <input id="campo-busca" type="text" placeholder="Buscar remetente ou assunto…" oninput="aplicarFiltros()"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500" />
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="flex flex-wrap gap-2">
+        <select id="filtro-conta" onchange="aplicarFiltros()"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+          <option value="">Todas as contas</option>
+        </select>
+        <select id="filtro-categoria" onchange="aplicarFiltros()"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+          <option value="">Todas as categorias</option>
+          <option value="VT">VT – Vale Transporte</option>
+          <option value="VR">VR – Vale Refeição</option>
+          <option value="Outros">Outros</option>
+        </select>
+        <select id="filtro-subcategoria" onchange="aplicarFiltros()"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+          <option value="">Todas as subcategorias</option>
+        </select>
+        <select id="filtro-sla" onchange="aplicarFiltros()"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+          <option value="">Todos os SLAs</option>
+          <option value="D+0">D+0 — Urgente</option>
+          <option value="D+1">D+1 — Próximo dia</option>
+          <option value="D+2">D+2 — Padrão</option>
+          <option value="D+3+">D+3+ — Baixa prioridade</option>
+        </select>
+        <select id="filtro-status" onchange="aplicarFiltros()"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+          <option value="">Todos os status</option>
+          <option value="novo">Novo</option>
+          <option value="classificado">Classificado</option>
+          <option value="nao_classificado">Não classificado</option>
+          <option value="tratado">Tratado</option>
+          <option value="ignorado">Ignorado</option>
+        </select>
+        <button onclick="limparFiltros()"
+          class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+          <i class="fa-solid fa-xmark text-xs"></i> Limpar
+        </button>
+      </div>
+
+      <!-- Tabela -->
+      <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
+              <th class="text-left px-4 py-3 whitespace-nowrap">Data</th>
+              <th class="text-left px-4 py-3">Conta</th>
+              <th class="text-left px-4 py-3">Remetente</th>
+              <th class="text-left px-4 py-3">Assunto</th>
+              <th class="text-center px-4 py-3">Categoria</th>
+              <th class="text-center px-4 py-3">Subcategoria</th>
+              <th class="text-center px-4 py-3">SLA</th>
+              <th class="text-center px-4 py-3">Status</th>
+              <th class="text-center px-4 py-3">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr><td colspan="9" class="text-center py-16 text-gray-500">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      <div id="paginacao" class="flex items-center justify-between text-sm text-gray-400 hidden">
+        <span id="pag-info"></span>
+        <div class="flex gap-2">
+          <button id="btn-prev" onclick="mudarPagina(-1)"
+            class="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg transition">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button id="btn-next" onclick="mudarPagina(1)"
+            class="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg transition">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL PROGRESSO (extração e classificação) -->
+  <div id="modal-progresso" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg flex flex-col" style="max-height:80vh">
+      <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-800">
+        <i id="progresso-icone" class="fa-solid fa-download text-indigo-400"></i>
+        <h3 id="progresso-titulo" class="text-base font-semibold flex-1"></h3>
+        <span id="progresso-pill" class="text-xs text-gray-500 animate-pulse">em andamento…</span>
+      </div>
+      <div id="progresso-log" class="flex-1 overflow-y-auto px-5 py-3 font-mono text-xs bg-gray-950" style="min-height:220px;max-height:420px"></div>
+      <div id="progresso-rodape" class="hidden px-6 py-4 border-t border-gray-800 flex justify-end">
+        <button onclick="fecharModalProgresso()" id="progresso-btn-fechar"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition">
+          <i class="fa-solid fa-check mr-1"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONTAS IMAP -->
+  <div id="modal-contas" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg flex flex-col" style="max-height:90vh">
+      <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-800">
+        <i class="fa-solid fa-at text-indigo-400"></i>
+        <h3 class="text-base font-semibold flex-1">Contas IMAP</h3>
+        <button onclick="fecharModalContas()" class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
+      </div>
+      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3" id="lista-contas">
+        <p class="text-gray-500 text-sm">Carregando…</p>
+      </div>
+      <div class="px-6 py-4 border-t border-gray-800">
+        <button onclick="abrirFormConta()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-2.5 rounded-lg font-medium transition">
+          <i class="fa-solid fa-plus mr-1"></i> Adicionar Conta
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FORM CONTA -->
+  <div id="modal-form-conta" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md p-6">
+      <h3 class="text-base font-semibold mb-4" id="form-conta-titulo">Nova Conta IMAP</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Nome / Apelido</label>
+          <input id="fc-nome" type="text" placeholder="Ex: Gmail RH, Outlook Benefícios"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Provedor</label>
+          <select id="fc-provider" onchange="preencherServidorPadrao()"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <option value="gmail">Gmail</option>
+            <option value="outlook">Outlook / Office 365</option>
+            <option value="other">Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">E-mail</label>
+          <input id="fc-email" type="email" placeholder="seu@email.com"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">App Password / Senha</label>
+          <div class="relative">
+            <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:border-indigo-500" />
+            <button type="button" onclick="toggleSenhaForm()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+              <i id="fc-eye" class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Gmail: use uma <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-indigo-400 hover:underline">App Password</a>. Outlook: ative IMAP nas configurações da conta.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="text-xs text-gray-400 block mb-1">Servidor IMAP</label>
+            <input id="fc-server" type="text" value="imap.gmail.com"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 block mb-1">Porta</label>
+            <input id="fc-port" type="number" value="993"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+        <div id="fc-erro" class="hidden text-red-400 text-xs pt-1"></div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button onclick="fecharFormConta()"
+          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Cancelar</button>
+        <button onclick="salvarConta()"
+          class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-sm py-2.5 rounded-lg font-medium transition">
+          <i class="fa-solid fa-floppy-disk mr-1"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TREINAR -->
+  <div id="modal-treinar" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md p-6">
+      <h3 class="text-lg font-semibold mb-1">Treinar Modelo de IA</h3>
+      <p class="text-xs text-gray-400 mb-4">O modelo aprende com os e-mails que tiverem subcategoria e SLA definidos. Mínimo 5 por classe.</p>
+      <div id="treinar-status" class="hidden bg-gray-800 rounded-xl p-4 mb-4 space-y-2 text-sm"></div>
+      <div class="bg-blue-900/30 border border-blue-700 rounded-xl p-3 mb-4 text-xs text-blue-300 flex items-start gap-2">
+        <i class="fa-solid fa-circle-info mt-0.5"></i>
+        <span>Quanto mais e-mails classificados manualmente, maior a precisão da IA.</span>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="fecharModalTreinar()"
+          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Fechar</button>
+        <button id="btn-confirmar-treinar" onclick="executarTreinamento()"
+          class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-sm py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-brain"></i> Iniciar Treinamento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALHE -->
+  <div id="modal-detalhe" class="hidden fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl p-6 mt-8">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1 pr-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span id="det-gerencial-badge" class="hidden bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded-full font-medium">
+              <i class="fa-solid fa-circle-exclamation mr-1"></i>GERENCIAL
+            </span>
+          </div>
+          <h3 class="text-base font-semibold" id="det-assunto"></h3>
+          <p class="text-xs text-gray-400 mt-1">De: <span id="det-remetente" class="text-gray-300"></span></p>
+          <p class="text-xs text-gray-400">Data: <span id="det-data" class="text-gray-300"></span></p>
+        </div>
+        <button onclick="fecharDetalhe()" class="text-gray-500 hover:text-white text-xl leading-none flex-shrink-0">✕</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Categoria</label>
+          <select id="det-categoria" onchange="atualizarSubcategoriasModal()"
+            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
+            <option value="">— Sem categoria —</option>
+            <option value="VT">VT – Vale Transporte</option>
+            <option value="VR">VR – Vale Refeição</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">SLA</label>
+          <select id="det-sla"
+            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
+            <option value="">— Sem SLA —</option>
+            <option value="D+0">D+0 — Urgente</option>
+            <option value="D+1">D+1 — Próximo dia útil</option>
+            <option value="D+2">D+2 — Até 2 dias úteis</option>
+            <option value="D+3+">D+3+ — Baixa prioridade</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs text-gray-400 block mb-1">Subcategoria</label>
+          <select id="det-subcategoria"
+            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Gerencial</label>
+          <select id="det-gerencial"
+            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
+            <option value="nao">Não</option>
+            <option value="sim">Sim — Alta prioridade</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Status</label>
+          <select id="det-status"
+            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
+            <option value="novo">Novo</option>
+            <option value="classificado">Classificado</option>
+            <option value="nao_classificado">Não classificado</option>
+            <option value="tratado">Tratado</option>
+            <option value="ignorado">Ignorado</option>
+          </select>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-xl p-4 text-sm text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto leading-relaxed" id="det-corpo"></div>
+      <div class="flex gap-3 mt-5">
+        <button onclick="fecharDetalhe()"
+          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Fechar</button>
+        <button onclick="salvarClassificacao()"
+          class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-sm py-2.5 rounded-lg font-medium transition">
+          <i class="fa-solid fa-floppy-disk mr-1"></i> Salvar classificação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden">
+    <div id="toast-msg" class="bg-gray-800 border border-gray-700 text-sm text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2"></div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
