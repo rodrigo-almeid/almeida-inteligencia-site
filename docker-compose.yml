@@ -1,0 +1,7 @@
+services:
+  almeida-site:
+    build: .
+    container_name: almeida-inteligencia
+    ports:
+      - "80:80"
+    restart: unless-stopped

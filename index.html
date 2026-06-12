@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Almeida Inteligência — Processos · IA · Resultados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-primary: #3DDB82;
+      --green-dark: #18A558;
+      --green-deep: #0F7A40;
+      --black-tech: #0A0F0A;
+      --black-green: #1A241C;
+      --gray-moss: #5C6B5E;
+      --gray-light: #A8B8AA;
+      --white-cold: #F7FAF7;
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--black-tech);
+      color: #fff;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 60px;
+      background: rgba(10,15,10,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 0.5px solid rgba(61,219,130,0.1);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+    .nav-wordmark .name { font-size: 17px; font-weight: 600; color: #fff; letter-spacing: -0.02em; }
+    .nav-wordmark .name span { color: var(--green-primary); }
+    .nav-wordmark .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 2px; }
+    .nav-links { display: flex; align-items: center; gap: 36px; }
+    .nav-links a { color: var(--gray-moss); font-size: 14px; text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--green-primary); }
+    .btn-area {
+      background: transparent;
+      border: 1px solid var(--green-primary);
+      color: var(--green-primary);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background .2s, color .2s;
+    }
+    .btn-area:hover { background: var(--green-primary); color: var(--black-tech); }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; font-weight: 500; color: var(--green-dark);
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .section-title span { color: var(--green-primary); }
+    .section-sub {
+      font-size: 16px; color: var(--gray-moss); line-height: 1.7; max-width: 620px;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 140px;
+      padding-bottom: 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-left: 60px;
+      padding-right: 60px;
+      position: relative;
+    }
+    .hero-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(61,219,130,0.08);
+      border: 0.5px solid rgba(61,219,130,0.25);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px; color: var(--green-primary);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .hero-kicker::before { content: ''; width: 6px; height: 6px; background: var(--green-primary); border-radius: 50%; }
+    .hero-h1 {
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 28px;
+      max-width: 800px;
+    }
+    .hero-h1 span { color: var(--green-primary); }
+    .hero-p {
+      font-size: 18px; color: var(--gray-moss); line-height: 1.7;
+      max-width: 600px; margin-bottom: 48px;
+    }
+    .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--green-primary);
+      color: var(--black-tech);
+      font-size: 15px; font-weight: 600;
+      padding: 14px 32px; border-radius: 8px;
+      border: none; cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: background .2s, transform .15s;
+    }
+    .btn-primary:hover { background: #5FEAA0; transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--gray-light);
+      font-size: 15px; font-weight: 500;
+      padding: 14px 32px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-secondary:hover { border-color: var(--green-primary); color: var(--green-primary); }
+    .hero-stats {
+      display: flex; gap: 48px; margin-top: 80px;
+      padding-top: 40px; border-top: 0.5px solid rgba(255,255,255,0.07);
+      flex-wrap: wrap;
+    }
+    .stat-num { font-size: 32px; font-weight: 600; color: var(--green-primary); letter-spacing: -0.03em; }
+    .stat-label { font-size: 13px; color: var(--gray-moss); margin-top: 4px; }
+
+    /* grid bg decoration */
+    .hero-grid {
+      position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: -1;
+    }
+    .hero-grid svg { position: absolute; right: -100px; top: 50%; transform: translateY(-50%); opacity: 0.07; }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 0.5px solid rgba(255,255,255,0.07); margin: 0 60px; }
+
+    /* ── SOBRE ── */
+    #sobre { padding-top: 100px; }
+    .sobre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-top: 60px; align-items: start; }
+    .sobre-text { font-size: 16px; color: var(--gray-moss); line-height: 1.8; }
+    .sobre-text p + p { margin-top: 20px; }
+    .sobre-cards { display: flex; flex-direction: column; gap: 16px; }
+    .sobre-card {
+      background: var(--black-green);
+      border: 0.5px solid rgba(61,219,130,0.15);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+    }
+    .sobre-card-num { font-size: 11px; color: var(--green-primary); font-family: monospace; margin-bottom: 8px; }
+    .sobre-card-title { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 8px; }
+    .sobre-card-desc { font-size: 13px; color: var(--gray-moss); line-height: 1.6; }
+
+    /* ── SERVIÇOS ── */
+    #servicos { padding-top: 100px; }
+    .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
+    .service-card {
+      background: var(--black-green);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: border-color .25s, transform .2s;
+    }
+    .service-card:hover { border-color: rgba(61,219,130,0.35); transform: translateY(-3px); }
+    .service-icon {
+      width: 48px; height: 48px;
+      background: rgba(61,219,130,0.08);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .service-icon svg { width: 22px; height: 22px; }
+    .service-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+    .service-desc { font-size: 14px; color: var(--gray-moss); line-height: 1.6; }
+
+    /* ── PORTFOLIO ── */
+    #portfolio { padding-top: 100px; }
+    .portfolio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 56px; }
+    .case-card {
+      background: var(--black-green);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex; flex-direction: column;
+      transition: border-color .25s;
+    }
+    .case-card:hover { border-color: rgba(61,219,130,0.3); }
+    .case-num { font-size: 10px; color: var(--green-primary); font-family: monospace; letter-spacing: 0.1em; margin-bottom: 14px; }
+    .case-title { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 12px; line-height: 1.3; }
+    .case-desc { font-size: 13px; color: var(--gray-moss); line-height: 1.6; flex: 1; }
+    .case-tag {
+      margin-top: 20px; padding-top: 16px; border-top: 0.5px solid rgba(255,255,255,0.07);
+      font-size: 11px; color: var(--green-dark); letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ── DEPOIMENTOS ── */
+    #depoimentos {
+      padding-top: 100px;
+      background: var(--black-green);
+      max-width: 100%;
+      padding-left: 0; padding-right: 0;
+    }
+    #depoimentos > .inner { max-width: 1200px; margin: 0 auto; padding: 100px 60px; }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 56px; }
+    .testimonial-card {
+      background: var(--black-tech);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+    }
+    .testimonial-quote { font-size: 15px; color: var(--gray-light); line-height: 1.7; margin-bottom: 28px; font-style: italic; }
+    .testimonial-footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+    .testimonial-author .name { font-size: 14px; font-weight: 600; color: #fff; }
+    .testimonial-author .role { font-size: 12px; color: var(--gray-moss); margin-top: 2px; }
+    .testimonial-metric {
+      background: rgba(61,219,130,0.08);
+      border: 0.5px solid rgba(61,219,130,0.2);
+      border-radius: 8px;
+      padding: 8px 14px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .testimonial-metric span { font-size: 15px; font-weight: 600; color: var(--green-primary); display: block; }
+    .testimonial-metric small { font-size: 10px; color: var(--gray-moss); }
+
+    /* ── CTA FINAL ── */
+    #cta { padding: 120px 60px; text-align: center; }
+    #cta .section-title { font-size: 52px; }
+    #cta .section-sub { margin: 0 auto; margin-top: 20px; }
+    .cta-btns { display: flex; gap: 16px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 0.5px solid rgba(255,255,255,0.07);
+      padding: 40px 60px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 12px; }
+    .footer-brand .name { font-size: 14px; font-weight: 600; color: #fff; }
+    .footer-brand .name span { color: var(--green-primary); }
+    .footer-brand .tag { font-size: 10px; color: var(--gray-moss); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+    .footer-copy { font-size: 12px; color: var(--gray-moss); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--black-green);
+      border: 0.5px solid rgba(61,219,130,0.2);
+      border-radius: var(--radius-lg);
+      padding: 48px 40px;
+      width: 420px; max-width: 90vw;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none; color: var(--gray-moss);
+      font-size: 22px; cursor: pointer; line-height: 1;
+    }
+    .modal-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .modal-title { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: var(--gray-moss); line-height: 1.5; margin-bottom: 28px; }
+    .field { margin-bottom: 16px; }
+    .field label { font-size: 12px; color: var(--gray-moss); display: block; margin-bottom: 6px; letter-spacing: 0.04em; }
+    .field input {
+      width: 100%; background: rgba(255,255,255,0.05);
+      border: 0.5px solid rgba(255,255,255,0.12);
+      border-radius: 8px; padding: 12px 16px;
+      color: #fff; font-size: 14px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .field input:focus { border-color: var(--green-primary); }
+    .field input::placeholder { color: var(--gray-moss); }
+    .btn-login {
+      width: 100%; background: var(--green-primary);
+      color: var(--black-tech); font-size: 14px; font-weight: 600;
+      padding: 13px; border-radius: 8px; border: none;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      margin-top: 8px; transition: background .2s;
+    }
+    .btn-login:hover { background: #5FEAA0; }
+    .modal-toast {
+      margin-top: 12px; padding: 10px 14px;
+      background: rgba(226,75,74,0.1);
+      border: 0.5px solid rgba(226,75,74,0.3);
+      border-radius: 8px;
+      font-size: 13px; color: #E24B4A;
+      display: none;
+    }
+    .modal-loading {
+      margin-top: 12px; font-size: 13px; color: var(--gray-moss);
+      display: none; text-align: center;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      section { padding: 70px 24px; }
+      #hero { padding: 120px 24px 60px; }
+      .sobre-grid { grid-template-columns: 1fr; gap: 40px; }
+      .services-grid { grid-template-columns: 1fr 1fr; }
+      .portfolio-grid { grid-template-columns: 1fr 1fr; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      #cta { padding: 80px 24px; }
+      #cta .section-title { font-size: 36px; }
+      footer { padding: 30px 24px; }
+      .divider { margin: 0 24px; }
+      #depoimentos > .inner { padding: 70px 24px; }
+    }
+    @media (max-width: 600px) {
+      .services-grid { grid-template-columns: 1fr; }
+      .portfolio-grid { grid-template-columns: 1fr; }
+      .hero-stats { gap: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ NAV ══════════════════ -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 56 56" width="36" height="36">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+      <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+    </svg>
+    <div class="nav-wordmark">
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Processos · IA · Resultados</div>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a href="#sobre">Sobre</a>
+    <a href="#servicos">Serviços</a>
+    <a href="#portfolio">Portfólio</a>
+    <a href="#depoimentos">Clientes</a>
+  </div>
+  <button class="btn-area" onclick="openModal()">Área do Cliente</button>
+</nav>
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<section id="hero" style="position:relative;">
+  <div class="hero-grid">
+    <svg viewBox="0 0 600 600" width="700" height="700" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#3DDB82"/>
+          <stop offset="100%" stop-color="#3DDB82" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <!-- Hexagonal grid pattern -->
+      <g stroke="#3DDB82" stroke-width="0.5" fill="none">
+        <polygon points="300,40 480,140 480,340 300,440 120,340 120,140"/>
+        <polygon points="300,100 430,172 430,316 300,388 170,316 170,172"/>
+        <polygon points="300,160 380,204 380,292 300,336 220,292 220,204"/>
+        <circle cx="300" cy="200" r="5" fill="#3DDB82"/>
+        <circle cx="220" cy="250" r="4" fill="#3DDB82" opacity="0.6"/>
+        <circle cx="380" cy="250" r="4" fill="#3DDB82" opacity="0.6"/>
+        <circle cx="260" cy="310" r="3" fill="#3DDB82" opacity="0.4"/>
+        <circle cx="340" cy="310" r="3" fill="#3DDB82" opacity="0.4"/>
+        <line x1="300" y1="205" x2="220" y2="246" stroke="#3DDB82" stroke-width="0.8" opacity="0.5"/>
+        <line x1="300" y1="205" x2="380" y2="246" stroke="#3DDB82" stroke-width="0.8" opacity="0.5"/>
+        <line x1="220" y1="254" x2="260" y2="307" stroke="#3DDB82" stroke-width="0.8" opacity="0.3"/>
+        <line x1="380" y1="254" x2="340" y2="307" stroke="#3DDB82" stroke-width="0.8" opacity="0.3"/>
+        <line x1="260" y1="313" x2="340" y2="313" stroke="#3DDB82" stroke-width="0.8" opacity="0.2"/>
+        <circle cx="300" cy="40" r="3" fill="#3DDB82" opacity="0.3"/>
+        <circle cx="480" cy="140" r="3" fill="#3DDB82" opacity="0.3"/>
+        <circle cx="480" cy="340" r="3" fill="#3DDB82" opacity="0.3"/>
+        <circle cx="300" cy="440" r="3" fill="#3DDB82" opacity="0.3"/>
+        <circle cx="120" cy="340" r="3" fill="#3DDB82" opacity="0.3"/>
+        <circle cx="120" cy="140" r="3" fill="#3DDB82" opacity="0.3"/>
+        <line x1="300" y1="43" x2="300" y2="195" stroke="#3DDB82" stroke-width="0.5" opacity="0.2"/>
+        <line x1="477" y1="143" x2="383" y2="247" stroke="#3DDB82" stroke-width="0.5" opacity="0.2"/>
+        <line x1="477" y1="337" x2="383" y2="253" stroke="#3DDB82" stroke-width="0.5" opacity="0.2"/>
+      </g>
+      <circle cx="300" cy="240" r="120" fill="url(#glow)" opacity="0.15"/>
+    </svg>
+  </div>
+
+  <div class="hero-kicker">IA · Automação · Software Sob Medida</div>
+
+  <h1 class="hero-h1">
+    Transforme dados em<br>eficiência com
+    <span>Automação<br>Inteligente</span>
+  </h1>
+
+  <p class="hero-p">
+    Desenvolvemos ecossistemas de software sob medida, integrando Inteligência Artificial,
+    automação de fluxos corporativos e segurança robusta para acelerar o crescimento do seu negócio.
+  </p>
+
+  <div class="hero-ctas">
+    <button class="btn-primary" onclick="document.getElementById('servicos').scrollIntoView({behavior:'smooth'})">
+      Conhecer Soluções
+    </button>
+    <button class="btn-secondary" onclick="openModal()">Área do Cliente</button>
+  </div>
+
+  <div class="hero-stats">
+    <div>
+      <div class="stat-num">6+</div>
+      <div class="stat-label">Sistemas entregues</div>
+    </div>
+    <div>
+      <div class="stat-num">30h</div>
+      <div class="stat-label">Economizadas por semana</div>
+    </div>
+    <div>
+      <div class="stat-num">100%</div>
+      <div class="stat-label">Conformidade e segurança</div>
+    </div>
+    <div>
+      <div class="stat-num">0</div>
+      <div class="stat-label">Erros humanos em clientes</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════ SOBRE ══════════════════ -->
+<section id="sobre">
+  <div class="section-label">02 — Sobre a empresa</div>
+  <h2 class="section-title">Inteligência e Engenharia de Software<br><span>Orientadas a Resultados</span></h2>
+
+  <div class="sobre-grid">
+    <div class="sobre-text">
+      <p>
+        Na Almeida Inteligência, acreditamos que o capital humano deve ser direcionado para a estratégia,
+        não para tarefas operacionais mecânicas. Nascemos com o propósito de blindar empresas contra a
+        ineficiência através da engenharia de software avançada e da automação inteligente de processos (RPA).
+      </p>
+      <p>
+        Mapeamos fluxos complexos de trabalho, diagnosticamos gargalos e construímos sistemas unificados
+        que centralizam operações, analisam dados em tempo real e executam rotinas automáticas com precisão
+        matemática.
+      </p>
+      <p>
+        De classificadores inteligentes orientados por IA a gerenciadores de alta segurança, criamos as
+        ferramentas que moldam o futuro do seu negócio.
+      </p>
+    </div>
+
+    <div class="sobre-cards">
+      <div class="sobre-card">
+        <div class="sobre-card-num">01 —</div>
+        <div class="sobre-card-title">Estratégico por natureza</div>
+        <div class="sobre-card-desc">Falamos o idioma de quem decide. Foco em impacto de negócio, não em features técnicas.</div>
+      </div>
+      <div class="sobre-card">
+        <div class="sobre-card-num">02 —</div>
+        <div class="sobre-card-title">Direto e assertivo</div>
+        <div class="sobre-card-desc">Diagnóstico rápido, entrega precisa. Sem enrolação, sem promessas vazias.</div>
+      </div>
+      <div class="sobre-card">
+        <div class="sobre-card-num">03 —</div>
+        <div class="sobre-card-title">Premium e confiável</div>
+        <div class="sobre-card-desc">Expertise que se traduz em resultado concreto e mensurável para cada cliente.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════ SERVIÇOS ══════════════════ -->
+<section id="servicos">
+  <div class="section-label">03 — Especialidades</div>
+  <h2 class="section-title">O que fazemos por<br><span>você</span></h2>
+  <p class="section-sub">Verticais técnicas de automação de processos corporativos, desenhadas para empresas que não toleram ineficiência.</p>
+
+  <div class="services-grid">
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="service-title">Automação de Workflows Corporativos</div>
+      <div class="service-desc">Eliminação completa de planilhas manuais e retrabalho. Esteiras automatizadas que realizam cálculos complexos, gerenciam status e disparam notificações sem intervenção humana.</div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+      </div>
+      <div class="service-title">Inteligência Artificial e Classificação de Dados</div>
+      <div class="service-desc">Algoritmos de NLP para triagem automática de e-mails, documentos e mensagens, direcionando demandas por urgência e filial de forma autônoma.</div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="service-title">Segurança da Informação e Gestão de Credenciais</div>
+      <div class="service-desc">Ambientes criptografados e controle de acesso RBAC, garantindo que dados confidenciais e senhas corporativas fiquem centralizados e protegidos.</div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+        </svg>
+      </div>
+      <div class="service-title">Integração de APIs e Sistemas Legados</div>
+      <div class="service-desc">Conexão nativa entre plataformas, bancos de dados relacionais e microsserviços modernos, garantindo que a informação flua de ponta a ponta.</div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+          <path d="M13 13h4M13 17h4"/>
+        </svg>
+      </div>
+      <div class="service-title">Portais e Sistemas Unificados</div>
+      <div class="service-desc">Desenvolvimento de portais corporativos centralizados com RBAC, unificando microsserviços em uma única interface visual moderna e responsiva.</div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3DDB82" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+      </div>
+      <div class="service-title">Automação Financeira e Auditoria</div>
+      <div class="service-desc">Plataformas de inteligência financeira com cálculo dinâmico, conciliação bancária automatizada e e-mails de auditoria criptografada em tempo real.</div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════ PORTFOLIO ══════════════════ -->
+<section id="portfolio">
+  <div class="section-label">04 — Cases de sucesso</div>
+  <h2 class="section-title">Portfólio de<br><span>Soluções</span></h2>
+  <p class="section-sub">Projetos reais construídos para resolver problemas complexos com precisão e escala.</p>
+
+  <div class="portfolio-grid">
+
+    <div class="case-card">
+      <div class="case-num">CASE 01 · PORTAL</div>
+      <div class="case-title">Central Unificada de Sistemas</div>
+      <div class="case-desc">Portal corporativo centralizado com arquitetura RBAC. Menus e ferramentas exibidos dinamicamente por nível de permissão, unificando microsserviços em uma única interface moderna com sidebar retrátil.</div>
+      <div class="case-tag">RBAC · Microsserviços · UX</div>
+    </div>
+
+    <div class="case-card">
+      <div class="case-num">CASE 02 · SEGURANÇA</div>
+      <div class="case-title">Gerenciador Inteligente de Credenciais</div>
+      <div class="case-desc">Sistema avançado de governança e custódia de senhas corporativas por cliente. Interface de seleção veloz com combobox ativa e cópia segura baseada em atributos ocultos, mitigando vazamentos.</div>
+      <div class="case-tag">Criptografia · Governança · RPA</div>
+    </div>
+
+    <div class="case-card">
+      <div class="case-num">CASE 03 · FINANCEIRO</div>
+      <div class="case-title">Automação Financeira e Auditoria</div>
+      <div class="case-desc">Motor de automação que detecta quitações parciais, projeta lançamentos futuros e dispara e-mails de auditoria criptografada a cada movimentação, com controle dinâmico de amortizações.</div>
+      <div class="case-tag">Financeiro · Auditoria · E-mail</div>
+    </div>
+
+    <div class="case-card">
+      <div class="case-num">CASE 04 · IA</div>
+      <div class="case-title">Classificador Avançado de E-mails com IA</div>
+      <div class="case-desc">Motor via FastAPI que analisa caixas de entrada institucionais, classifica demandas em categorias automatizadas, segmenta por filial e define urgência operacional em grid dinâmica.</div>
+      <div class="case-tag">NLP · FastAPI · Classificação</div>
+    </div>
+
+    <div class="case-card">
+      <div class="case-num">CASE 05 · RPA</div>
+      <div class="case-title">Motor de Conciliação Bancária</div>
+      <div class="case-desc">Robô RPA que cruza extratos bancários com lançamentos internos em lote, aponta divergências de centavos de forma autônoma e liquida entradas confirmadas. Fechamento contábil de dias para minutos.</div>
+      <div class="case-tag">RPA · Conciliação · Contábil</div>
+    </div>
+
+    <div class="case-card">
+      <div class="case-num">CASE 06 · OCR</div>
+      <div class="case-title">Extração Inteligente de Documentos</div>
+      <div class="case-desc">Fluxo automatizado de OCR e parsing de PDFs para leitura de notas fiscais. Extrai chaves de acesso, valores e impostos, alimentando o banco de dados e eliminando digitação manual.</div>
+      <div class="case-tag">OCR · PDF · Fiscal</div>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════ DEPOIMENTOS ══════════════════ -->
+<section id="depoimentos" style="max-width:100%;padding:0;">
+  <div class="inner">
+    <div class="section-label">05 — Clientes</div>
+    <h2 class="section-title">O que dizem sobre<br><span>nosso trabalho</span></h2>
+
+    <div class="testimonials-grid">
+
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"A triagem manual dos e-mails das nossas 12 filiais gerava um atraso crítico no atendimento. Com a solução de IA e classificação automatizada da Almeida Inteligência, as demandas são catalogadas e direcionadas instantaneamente. Mudou nosso patamar operacional."</div>
+        <div class="testimonial-footer">
+          <div class="testimonial-author">
+            <div class="name">Ricardo Mendonça</div>
+            <div class="role">Diretor de Operações · Nexus Logística</div>
+          </div>
+          <div class="testimonial-metric">
+            <span>+45%</span>
+            <small>Velocidade de Resposta</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"A automação do controle de lançamentos e cálculo dinâmico eliminou as falhas humanas que tínhamos em planilhas antigas. Os e-mails automatizados de auditoria dão total transparência para a equipe técnica e para a nossa governança."</div>
+        <div class="testimonial-footer">
+          <div class="testimonial-author">
+            <div class="name">Camila Vasconcelos</div>
+            <div class="role">CFO · Vanguarda Investimentos</div>
+          </div>
+          <div class="testimonial-metric">
+            <span>Zero</span>
+            <small>Erros Humanos</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"A Central Unificada de Sistemas resolveu nosso problema de fragmentação de ferramentas. O controle rigoroso por perfis RBAC garante conformidade total com as normas de segurança, centralizando tudo com extrema estabilidade."</div>
+        <div class="testimonial-footer">
+          <div class="testimonial-author">
+            <div class="name">Marcos Aurélio Dias</div>
+            <div class="role">CTO · SafeData Corp</div>
+          </div>
+          <div class="testimonial-metric">
+            <span>100%</span>
+            <small>Conformidade</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"A conciliação e processamento de notas fiscais que tomavam dezenas de horas da nossa equipe agora ocorrem em segundo plano. A Almeida Inteligência desenvolveu robôs que trabalham por nós, liberando nosso time para o que importa."</div>
+        <div class="testimonial-footer">
+          <div class="testimonial-author">
+            <div class="name">Juliana K. Schmidt</div>
+            <div class="role">Gerente de TI · Horizon Distribuidora</div>
+          </div>
+          <div class="testimonial-metric">
+            <span>30h</span>
+            <small>Semanais Economizadas</small>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ══════════════════ CTA FINAL ══════════════════ -->
+<section id="cta">
+  <div class="section-label" style="text-align:center;">Vamos conversar</div>
+  <h2 class="section-title" style="font-size:clamp(36px,5vw,56px);text-align:center;">
+    De processo lento a<br><span>motor de crescimento.</span>
+  </h2>
+  <p class="section-sub" style="text-align:center;margin:0 auto;margin-top:20px;">
+    Inteligência que transforma processos. Agende uma conversa e descubra como podemos
+    mapear, automatizar e escalar as operações da sua empresa.
+  </p>
+  <div class="cta-btns">
+    <button class="btn-primary" style="font-size:16px;padding:16px 40px;" onclick="openModal()">
+      Começar agora
+    </button>
+  </div>
+</section>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<footer>
+  <div class="footer-logo">
+    <svg viewBox="0 0 56 56" width="32" height="32">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <div class="footer-brand">
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Processos · IA · Resultados</div>
+    </div>
+  </div>
+  <div class="footer-copy">© 2025 Almeida Inteligência — Todos os direitos reservados</div>
+</footer>
+
+<!-- ══════════════════ MODAL LOGIN ══════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+
+    <div class="modal-logo">
+      <svg viewBox="0 0 56 56" width="30" height="30">
+        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+        <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+        <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+        <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      </svg>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#fff;">Almeida <span style="color:#3DDB82;">Inteligência</span></div>
+        <div style="font-size:9px;color:#5C6B5E;text-transform:uppercase;letter-spacing:0.12em;">Processos · IA · Resultados</div>
+      </div>
+    </div>
+
+    <div class="modal-title">Área do Cliente</div>
+    <div class="modal-sub">Insira suas credenciais para acessar os sistemas e automações integradas.</div>
+
+    <div class="field">
+      <label>USUÁRIO OU E-MAIL</label>
+      <input type="text" id="loginUser" placeholder="Digite seu usuário ou e-mail corporativo">
+    </div>
+    <div class="field">
+      <label>SENHA</label>
+      <input type="password" id="loginPass" placeholder="Digite sua senha secreta">
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">Validar e Entrar no Painel</button>
+
+    <div class="modal-toast" id="loginToast">
+      Erro de Autenticação: Usuário ou senha incorretos. Verifique suas credenciais de acesso.
+    </div>
+    <div class="modal-loading" id="loginLoading">
+      Conectando à API segura da Almeida Inteligência... Aguarde.
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('loginToast').style.display = 'none';
+    document.getElementById('loginLoading').style.display = 'none';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+  }
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+  function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    const toast = document.getElementById('loginToast');
+    const loading = document.getElementById('loginLoading');
+    toast.style.display = 'none';
+    if (!user || !pass) { toast.style.display = 'block'; return; }
+    loading.style.display = 'block';
+    setTimeout(() => {
+      loading.style.display = 'none';
+      toast.style.display = 'block';
+    }, 1800);
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // Scroll-based nav highlight
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) current = s.getAttribute('id'); });
+    navLinks.forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + current ? '#3DDB82' : '';
+    });
+  });
+</script>
+
+</body>
+</html>
