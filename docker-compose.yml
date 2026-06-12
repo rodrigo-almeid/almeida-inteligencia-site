@@ -57,6 +57,36 @@ services:
       - email_models:/app/models
     restart: unless-stopped
 
+  central-db:
+    image: postgres:15-alpine
+    container_name: central-db
+    environment:
+      POSTGRES_DB: central_db
+      POSTGRES_USER: central_user
+      POSTGRES_PASSWORD: central_pass_2025
+    volumes:
+      - central_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U central_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  central-backend:
+    build: ./central_backend
+    container_name: central-backend
+    environment:
+      DATABASE_URL: "postgresql://central_user:central_pass_2025@central-db:5432/central_db"
+      FERNET_SECRET_KEY: "YWxzT1RxZU9EUW1lWjhkVVlCS2tpN1htUDFwZzBVbTk="
+      JWT_SECRET_KEY: "c3e8d1a04f2b9e7c6d5a4b3f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2"
+      JWT_ALGORITHM: "HS256"
+      JWT_EXPIRE_MINUTES: "480"
+    depends_on:
+      central-db:
+        condition: service_healthy
+    restart: unless-stopped
+
   site:
     build: .
     container_name: almeida-inteligencia
@@ -65,9 +95,11 @@ services:
     depends_on:
       - backend
       - email-backend
+      - central-backend
     restart: unless-stopped
 
 volumes:
   almeida_pgdata:
   email_pgdata:
   email_models:
+  central_pgdata:

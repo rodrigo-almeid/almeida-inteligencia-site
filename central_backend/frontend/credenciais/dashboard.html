@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credenciais — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --green:#3DDB82; --black:#0A0F0A; --bg2:#1A241C; --bg3:#0E1810; --gray:#5C6B5E; --gray-l:#A8B8AA; --red:#E24B4A; --border:rgba(61,219,130,0.12); }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    /* Sidebar */
+    .sidebar{width:220px;min-height:100vh;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;}
+    .sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+    .sidebar .logo .name{font-size:13px;font-weight:600;} .sidebar .logo .name span{color:var(--green);}
+    .sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+    .nav-item:hover,.nav-item.active{background:rgba(61,219,130,0.08);color:var(--green);}
+    .nav-item svg{flex-shrink:0;}
+    .sidebar-spacer{flex:1;}
+    .user-chip{background:rgba(255,255,255,0.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+    .user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,0.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{background:rgba(226,75,74,0.08);}
+
+    /* Main */
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{margin-bottom:28px;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+
+    /* Perfis row */
+    .perfis-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;}
+    .perfil-tab{padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--gray-l);transition:all .2s;font-family:'Inter',sans-serif;}
+    .perfil-tab.active{background:var(--green);color:var(--black);border-color:var(--green);font-weight:600;}
+    .perfil-tab:hover:not(.active){border-color:rgba(61,219,130,0.3);color:#fff;}
+    .add-perfil-btn{padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:0.5px dashed rgba(61,219,130,0.3);background:transparent;color:var(--green);transition:all .2s;font-family:'Inter',sans-serif;}
+    .add-perfil-btn:hover{border-color:var(--green);}
+
+    /* Cards */
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .section-title{font-size:15px;font-weight:600;}
+    .btn-add{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.85;}
+
+    .cred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+    .cred-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s;}
+    .cred-card:hover{border-color:rgba(61,219,130,0.25);}
+    .cred-sistema{font-size:14px;font-weight:600;margin-bottom:4px;}
+    .cred-usuario{font-size:12px;color:var(--gray-l);margin-bottom:10px;}
+    .cred-senha-row{display:flex;align-items:center;gap:8px;}
+    .cred-senha{font-size:13px;font-family:monospace;background:rgba(255,255,255,0.04);border-radius:6px;padding:5px 10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .icon-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:5px 8px;cursor:pointer;color:var(--gray-l);transition:all .2s;font-size:12px;}
+    .icon-btn:hover{border-color:rgba(61,219,130,0.3);color:#fff;}
+    .icon-btn.del:hover{border-color:rgba(226,75,74,0.4);color:var(--red);}
+
+    .empty{text-align:center;padding:48px 0;color:var(--gray);font-size:13px;}
+    .empty .icon{font-size:32px;margin-bottom:12px;opacity:.4;}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;display:none;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:400px;}
+    .modal h3{font-size:17px;font-weight:600;margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select{width:100%;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus{border-color:rgba(61,219,130,0.4);}
+    .field select option{background:var(--bg2);}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;}
+    .btn-cancel{flex:1;background:none;border:0.5px solid var(--border);border-radius:10px;padding:11px;color:var(--gray-l);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#fff;}
+    .btn-save{flex:2;background:var(--green);color:var(--black);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-save:hover{opacity:.85;}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .3s;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{border-color:rgba(61,219,130,0.4);color:var(--green);}
+    .toast.err{border-color:rgba(226,75,74,0.4);color:var(--red);}
+
+    @media(max-width:640px){.sidebar{display:none;} .main{padding:20px;}}
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="26" height="26">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Credenciais</div>
+    </div>
+  </div>
+
+  <a href="/credenciais/dashboard.html" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Credenciais
+  </a>
+  <a href="/" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Portal
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="user-chip">
+    <div id="user-nome">Usuário</div>
+    <div class="email" id="user-email">—</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <h1>Gerenciador de Credenciais</h1>
+    <p>Senhas corporativas criptografadas com Fernet</p>
+  </div>
+
+  <div class="perfis-row" id="perfis-row">
+    <button class="add-perfil-btn" onclick="abrirModalPerfil()">+ Novo Perfil</button>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title" id="section-title">Selecione um perfil</span>
+    <button class="btn-add" id="btn-add-cred" onclick="abrirModalCred()" style="display:none">+ Credencial</button>
+  </div>
+
+  <div class="cred-grid" id="cred-grid">
+    <div class="empty"><div class="icon">🔒</div>Selecione um perfil para ver as credenciais.</div>
+  </div>
+</div>
+
+<!-- Modal: Nova Credencial -->
+<div class="modal-backdrop" id="modal-cred">
+  <div class="modal">
+    <h3>Nova Credencial</h3>
+    <div class="field"><label>Sistema / Site</label><input id="c-sistema" placeholder="ex: Gmail, AWS, Banco..."></div>
+    <div class="field"><label>Usuário / E-mail</label><input id="c-usuario" placeholder="usuario@exemplo.com"></div>
+    <div class="field"><label>Senha</label><input id="c-senha" type="password" placeholder="••••••••"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-cred')">Cancelar</button>
+      <button class="btn-save" onclick="salvarCred()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Perfil -->
+<div class="modal-backdrop" id="modal-perfil">
+  <div class="modal">
+    <h3>Novo Perfil</h3>
+    <div class="field"><label>Nome do Perfil</label><input id="p-nome" placeholder="ex: Pessoal, Empresa, Projetos..."></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('modal-perfil')">Cancelar</button>
+      <button class="btn-save" onclick="salvarPerfil()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/central';
+let token = localStorage.getItem('central_token');
+let perfilAtivo = null;
+
+if (!token) location.href = '/credenciais/';
+
+document.getElementById('user-email').textContent = localStorage.getItem('central_email') || '—';
+
+function toast(msg, tipo='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${tipo} show`;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
+function abrirModalCred() { document.getElementById('modal-cred').classList.add('show'); }
+function abrirModalPerfil() { document.getElementById('modal-perfil').classList.add('show'); }
+
+async function api(path, opts={}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  });
+  if (res.status === 401) { logout(); return null; }
+  return res;
+}
+
+async function carregarPerfis() {
+  const res = await api('/pessoas/');
+  if (!res) return;
+  const perfis = await res.json();
+  const row = document.getElementById('perfis-row');
+  row.innerHTML = '<button class="add-perfil-btn" onclick="abrirModalPerfil()">+ Novo Perfil</button>';
+  perfis.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'perfil-tab' + (p.id === perfilAtivo?.id ? ' active' : '');
+    btn.textContent = p.nome;
+    btn.onclick = () => selecionarPerfil(p);
+    row.prepend(btn);
+  });
+  if (perfis.length && !perfilAtivo) selecionarPerfil(perfis[0]);
+}
+
+async function selecionarPerfil(p) {
+  perfilAtivo = p;
+  document.querySelectorAll('.perfil-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.perfil-tab').forEach(b => { if(b.textContent === p.nome) b.classList.add('active'); });
+  document.getElementById('section-title').textContent = p.nome;
+  document.getElementById('btn-add-cred').style.display = 'block';
+  await carregarCredenciais(p.id);
+}
+
+async function carregarCredenciais(pessoaId) {
+  const res = await api(`/me/senhas/${pessoaId}`);
+  if (!res) return;
+  const creds = await res.json();
+  const grid = document.getElementById('cred-grid');
+  if (!creds.length) {
+    grid.innerHTML = '<div class="empty"><div class="icon">🔑</div>Nenhuma credencial ainda. Clique em "+ Credencial".</div>';
+    return;
+  }
+  grid.innerHTML = creds.map(c => `
+    <div class="cred-card">
+      <div class="cred-sistema">${esc(c.sistema)}</div>
+      <div class="cred-usuario">${esc(c.usuario_sistema)}</div>
+      <div class="cred-senha-row">
+        <div class="cred-senha" id="pwd-${c.id}">••••••••</div>
+        <button class="icon-btn" onclick="toggleSenha(${c.id}, '${btoa(c.senha_criptografada)}')" title="Mostrar/ocultar">👁</button>
+        <button class="icon-btn" onclick="copiarSenha('${btoa(c.senha_criptografada)}')" title="Copiar">📋</button>
+        <button class="icon-btn del" onclick="deletarCred(${c.id})" title="Excluir">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function esc(s) { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toggleSenha(id, b64) {
+  const el = document.getElementById('pwd-'+id);
+  el.textContent = el.textContent === '••••••••' ? atob(b64) : '••••••••';
+}
+
+function copiarSenha(b64) {
+  navigator.clipboard.writeText(atob(b64)).then(() => toast('Copiado!'));
+}
+
+async function salvarCred() {
+  const sistema = document.getElementById('c-sistema').value.trim();
+  const usuario = document.getElementById('c-usuario').value.trim();
+  const senha = document.getElementById('c-senha').value;
+  if (!sistema || !usuario || !senha) { toast('Preencha todos os campos.','err'); return; }
+  const res = await api('/me/senhas/', {
+    method: 'POST',
+    body: JSON.stringify({ sistema, usuario_sistema: usuario, senha, pessoa_id: perfilAtivo.id })
+  });
+  if (res?.ok) {
+    fecharModal('modal-cred');
+    document.getElementById('c-sistema').value = '';
+    document.getElementById('c-usuario').value = '';
+    document.getElementById('c-senha').value = '';
+    toast('Credencial salva!');
+    await carregarCredenciais(perfilAtivo.id);
+  } else { toast('Erro ao salvar.','err'); }
+}
+
+async function deletarCred(id) {
+  if (!confirm('Excluir esta credencial?')) return;
+  const res = await api(`/me/senhas/credencial/${id}`, { method: 'DELETE' });
+  if (res?.ok) { toast('Removida.'); await carregarCredenciais(perfilAtivo.id); }
+  else toast('Erro.','err');
+}
+
+async function salvarPerfil() {
+  const nome = document.getElementById('p-nome').value.trim();
+  if (!nome) { toast('Digite um nome.','err'); return; }
+  const res = await api('/pessoas/', { method: 'POST', body: JSON.stringify({ nome, principal: false }) });
+  if (res?.ok) {
+    fecharModal('modal-perfil');
+    document.getElementById('p-nome').value = '';
+    toast('Perfil criado!');
+    await carregarPerfis();
+  } else { toast('Erro ao criar perfil.','err'); }
+}
+
+function logout() {
+  localStorage.removeItem('central_token');
+  localStorage.removeItem('central_email');
+  sessionStorage.setItem('logout_reason', 'manual');
+  location.href = '/credenciais/';
+}
+
+// Fechar modal clicando fora
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+});
+
+carregarPerfis();
+</script>
+</body>
+</html>

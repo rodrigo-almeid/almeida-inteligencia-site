@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credenciais — Almeida Inteligência</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #3DDB82; --black: #0A0F0A; --black-green: #1A241C;
+      --gray: #5C6B5E; --gray-light: #A8B8AA; --red: #E24B4A;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--black); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+    .card {
+      background: var(--black-green); border: 0.5px solid rgba(61,219,130,0.15);
+      border-radius: 20px; padding: 40px; width: 100%; max-width: 380px;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .logo .name { font-size: 15px; font-weight: 600; }
+    .logo .name span { color: var(--green); }
+    .logo .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; }
+
+    h2 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: var(--gray); margin-bottom: 28px; }
+
+    .field { margin-bottom: 16px; }
+    label { font-size: 11px; color: var(--gray-light); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px; }
+    input {
+      width: 100%; background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 11px 14px; font-size: 14px; color: #fff;
+      font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s;
+    }
+    input:focus { border-color: rgba(61,219,130,0.4); }
+
+    .btn {
+      width: 100%; background: var(--green); color: var(--black); border: none;
+      border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 8px; transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .erro { font-size: 13px; color: var(--red); margin-top: 12px; display: none; }
+
+    @media (max-width: 420px) { .card { border-radius: 0; min-height: 100vh; justify-content: center; display: flex; flex-direction: column; } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="28" height="28">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Gerenciador de Credenciais</div>
+    </div>
+  </div>
+
+  <h2>Acesse sua conta</h2>
+  <p class="sub">Credenciais corporativas seguras e criptografadas.</p>
+
+  <div class="field">
+    <label>E-mail</label>
+    <input id="email" type="email" placeholder="seu@email.com" autofocus>
+  </div>
+  <div class="field">
+    <label>Senha</label>
+    <input id="senha" type="password" placeholder="••••••••">
+  </div>
+  <div class="erro" id="erro">Credenciais inválidas.</div>
+  <button class="btn" id="btn" onclick="login()">Entrar</button>
+</div>
+
+<script>
+  if (localStorage.getItem('central_token')) location.href = '/credenciais/dashboard.html';
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+  async function login() {
+    const email = document.getElementById('email').value.trim();
+    const senha = document.getElementById('senha').value;
+    const erroEl = document.getElementById('erro');
+    const btn = document.getElementById('btn');
+    erroEl.style.display = 'none';
+    if (!email || !senha) { erroEl.style.display = 'block'; erroEl.textContent = 'Preencha e-mail e senha.'; return; }
+    btn.disabled = true; btn.textContent = 'Entrando…';
+    try {
+      const form = new URLSearchParams();
+      form.append('username', email); form.append('password', senha);
+      const res = await fetch('/central/auth/login', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) { erroEl.textContent = data.detail || 'Credenciais inválidas.'; erroEl.style.display = 'block'; return; }
+      localStorage.setItem('central_token', data.access_token);
+      localStorage.setItem('central_email', data.email || email);
+      location.href = '/credenciais/dashboard.html';
+    } catch { erroEl.textContent = 'Erro de conexão.'; erroEl.style.display = 'block'; }
+    finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+  }
+</script>
+</body>
+</html>

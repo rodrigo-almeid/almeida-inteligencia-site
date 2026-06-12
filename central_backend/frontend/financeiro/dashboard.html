@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financeiro — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    .sidebar{width:220px;min-height:100vh;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;}
+    .sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+    .sidebar .logo .name{font-size:13px;font-weight:600;} .sidebar .logo .name span{color:var(--green);}
+    .sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+    .nav-item:hover,.nav-item.active{background:rgba(61,219,130,.08);color:var(--green);}
+    .sidebar-spacer{flex:1;}
+    .user-chip{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+    .user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{background:rgba(226,75,74,.08);}
+
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+    .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+    /* Filtro mês */
+    .mes-nav{display:flex;align-items:center;gap:8px;}
+    .mes-nav button{background:none;border:0.5px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--gray-l);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;transition:all .2s;}
+    .mes-nav button:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .mes-nav .mes-label{font-size:14px;font-weight:600;min-width:130px;text-align:center;}
+
+    /* KPI cards */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px;}
+    .kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;}
+    .kpi .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+    .kpi .valor{font-size:22px;font-weight:600;}
+    .kpi .valor.green{color:var(--green);}
+    .kpi .valor.red{color:var(--red);}
+    .kpi .valor.yellow{color:var(--yellow);}
+    .kpi .sub{font-size:11px;color:var(--gray);margin-top:4px;}
+
+    /* Toolbar */
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+    .section-title{font-size:15px;font-weight:600;}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn-add{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.85;}
+    .btn-export{background:none;border:0.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--gray-l);font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-export:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+
+    /* Filtro status */
+    .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+    .ftab{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--gray-l);transition:all .2s;font-family:'Inter',sans-serif;}
+    .ftab.active{background:rgba(61,219,130,.12);color:var(--green);border-color:rgba(61,219,130,.3);}
+
+    /* Tabela */
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:0.5px solid var(--border);}
+    td{padding:12px 12px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);vertical-align:middle;}
+    tr:hover td{background:rgba(255,255,255,.02);}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+    .badge.paga{background:rgba(61,219,130,.15);color:var(--green);}
+    .badge.pendente{background:rgba(245,166,35,.15);color:var(--yellow);}
+    .badge.vencida{background:rgba(226,75,74,.15);color:var(--red);}
+    .badge.receita{background:rgba(61,219,130,.1);color:var(--green);}
+    .badge.despesa{background:rgba(226,75,74,.1);color:var(--red);}
+    .icon-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--gray-l);transition:all .2s;font-size:12px;}
+    .icon-btn:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .icon-btn.del:hover{border-color:rgba(226,75,74,.4);color:var(--red);}
+    .icon-btn.ok{color:var(--green);border-color:rgba(61,219,130,.3);}
+    .empty{text-align:center;padding:48px 0;color:var(--gray);font-size:13px;}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:17px;font-weight:600;margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus{border-color:rgba(61,219,130,.4);}
+    .field select option{background:var(--bg2);}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;}
+    .btn-cancel{flex:1;background:none;border:0.5px solid var(--border);border-radius:10px;padding:11px;color:var(--gray-l);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#fff;}
+    .btn-save{flex:2;background:var(--green);color:var(--black);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+    .btn-save:hover{opacity:.85;}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .3s;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{border-color:rgba(61,219,130,.4);color:var(--green);}
+    .toast.err{border-color:rgba(226,75,74,.4);color:var(--red);}
+
+    @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="26" height="26">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Financeiro</div>
+    </div>
+  </div>
+
+  <a href="/financeiro/dashboard.html" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </a>
+  <a href="/" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Portal
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="user-chip">
+    <div>Conta</div>
+    <div class="email" id="user-email">—</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <div>
+      <h1>Automação Financeira</h1>
+      <p>Controle de contas, receitas e despesas</p>
+    </div>
+    <div class="header-actions">
+      <div class="mes-nav">
+        <button onclick="mudarMes(-1)">‹</button>
+        <span class="mes-label" id="mes-label">—</span>
+        <button onclick="mudarMes(1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Receitas</div><div class="valor green" id="kpi-receitas">R$ 0,00</div><div class="sub" id="kpi-receitas-n">0 lançamentos</div></div>
+    <div class="kpi"><div class="label">Despesas</div><div class="valor red" id="kpi-despesas">R$ 0,00</div><div class="sub" id="kpi-despesas-n">0 lançamentos</div></div>
+    <div class="kpi"><div class="label">Saldo</div><div class="valor" id="kpi-saldo">R$ 0,00</div><div class="sub">receitas − despesas</div></div>
+    <div class="kpi"><div class="label">A Pagar</div><div class="valor yellow" id="kpi-apagar">R$ 0,00</div><div class="sub" id="kpi-apagar-n">0 pendentes</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="section-header">
+    <span class="section-title">Lançamentos</span>
+    <div class="toolbar">
+      <button class="btn-export" onclick="exportar('excel')">⬇ Excel</button>
+      <button class="btn-export" onclick="exportar('pdf')">⬇ PDF</button>
+      <button class="btn-add" onclick="abrirModal()">+ Nova Conta</button>
+    </div>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="ftab active" data-f="todos" onclick="filtrar(this)">Todos</button>
+    <button class="ftab" data-f="pendente" onclick="filtrar(this)">Pendentes</button>
+    <button class="ftab" data-f="paga" onclick="filtrar(this)">Pagas</button>
+    <button class="ftab" data-f="receita" onclick="filtrar(this)">Receitas</button>
+    <button class="ftab" data-f="despesa" onclick="filtrar(this)">Despesas</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Vencimento</th>
+          <th>Tipo</th>
+          <th>Natureza</th>
+          <th>Valor</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Nova Conta</h3>
+    <div class="field"><label>Descrição</label><input id="f-desc" placeholder="ex: Aluguel, Salário..."></div>
+    <div class="row2">
+      <div class="field"><label>Valor (R$)</label><input id="f-valor" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Vencimento</label><input id="f-venc" type="date"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Natureza</label>
+        <select id="f-natureza">
+          <option value="despesa">Despesa</option>
+          <option value="receita">Receita</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="pendente">Pendente</option>
+          <option value="paga">Paga</option>
+          <option value="vencida">Vencida</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tipo Despesa</label>
+        <select id="f-tipo">
+          <option value="">— Selecione —</option>
+          <option value="fixo">Fixo</option>
+          <option value="variavel">Variável</option>
+          <option value="parcelado">Parcelado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Recorrência</label>
+        <select id="f-recorrencia">
+          <option value="unica">Única</option>
+          <option value="mensal">Mensal</option>
+          <option value="parcelada">Parcelada</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="parcelas-field" style="display:none">
+      <label>Nº de Parcelas</label>
+      <input id="f-parcelas" type="number" min="2" max="48" placeholder="ex: 12">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/central';
+let token = localStorage.getItem('central_token');
+let contasRaw = [];
+let filtroAtivo = 'todos';
+let editandoId = null;
+let mesAtual = new Date().getMonth() + 1;
+let anoAtual = new Date().getFullYear();
+
+if (!token) location.href = '/financeiro/';
+document.getElementById('user-email').textContent = localStorage.getItem('central_email') || '—';
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function atualizarLabel() {
+  document.getElementById('mes-label').textContent = `${MESES[mesAtual-1]} ${anoAtual}`;
+}
+
+function mudarMes(d) {
+  mesAtual += d;
+  if (mesAtual > 12) { mesAtual = 1; anoAtual++; }
+  if (mesAtual < 1) { mesAtual = 12; anoAtual--; }
+  atualizarLabel();
+  carregar();
+}
+
+function toast(msg, tipo='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${tipo} show`;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+function fmt(v) { return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+function fmtDate(s) { if(!s) return '—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+
+async function api(path, opts={}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type':'application/json', ...(opts.headers||{}) }
+  });
+  if (res.status === 401) { logout(); return null; }
+  return res;
+}
+
+async function carregar() {
+  const res = await api(`/contas/?mes=${mesAtual}&ano=${anoAtual}`);
+  if (!res) return;
+  contasRaw = await res.json();
+  renderKpis(); renderTabela();
+}
+
+function renderKpis() {
+  const receitas = contasRaw.filter(c => c.natureza === 'receita');
+  const despesas = contasRaw.filter(c => c.natureza === 'despesa');
+  const pendentes = contasRaw.filter(c => c.status === 'pendente' && c.natureza === 'despesa');
+  const sumR = receitas.reduce((a,c)=>a+Number(c.valor),0);
+  const sumD = despesas.reduce((a,c)=>a+Number(c.valor),0);
+  const sumP = pendentes.reduce((a,c)=>a+Number(c.valor),0);
+  const saldo = sumR - sumD;
+  document.getElementById('kpi-receitas').textContent = fmt(sumR);
+  document.getElementById('kpi-receitas-n').textContent = `${receitas.length} lançamento${receitas.length!==1?'s':''}`;
+  document.getElementById('kpi-despesas').textContent = fmt(sumD);
+  document.getElementById('kpi-despesas-n').textContent = `${despesas.length} lançamento${despesas.length!==1?'s':''}`;
+  const s = document.getElementById('kpi-saldo');
+  s.textContent = fmt(saldo);
+  s.className = 'valor ' + (saldo >= 0 ? 'green' : 'red');
+  document.getElementById('kpi-apagar').textContent = fmt(sumP);
+  document.getElementById('kpi-apagar-n').textContent = `${pendentes.length} pendente${pendentes.length!==1?'s':''}`;
+}
+
+function renderTabela() {
+  let lista = contasRaw;
+  if (filtroAtivo === 'pendente') lista = lista.filter(c => c.status === 'pendente');
+  else if (filtroAtivo === 'paga') lista = lista.filter(c => c.status === 'paga');
+  else if (filtroAtivo === 'receita') lista = lista.filter(c => c.natureza === 'receita');
+  else if (filtroAtivo === 'despesa') lista = lista.filter(c => c.natureza === 'despesa');
+
+  const tbody = document.getElementById('tbody');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum lançamento neste período.</td></tr>'; return; }
+
+  tbody.innerHTML = lista.map(c => `
+    <tr>
+      <td>${esc(c.descricao)}</td>
+      <td>${fmtDate(c.vencimento)}</td>
+      <td>${c.tipo_despesa ? `<span class="badge">${c.tipo_despesa}</span>` : '—'}</td>
+      <td><span class="badge ${c.natureza}">${c.natureza||'—'}</span></td>
+      <td style="font-weight:500">${fmt(c.valor)}</td>
+      <td><span class="badge ${c.status}">${c.status||'—'}</span></td>
+      <td style="display:flex;gap:6px;white-space:nowrap">
+        ${c.status!=='paga' ? `<button class="icon-btn ok" onclick="marcarPaga(${c.id})" title="Marcar como paga">✓</button>` : ''}
+        <button class="icon-btn" onclick="editar(${c.id})" title="Editar">✎</button>
+        <button class="icon-btn del" onclick="deletar(${c.id})" title="Excluir">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function esc(s) { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function filtrar(btn) {
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  filtroAtivo = btn.dataset.f;
+  renderTabela();
+}
+
+function abrirModal(dados=null) {
+  editandoId = dados?.id || null;
+  document.getElementById('modal-title').textContent = editandoId ? 'Editar Conta' : 'Nova Conta';
+  document.getElementById('f-desc').value = dados?.descricao || '';
+  document.getElementById('f-valor').value = dados?.valor || '';
+  document.getElementById('f-venc').value = dados?.vencimento || '';
+  document.getElementById('f-natureza').value = dados?.natureza || 'despesa';
+  document.getElementById('f-status').value = dados?.status || 'pendente';
+  document.getElementById('f-tipo').value = dados?.tipo_despesa || '';
+  document.getElementById('f-recorrencia').value = dados?.tipo_recorrencia || 'unica';
+  document.getElementById('modal').classList.add('show');
+}
+
+function fecharModal() {
+  document.getElementById('modal').classList.remove('show');
+  editandoId = null;
+}
+
+document.getElementById('f-recorrencia').addEventListener('change', function() {
+  document.getElementById('parcelas-field').style.display = this.value === 'parcelada' ? 'block' : 'none';
+});
+
+function editar(id) {
+  const c = contasRaw.find(x=>x.id===id);
+  if (c) abrirModal(c);
+}
+
+async function marcarPaga(id) {
+  const c = contasRaw.find(x=>x.id===id);
+  if (!c) return;
+  const body = {...c, status: 'paga'};
+  const res = await api(`/contas/${id}`, { method:'PUT', body: JSON.stringify(body) });
+  if (res?.ok) { toast('Marcada como paga!'); await carregar(); }
+  else toast('Erro.','err');
+}
+
+async function salvar() {
+  const desc = document.getElementById('f-desc').value.trim();
+  const valor = parseFloat(document.getElementById('f-valor').value);
+  const venc = document.getElementById('f-venc').value;
+  const natureza = document.getElementById('f-natureza').value;
+  const status = document.getElementById('f-status').value;
+  const tipo_despesa = document.getElementById('f-tipo').value || null;
+  const tipo_recorrencia = document.getElementById('f-recorrencia').value;
+  const total_parcelas = tipo_recorrencia === 'parcelada' ? parseInt(document.getElementById('f-parcelas').value)||null : null;
+
+  if (!desc||!valor||!venc) { toast('Preencha descrição, valor e vencimento.','err'); return; }
+
+  const body = { descricao:desc, valor, vencimento:venc, natureza, status, tipo_despesa, tipo_recorrencia, total_parcelas, parcela_atual:null };
+  const url = editandoId ? `/contas/${editandoId}` : '/contas/';
+  const method = editandoId ? 'PUT' : 'POST';
+  const res = await api(url, { method, body: JSON.stringify(body) });
+  if (res?.ok) {
+    fecharModal();
+    toast(editandoId ? 'Atualizado!' : 'Lançamento criado!');
+    await carregar();
+  } else { const e = await res?.json(); toast(e?.detail||'Erro.','err'); }
+}
+
+async function deletar(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  const res = await api(`/contas/${id}`, { method:'DELETE' });
+  if (res?.ok||res?.status===204) { toast('Removido.'); await carregar(); }
+  else toast('Erro.','err');
+}
+
+function exportar(tipo) {
+  const url = `/central/relatorios/${tipo}/contas`;
+  const a = document.createElement('a'); a.href = url;
+  a.setAttribute('download',''); document.body.appendChild(a); a.click(); a.remove();
+}
+
+function logout() {
+  localStorage.removeItem('central_token'); localStorage.removeItem('central_email');
+  sessionStorage.setItem('logout_reason','manual'); location.href='/financeiro/';
+}
+
+document.getElementById('modal').addEventListener('click', e => { if(e.target===document.getElementById('modal')) fecharModal(); });
+
+atualizarLabel();
+carregar();
+</script>
+</body>
+</html>
