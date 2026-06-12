@@ -829,6 +829,17 @@
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+  // Aviso de sessão expirada vindo do auth-guard
+  const logoutReason = sessionStorage.getItem('logout_reason');
+  if (logoutReason) {
+    sessionStorage.removeItem('logout_reason');
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;background:#1A241C;border:1px solid rgba(226,75,74,0.5);color:#fff;font-family:Inter,sans-serif;font-size:14px;padding:12px 24px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+    banner.textContent = logoutReason === 'inatividade' ? 'Sua sessão expirou por inatividade. Faça login novamente.' : 'Sessão encerrada. Faça login novamente.';
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 6000);
+  }
+
   // Scroll-based nav highlight
   const sections = document.querySelectorAll('section[id]');
   const navLinks = document.querySelectorAll('.nav-links a');
