@@ -7,180 +7,139 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --green: #3DDB82; --green-dark: #18A558; --green-deep: #0F7A40;
-      --black: #0A0F0A; --black-green: #1A241C;
-      --gray: #5C6B5E; --gray-light: #A8B8AA;
-      --white-cold: #F7FAF7; --red: #E24B4A; --blue: #7EB8FF;
+      --green:#3DDB82;--green-dark:#18A558;--black:#0A0F0A;--black-green:#1A241C;
+      --gray:#5C6B5E;--gray-light:#A8B8AA;--red:#E24B4A;--blue:#7EB8FF;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--black); color: #fff; min-height: 100vh; }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;}
 
-    /* ── SIDEBAR ── */
-    .sidebar {
-      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
-      background: var(--black-green); border-right: 0.5px solid rgba(61,219,130,0.1);
-      display: flex; flex-direction: column;
-    }
-    .sidebar-logo {
-      display: flex; align-items: center; gap: 12px;
-      padding: 28px 24px; border-bottom: 0.5px solid rgba(255,255,255,0.06);
-    }
-    .sidebar-logo .name { font-size: 14px; font-weight: 600; }
-    .sidebar-logo .name span { color: var(--green); }
-    .sidebar-logo .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
-    .nav-items { padding: 20px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--gray);
-      cursor: pointer; transition: background .2s, color .2s; text-decoration: none; border: none;
-      background: none; width: 100%; font-family: 'Inter', sans-serif;
-    }
-    .nav-item:hover { background: rgba(61,219,130,0.06); color: #fff; }
-    .nav-item.active { background: rgba(61,219,130,0.1); color: var(--green); }
-    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
-    .nav-divider { height: 0.5px; background: rgba(255,255,255,0.06); margin: 8px 12px; }
-    .sidebar-footer { padding: 16px 24px; border-top: 0.5px solid rgba(255,255,255,0.06); }
-    .user-info .name { font-size: 13px; font-weight: 500; }
-    .user-info .role { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
-    .btn-logout {
-      margin-top: 12px; width: 100%; background: transparent;
-      border: 0.5px solid rgba(255,255,255,0.1); color: var(--gray);
-      font-size: 13px; font-family: 'Inter', sans-serif;
-      padding: 8px; border-radius: 6px; cursor: pointer; transition: all .2s;
-    }
-    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+    /* SIDEBAR */
+    .sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--black-green);border-right:0.5px solid rgba(61,219,130,0.1);display:flex;flex-direction:column;}
+    .sidebar-logo{display:flex;align-items:center;gap:12px;padding:28px 24px;border-bottom:0.5px solid rgba(255,255,255,0.06);}
+    .sidebar-logo .name{font-size:14px;font-weight:600;}
+    .sidebar-logo .name span{color:var(--green);}
+    .sidebar-logo .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;}
+    .nav-items{padding:20px 12px;flex:1;display:flex;flex-direction:column;gap:4px;}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;font-size:14px;color:var(--gray);cursor:pointer;transition:background .2s,color .2s;text-decoration:none;border:none;background:none;width:100%;font-family:'Inter',sans-serif;}
+    .nav-item:hover{background:rgba(61,219,130,0.06);color:#fff;}
+    .nav-item.active{background:rgba(61,219,130,0.1);color:var(--green);}
+    .nav-item svg{width:17px;height:17px;flex-shrink:0;}
+    .nav-divider{height:0.5px;background:rgba(255,255,255,0.06);margin:8px 12px;}
+    .sidebar-footer{padding:16px 24px;border-top:0.5px solid rgba(255,255,255,0.06);}
+    .user-info .name{font-size:13px;font-weight:500;}
+    .user-info .role{font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px;}
+    .btn-logout{margin-top:12px;width:100%;background:transparent;border:0.5px solid rgba(255,255,255,0.1);color:var(--gray);font-size:13px;font-family:'Inter',sans-serif;padding:8px;border-radius:6px;cursor:pointer;transition:all .2s;}
+    .btn-logout:hover{border-color:var(--red);color:var(--red);}
 
-    /* ── MAIN ── */
-    .main { margin-left: 240px; padding: 48px; min-height: 100vh; }
-    .page { display: none; }
-    .page.active { display: block; }
-    .page-header { margin-bottom: 32px; }
-    .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
-    .page-title span { color: var(--green); }
-    .page-sub { font-size: 14px; color: var(--gray); margin-top: 6px; }
+    /* MAIN */
+    .main{margin-left:240px;padding:48px;min-height:100vh;}
+    .page{display:none;}.page.active{display:block;}
+    .page-header{margin-bottom:32px;}
+    .page-title{font-size:26px;font-weight:600;letter-spacing:-0.02em;}
+    .page-title span{color:var(--green);}
+    .page-sub{font-size:14px;color:var(--gray);margin-top:6px;}
 
-    /* ── STATS ── */
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
-    .stat-card { background: var(--black-green); border: 0.5px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 24px; }
-    .stat-card .num { font-size: 32px; font-weight: 600; color: var(--green); }
-    .stat-card .label { font-size: 13px; color: var(--gray); margin-top: 4px; }
+    /* STATS */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+    .stat-card{background:var(--black-green);border:0.5px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px 24px;}
+    .stat-card .num{font-size:28px;font-weight:600;color:var(--green);}
+    .stat-card .label{font-size:12px;color:var(--gray);margin-top:4px;}
 
-    /* ── TABLE CARD ── */
-    .section-card { background: var(--black-green); border: 0.5px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: hidden; }
-    .section-top {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 20px 28px; border-bottom: 0.5px solid rgba(255,255,255,0.06);
-    }
-    .section-top h3 { font-size: 15px; font-weight: 600; }
-    .btn-new {
-      background: var(--green); color: var(--black); font-size: 13px; font-weight: 600;
-      font-family: 'Inter', sans-serif; padding: 8px 18px; border-radius: 8px; border: none;
-      cursor: pointer; transition: background .2s;
-    }
-    .btn-new:hover { background: #5FEAA0; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 11px 28px; font-size: 11px; color: var(--gray); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
-    td { padding: 15px 28px; font-size: 14px; border-bottom: 0.5px solid rgba(255,255,255,0.04); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    .empty-row td { color: var(--gray); text-align: center; padding: 40px; }
+    /* TABLE */
+    .section-card{background:var(--black-green);border:0.5px solid rgba(255,255,255,0.07);border-radius:16px;overflow:hidden;}
+    .section-top{display:flex;justify-content:space-between;align-items:center;padding:20px 28px;border-bottom:0.5px solid rgba(255,255,255,0.06);}
+    .section-top h3{font-size:15px;font-weight:600;}
+    .btn-new{background:var(--green);color:var(--black);font-size:13px;font-weight:600;font-family:'Inter',sans-serif;padding:8px 18px;border-radius:8px;border:none;cursor:pointer;transition:background .2s;}
+    .btn-new:hover{background:#5FEAA0;}
+    table{width:100%;border-collapse:collapse;}
+    th{text-align:left;padding:11px 28px;font-size:11px;color:var(--gray);font-weight:500;text-transform:uppercase;letter-spacing:0.08em;border-bottom:0.5px solid rgba(255,255,255,0.06);}
+    td{padding:14px 28px;font-size:14px;border-bottom:0.5px solid rgba(255,255,255,0.04);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+    .empty-row td{color:var(--gray);text-align:center;padding:40px;}
 
-    /* ── BADGES ── */
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
-    .badge-admin { background: rgba(61,219,130,0.12); color: var(--green); }
-    .badge-ativo { background: rgba(61,219,130,0.1); color: var(--green); }
-    .badge-inativo { background: rgba(226,75,74,0.1); color: var(--red); }
-    .badge-menu { background: rgba(126,184,255,0.1); color: var(--blue); margin: 2px; }
+    /* BADGES */
+    .badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;}
+    .badge-ativo{background:rgba(61,219,130,0.1);color:var(--green);}
+    .badge-inativo{background:rgba(226,75,74,0.1);color:var(--red);}
 
-    /* ── ACTIONS ── */
-    .actions { display: flex; gap: 8px; }
-    .btn-edit, .btn-del {
-      padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
-      cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: all .2s;
-    }
-    .btn-edit { background: rgba(255,255,255,0.06); color: var(--gray-light); }
-    .btn-edit:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .btn-del { background: rgba(226,75,74,0.08); color: var(--red); }
-    .btn-del:hover { background: rgba(226,75,74,0.15); }
+    /* SISTEMAS GRID */
+    .sistemas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+    .sistema-card{background:var(--black-green);border:0.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:24px;transition:border-color .2s;}
+    .sistema-card:hover{border-color:rgba(61,219,130,0.25);}
+    .sistema-card-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;}
+    .sistema-icon-box{width:48px;height:48px;border-radius:10px;background:rgba(61,219,130,0.08);border:0.5px solid rgba(61,219,130,0.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .sistema-card-name{font-size:15px;font-weight:600;margin-bottom:4px;}
+    .sistema-card-url{font-size:11px;color:var(--gray);font-family:monospace;word-break:break-all;}
+    .sistema-card-desc{font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:16px;min-height:18px;}
+    .sistema-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:0.5px solid rgba(255,255,255,0.06);}
 
-    /* ── PERFIS GRID ── */
-    .perfis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-    .perfil-card {
-      background: var(--black-green); border: 0.5px solid rgba(255,255,255,0.07);
-      border-radius: 14px; padding: 24px; transition: border-color .2s;
-    }
-    .perfil-card:hover { border-color: rgba(61,219,130,0.2); }
-    .perfil-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-    .perfil-card-name { font-size: 15px; font-weight: 600; }
-    .perfil-card-desc { font-size: 13px; color: var(--gray); margin-bottom: 16px; line-height: 1.5; min-height: 20px; }
-    .perfil-card-menus { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; min-height: 28px; }
-    .perfil-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 0.5px solid rgba(255,255,255,0.06); }
-    .perfil-users-count { font-size: 12px; color: var(--gray); }
-    .perfil-users-count span { color: var(--green); font-weight: 600; }
+    /* PERFIS GRID */
+    .perfis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+    .perfil-card{background:var(--black-green);border:0.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:24px;transition:border-color .2s;}
+    .perfil-card:hover{border-color:rgba(61,219,130,0.2);}
+    .perfil-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+    .perfil-card-name{font-size:15px;font-weight:600;}
+    .perfil-card-desc{font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.5;min-height:18px;}
+    .perfil-card-sistemas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;min-height:28px;}
+    .perfil-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:0.5px solid rgba(255,255,255,0.06);}
+    .perfil-users-count{font-size:12px;color:var(--gray);}
+    .perfil-users-count span{color:var(--green);font-weight:600;}
+    .sistema-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(126,184,255,0.08);border:0.5px solid rgba(126,184,255,0.2);color:var(--blue);border-radius:100px;padding:3px 10px;font-size:11px;}
 
-    /* ── MODAL ── */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 200; display: none; align-items: center; justify-content: center; }
-    .overlay.active { display: flex; }
-    .modal { background: var(--black-green); border: 0.5px solid rgba(61,219,130,0.2); border-radius: 16px; padding: 40px; width: 480px; max-width: 90vw; max-height: 90vh; overflow-y: auto; position: relative; }
-    .modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 24px; }
-    .modal h3 span { color: var(--green); }
-    .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; color: var(--gray); font-size: 22px; cursor: pointer; }
-    .field { margin-bottom: 16px; }
-    .field label { font-size: 12px; color: var(--gray); display: block; margin-bottom: 6px; letter-spacing: 0.04em; }
-    .field input, .field select, .field textarea {
-      width: 100%; background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.12);
-      border-radius: 8px; padding: 11px 14px; color: #fff; font-size: 14px;
-      font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s; resize: none;
-    }
-    .field select option { background: #1A241C; }
-    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); }
-    .field input::placeholder, .field textarea::placeholder { color: var(--gray); }
+    /* ACTIONS */
+    .actions{display:flex;gap:8px;}
+    .btn-edit,.btn-del{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .2s;}
+    .btn-edit{background:rgba(255,255,255,0.06);color:var(--gray-light);}
+    .btn-edit:hover{background:rgba(255,255,255,0.1);color:#fff;}
+    .btn-del{background:rgba(226,75,74,0.08);color:var(--red);}
+    .btn-del:hover{background:rgba(226,75,74,0.15);}
 
-    /* Checkboxes de menus */
-    .menus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .menu-check {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: all .2s;
-    }
-    .menu-check:hover { border-color: rgba(61,219,130,0.3); }
-    .menu-check input[type=checkbox] { display: none; }
-    .menu-check.checked { background: rgba(61,219,130,0.06); border-color: rgba(61,219,130,0.3); }
-    .check-box {
-      width: 18px; height: 18px; border: 1.5px solid rgba(255,255,255,0.2);
-      border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      transition: all .2s;
-    }
-    .menu-check.checked .check-box { background: var(--green); border-color: var(--green); }
-    .check-box svg { display: none; }
-    .menu-check.checked .check-box svg { display: block; }
-    .menu-check-label { font-size: 13px; color: var(--gray-light); line-height: 1.3; }
-    .menu-check.checked .menu-check-label { color: #fff; }
-    .menu-check-icon { font-size: 18px; }
+    /* MODAL */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;}
+    .overlay.active{display:flex;}
+    .modal{background:var(--black-green);border:0.5px solid rgba(61,219,130,0.2);border-radius:16px;padding:40px;width:500px;max-width:90vw;max-height:90vh;overflow-y:auto;position:relative;}
+    .modal h3{font-size:18px;font-weight:600;margin-bottom:24px;}
+    .modal h3 span{color:var(--green);}
+    .modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer;}
+    .field{margin-bottom:16px;}
+    .field label{font-size:12px;color:var(--gray);display:block;margin-bottom:6px;letter-spacing:0.04em;}
+    .field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:11px 14px;color:#fff;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;resize:none;}
+    .field select option{background:#1A241C;}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);}
+    .field input::placeholder,.field textarea::placeholder{color:var(--gray);}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-    .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
-    .btn-save { flex: 1; background: var(--green); color: var(--black); font-size: 14px; font-weight: 600; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; }
-    .btn-cancel { flex: 1; background: transparent; color: var(--gray); font-size: 14px; padding: 12px; border-radius: 8px; border: 0.5px solid rgba(255,255,255,0.1); cursor: pointer; font-family: 'Inter', sans-serif; }
+    /* Sistemas checkboxes no modal perfil */
+    .sistemas-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .sys-check{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s;}
+    .sys-check:hover{border-color:rgba(61,219,130,0.3);}
+    .sys-check.checked{background:rgba(61,219,130,0.06);border-color:rgba(61,219,130,0.3);}
+    .chk-box{width:18px;height:18px;border:1.5px solid rgba(255,255,255,0.2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .sys-check.checked .chk-box{background:var(--green);border-color:var(--green);}
+    .chk-box svg{display:none;}
+    .sys-check.checked .chk-box svg{display:block;}
+    .sys-check-label{font-size:13px;color:var(--gray-light);line-height:1.3;}
+    .sys-check.checked .sys-check-label{color:#fff;}
 
-    /* ── TOAST ── */
-    .toast { position: fixed; bottom: 28px; right: 28px; background: var(--black-green); border: 0.5px solid rgba(61,219,130,0.3); border-radius: 10px; padding: 14px 20px; font-size: 14px; color: #fff; z-index: 300; display: none; }
-    .toast.error { border-color: rgba(226,75,74,0.4); }
+    .modal-actions{display:flex;gap:10px;margin-top:24px;}
+    .btn-save{flex:1;background:var(--green);color:var(--black);font-size:14px;font-weight:600;padding:12px;border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
+    .btn-cancel{flex:1;background:transparent;color:var(--gray);font-size:14px;padding:12px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.1);cursor:pointer;font-family:'Inter',sans-serif;}
 
-    /* ── LOGIN WALL ── */
-    #loginWall { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 500; }
-    .login-box { background: var(--black-green); border: 0.5px solid rgba(61,219,130,0.2); border-radius: 16px; padding: 48px 40px; width: 400px; max-width: 90vw; }
-    .login-box h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
-    .login-box h2 span { color: var(--green); }
-    .login-box p { font-size: 13px; color: var(--gray); margin-bottom: 28px; }
-    .btn-login { width: 100%; background: var(--green); color: var(--black); font-size: 14px; font-weight: 600; padding: 13px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 8px; }
-    .login-error { font-size: 13px; color: var(--red); margin-top: 10px; display: none; }
+    /* TOAST */
+    .toast{position:fixed;bottom:28px;right:28px;background:var(--black-green);border:0.5px solid rgba(61,219,130,0.3);border-radius:10px;padding:14px 20px;font-size:14px;color:#fff;z-index:300;display:none;}
+    .toast.error{border-color:rgba(226,75,74,0.4);}
 
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main { margin-left: 0; padding: 24px; }
-      .stats-row { grid-template-columns: 1fr; }
-      .menus-grid { grid-template-columns: 1fr; }
-    }
+    /* LOGIN WALL */
+    #loginWall{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:500;}
+    .login-box{background:var(--black-green);border:0.5px solid rgba(61,219,130,0.2);border-radius:16px;padding:48px 40px;width:400px;max-width:90vw;}
+    .login-box h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+    .login-box h2 span{color:var(--green);}
+    .login-box p{font-size:13px;color:var(--gray);margin-bottom:28px;}
+    .btn-login{width:100%;background:var(--green);color:var(--black);font-size:14px;font-weight:600;padding:13px;border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px;}
+    .login-error{font-size:13px;color:var(--red);margin-top:10px;display:none;}
+
+    @media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;padding:24px;}.stats-row{grid-template-columns:1fr 1fr;}.sistemas-check-grid{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -190,10 +149,7 @@
   <div class="login-box">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
       <svg viewBox="0 0 56 56" width="32" height="32"><polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/><circle cx="28" cy="20" r="3" fill="#3DDB82"/><circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/><circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/><line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/><line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/></svg>
-      <div>
-        <div style="font-size:14px;font-weight:600;">Almeida <span style="color:#3DDB82;">Inteligência</span></div>
-        <div style="font-size:10px;color:#5C6B5E;text-transform:uppercase;letter-spacing:0.1em;">Painel Admin</div>
-      </div>
+      <div><div style="font-size:14px;font-weight:600;">Almeida <span style="color:#3DDB82;">Inteligência</span></div><div style="font-size:10px;color:#5C6B5E;text-transform:uppercase;letter-spacing:0.1em;">Painel Admin</div></div>
     </div>
     <h2>Acesso <span>Restrito</span></h2>
     <p>Apenas administradores têm acesso a este painel.</p>
@@ -208,12 +164,8 @@
 <div class="sidebar">
   <div class="sidebar-logo">
     <svg viewBox="0 0 56 56" width="28" height="28"><polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/><circle cx="28" cy="20" r="3" fill="#3DDB82"/><circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/><circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/><line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/><line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/></svg>
-    <div>
-      <div class="name">Almeida <span>Inteligência</span></div>
-      <div class="tag">Painel Admin</div>
-    </div>
+    <div><div class="name">Almeida <span>Inteligência</span></div><div class="tag">Painel Admin</div></div>
   </div>
-
   <div class="nav-items">
     <button class="nav-item active" id="navUsuarios" onclick="showPage('usuarios')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -223,24 +175,26 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       Perfis de Acesso
     </button>
+    <button class="nav-item" id="navSistemas" onclick="showPage('sistemas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Sistemas
+    </button>
     <div class="nav-divider"></div>
-    <a class="nav-item" href="/">
+    <a class="nav-item" href="/dashboard/">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Ver Site
+      Portal
     </a>
   </div>
-
   <div class="sidebar-footer">
-    <div class="user-info">
-      <div class="name" id="sidebarNome">—</div>
-      <div class="role">Administrador</div>
-    </div>
+    <div class="user-info"><div class="name" id="sidebarNome">—</div><div class="role">Administrador</div></div>
     <button class="btn-logout" onclick="logout()">Sair</button>
   </div>
 </div>
 
-<!-- ═══════════════ PÁGINA: USUÁRIOS ═══════════════ -->
+<!-- MAIN -->
 <div class="main">
+
+  <!-- PÁGINA USUÁRIOS -->
   <div class="page active" id="pageUsuarios">
     <div class="page-header">
       <div class="page-title">Gestão de <span>Usuários</span></div>
@@ -250,12 +204,10 @@
       <div class="stat-card"><div class="num" id="statTotal">—</div><div class="label">Total de usuários</div></div>
       <div class="stat-card"><div class="num" id="statAtivos">—</div><div class="label">Usuários ativos</div></div>
       <div class="stat-card"><div class="num" id="statPerfis">—</div><div class="label">Perfis cadastrados</div></div>
+      <div class="stat-card"><div class="num" id="statSistemas">—</div><div class="label">Sistemas ativos</div></div>
     </div>
     <div class="section-card">
-      <div class="section-top">
-        <h3>Todos os usuários</h3>
-        <button class="btn-new" onclick="abrirModalUsuario()">+ Novo usuário</button>
-      </div>
+      <div class="section-top"><h3>Todos os usuários</h3><button class="btn-new" onclick="abrirModalUsuario()">+ Novo usuário</button></div>
       <table>
         <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
         <tbody id="tabelaUsuarios"><tr class="empty-row"><td colspan="6">Carregando...</td></tr></tbody>
@@ -263,26 +215,37 @@
     </div>
   </div>
 
-  <!-- ═══════════════ PÁGINA: PERFIS ═══════════════ -->
+  <!-- PÁGINA PERFIS -->
   <div class="page" id="pagePerfis">
     <div class="page-header">
       <div class="page-title">Perfis de <span>Acesso</span></div>
-      <div class="page-sub">Defina quais módulos cada perfil pode acessar.</div>
+      <div class="page-sub">Defina quais sistemas cada perfil pode acessar.</div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
       <button class="btn-new" onclick="abrirModalPerfil()">+ Novo perfil</button>
     </div>
-    <div class="perfis-grid" id="perfilCards">
-      <div style="color:var(--gray);padding:40px;text-align:center;grid-column:1/-1;">Carregando...</div>
-    </div>
+    <div class="perfis-grid" id="perfilCards"><div style="color:var(--gray);padding:40px 0;grid-column:1/-1;">Carregando...</div></div>
   </div>
+
+  <!-- PÁGINA SISTEMAS -->
+  <div class="page" id="pageSistemas">
+    <div class="page-header">
+      <div class="page-title">Cadastro de <span>Sistemas</span></div>
+      <div class="page-sub">Registre os sistemas e defina a URL de acesso de cada um.</div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+      <button class="btn-new" onclick="abrirModalSistema()">+ Novo sistema</button>
+    </div>
+    <div class="sistemas-grid" id="sistemaCards"><div style="color:var(--gray);padding:40px 0;grid-column:1/-1;">Carregando...</div></div>
+  </div>
+
 </div>
 
 <!-- MODAL USUÁRIO -->
 <div class="overlay" id="overlayUsuario">
   <div class="modal">
     <button class="modal-close" onclick="fecharModal('overlayUsuario')">×</button>
-    <h3 id="modalUsuarioTitle">Novo <span>Usuário</span></h3>
+    <h3 id="tituloModalUsuario">Novo <span>Usuário</span></h3>
     <input type="hidden" id="editUserId">
     <div class="field"><label>NOME COMPLETO</label><input type="text" id="fNome" placeholder="Nome do usuário"></div>
     <div class="field"><label>E-MAIL</label><input type="email" id="fEmail" placeholder="email@exemplo.com"></div>
@@ -290,14 +253,8 @@
       <label>SENHA <span id="senhaHint" style="color:var(--gray);font-size:11px;">(deixe em branco para não alterar)</span></label>
       <input type="password" id="fSenha" placeholder="Nova senha">
     </div>
-    <div class="field">
-      <label>PERFIL DE ACESSO</label>
-      <select id="fPerfilId"><option value="">Selecione um perfil...</option></select>
-    </div>
-    <div class="field">
-      <label>STATUS</label>
-      <select id="fAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select>
-    </div>
+    <div class="field"><label>PERFIL DE ACESSO</label><select id="fPerfilId"><option value="">Selecione um perfil...</option></select></div>
+    <div class="field"><label>STATUS</label><select id="fAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="fecharModal('overlayUsuario')">Cancelar</button>
       <button class="btn-save" onclick="salvarUsuario()">Salvar</button>
@@ -309,17 +266,35 @@
 <div class="overlay" id="overlayPerfil">
   <div class="modal">
     <button class="modal-close" onclick="fecharModal('overlayPerfil')">×</button>
-    <h3 id="modalPerfilTitle">Novo <span>Perfil</span></h3>
+    <h3 id="tituloModalPerfil">Novo <span>Perfil</span></h3>
     <input type="hidden" id="editPerfilId">
     <div class="field"><label>NOME DO PERFIL</label><input type="text" id="pNome" placeholder="Ex: Analista Financeiro"></div>
-    <div class="field"><label>DESCRIÇÃO (opcional)</label><textarea id="pDesc" rows="2" placeholder="Descreva as responsabilidades deste perfil..."></textarea></div>
-    <div class="field">
-      <label>MÓDULOS COM ACESSO</label>
-      <div class="menus-grid" id="menusGrid"></div>
-    </div>
+    <div class="field"><label>DESCRIÇÃO</label><textarea id="pDesc" rows="2" placeholder="Responsabilidades deste perfil..."></textarea></div>
+    <div class="field"><label>SISTEMAS COM ACESSO</label><div class="sistemas-check-grid" id="sistemasCheckGrid"><div style="color:var(--gray);font-size:13px;">Nenhum sistema cadastrado.</div></div></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="fecharModal('overlayPerfil')">Cancelar</button>
       <button class="btn-save" onclick="salvarPerfil()">Salvar perfil</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SISTEMA -->
+<div class="overlay" id="overlaySistema">
+  <div class="modal">
+    <button class="modal-close" onclick="fecharModal('overlaySistema')">×</button>
+    <h3 id="tituloModalSistema">Novo <span>Sistema</span></h3>
+    <input type="hidden" id="editSistemaId">
+    <div class="field-row">
+      <div class="field"><label>ÍCONE (emoji)</label><input type="text" id="sIcone" placeholder="🖥️" maxlength="4"></div>
+      <div class="field"><label>STATUS</label><select id="sAtivo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
+    </div>
+    <div class="field"><label>NOME DO SISTEMA</label><input type="text" id="sNome" placeholder="Ex: Gerenciador Financeiro"></div>
+    <div class="field"><label>SLUG (identificador único)</label><input type="text" id="sSlug" placeholder="Ex: gerenciador_financeiro"></div>
+    <div class="field"><label>URL DE ACESSO</label><input type="url" id="sUrl" placeholder="https://sistema.exemplo.com"></div>
+    <div class="field"><label>DESCRIÇÃO</label><textarea id="sDesc" rows="2" placeholder="Descreva o que este sistema faz..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal('overlaySistema')">Cancelar</button>
+      <button class="btn-save" onclick="salvarSistema()">Salvar sistema</button>
     </div>
   </div>
 </div>
@@ -329,77 +304,65 @@
 <script>
   const API = '/api';
   let TOKEN = localStorage.getItem('admin_token');
-  let usuarios = [], perfis = [];
+  let usuarios = [], perfis = [], sistemas = [];
 
-  // Módulos disponíveis no sistema
-  const MODULOS = [
-    { slug: 'central_sistemas',      label: 'Central de Sistemas',       icon: '🏠' },
-    { slug: 'gerenciador_credenciais', label: 'Gerenciador de Credenciais', icon: '🔐' },
-    { slug: 'automacao_financeira',  label: 'Automação Financeira',       icon: '💰' },
-    { slug: 'classificador_emails',  label: 'Classificador de E-mails (IA)', icon: '🤖' },
-    { slug: 'conciliacao_bancaria',  label: 'Conciliação Bancária',       icon: '🏦' },
-    { slug: 'extracao_documentos',   label: 'Extração de Documentos',     icon: '📄' },
-  ];
-
-  // ── NAVEGAÇÃO ──
   function showPage(name) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
-    document.getElementById('nav' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
-    if (name === 'perfis') carregarPerfis();
+    const key = name.charAt(0).toUpperCase() + name.slice(1);
+    document.getElementById('page' + key).classList.add('active');
+    document.getElementById('nav'  + key).classList.add('active');
     if (name === 'usuarios') carregarUsuarios();
+    if (name === 'perfis')   carregarPerfis();
+    if (name === 'sistemas') carregarSistemas();
   }
 
-  // ── AUTH ──
   async function doWallLogin() {
     const email = document.getElementById('wallEmail').value.trim();
     const senha = document.getElementById('wallSenha').value;
-    const err = document.getElementById('wallError');
+    const err   = document.getElementById('wallError');
     err.style.display = 'none';
     try {
-      const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, senha}) });
+      const res  = await fetch(`${API}/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,senha}) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Erro');
       if (data.perfil !== 'admin') throw new Error('Sem permissão de admin');
       localStorage.setItem('admin_token', data.token);
-      localStorage.setItem('admin_nome', data.nome);
+      localStorage.setItem('admin_nome',  data.nome);
       TOKEN = data.token;
       document.getElementById('loginWall').style.display = 'none';
       document.getElementById('sidebarNome').textContent = data.nome;
-      carregarUsuarios();
-      carregarPerfis();
+      iniciar();
     } catch(e) { err.textContent = e.message; err.style.display = 'block'; }
   }
 
   function logout() { localStorage.clear(); location.reload(); }
-  function authH() { return {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}; }
+  function H() { return {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}; }
+
+  async function iniciar() {
+    await Promise.all([carregarSistemas(), carregarPerfis()]);
+    carregarUsuarios();
+  }
 
   // ── USUÁRIOS ──
   async function carregarUsuarios() {
-    const res = await fetch(`${API}/usuarios`, { headers: authH() });
+    const res = await fetch(`${API}/usuarios`, { headers: H() });
     if (res.status === 401) { logout(); return; }
     usuarios = await res.json();
-    renderTabela();
-    document.getElementById('statTotal').textContent = usuarios.length;
+    document.getElementById('statTotal').textContent  = usuarios.length;
     document.getElementById('statAtivos').textContent = usuarios.filter(u => u.ativo).length;
-  }
-
-  function renderTabela() {
     const tbody = document.getElementById('tabelaUsuarios');
-    if (!usuarios.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum usuário cadastrado.</td></tr>'; return;
-    }
+    if (!usuarios.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum usuário.</td></tr>'; return; }
     tbody.innerHTML = usuarios.map(u => `
       <tr>
         <td>${u.nome}</td>
         <td style="color:var(--gray-light);">${u.email}</td>
-        <td><span class="badge badge-${u.perfil_slug || 'admin'}" style="background:rgba(61,219,130,0.1);color:var(--green);">${u.perfil_nome || '—'}</span></td>
-        <td><span class="badge badge-${u.ativo ? 'ativo':'inativo'}">${u.ativo ? 'Ativo':'Inativo'}</span></td>
+        <td><span style="background:rgba(61,219,130,0.1);color:var(--green);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500;">${u.perfil_nome || '—'}</span></td>
+        <td><span class="badge badge-${u.ativo?'ativo':'inativo'}">${u.ativo?'Ativo':'Inativo'}</span></td>
         <td style="color:var(--gray);">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
         <td><div class="actions">
           <button class="btn-edit" onclick="editarUsuario(${u.id})">Editar</button>
-          <button class="btn-del" onclick="deletarUsuario(${u.id},'${u.nome}')">Remover</button>
+          <button class="btn-del"  onclick="deletarUsuario(${u.id},'${u.nome}')">Remover</button>
         </div></td>
       </tr>
     `).join('');
@@ -407,23 +370,19 @@
 
   function abrirModalUsuario(id = null) {
     document.getElementById('editUserId').value = id || '';
-    document.getElementById('modalUsuarioTitle').innerHTML = id ? 'Editar <span>Usuário</span>' : 'Novo <span>Usuário</span>';
+    document.getElementById('tituloModalUsuario').innerHTML = id ? 'Editar <span>Usuário</span>' : 'Novo <span>Usuário</span>';
     document.getElementById('senhaHint').style.display = id ? 'inline' : 'none';
-
-    // Popula select de perfis
     const sel = document.getElementById('fPerfilId');
-    sel.innerHTML = '<option value="">Selecione um perfil...</option>' +
-      perfis.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-
+    sel.innerHTML = '<option value="">Selecione um perfil...</option>' + perfis.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
     if (id) {
       const u = usuarios.find(x => x.id === id);
-      document.getElementById('fNome').value = u.nome;
-      document.getElementById('fEmail').value = u.email;
-      document.getElementById('fSenha').value = '';
+      document.getElementById('fNome').value    = u.nome;
+      document.getElementById('fEmail').value   = u.email;
+      document.getElementById('fSenha').value   = '';
       document.getElementById('fPerfilId').value = u.perfil_id || '';
-      document.getElementById('fAtivo').value = u.ativo ? 'true' : 'false';
+      document.getElementById('fAtivo').value   = u.ativo ? 'true' : 'false';
     } else {
-      ['fNome','fEmail','fSenha'].forEach(id => document.getElementById(id).value = '');
+      ['fNome','fEmail','fSenha'].forEach(i => document.getElementById(i).value = '');
       document.getElementById('fAtivo').value = 'true';
     }
     document.getElementById('overlayUsuario').classList.add('active');
@@ -432,106 +391,187 @@
   function editarUsuario(id) { abrirModalUsuario(id); }
 
   async function salvarUsuario() {
-    const id = document.getElementById('editUserId').value;
+    const id   = document.getElementById('editUserId').value;
     const body = {
-      nome: document.getElementById('fNome').value.trim(),
-      email: document.getElementById('fEmail').value.trim(),
+      nome:      document.getElementById('fNome').value.trim(),
+      email:     document.getElementById('fEmail').value.trim(),
       perfil_id: document.getElementById('fPerfilId').value ? parseInt(document.getElementById('fPerfilId').value) : null,
-      ativo: document.getElementById('fAtivo').value === 'true',
+      ativo:     document.getElementById('fAtivo').value === 'true',
     };
     const senha = document.getElementById('fSenha').value;
     if (senha) body.senha = senha;
     if (!id && !senha) { showToast('Informe a senha para novo usuário', true); return; }
     try {
-      const res = await fetch(id ? `${API}/usuarios/${id}` : `${API}/usuarios`, {
-        method: id ? 'PUT' : 'POST', headers: authH(), body: JSON.stringify(body)
-      });
+      const res  = await fetch(id ? `${API}/usuarios/${id}` : `${API}/usuarios`, { method:id?'PUT':'POST', headers:H(), body:JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Erro');
-      fecharModal('overlayUsuario');
-      showToast(id ? 'Usuário atualizado!' : 'Usuário criado!');
-      carregarUsuarios();
+      fecharModal('overlayUsuario'); showToast(id ? 'Usuário atualizado!' : 'Usuário criado!'); carregarUsuarios();
     } catch(e) { showToast(e.message, true); }
   }
 
   async function deletarUsuario(id, nome) {
-    if (!confirm(`Remover o usuário "${nome}"?`)) return;
-    const res = await fetch(`${API}/usuarios/${id}`, { method: 'DELETE', headers: authH() });
-    if (res.ok) { showToast('Usuário removido.'); carregarUsuarios(); }
-    else showToast('Erro ao remover', true);
+    if (!confirm(`Remover "${nome}"?`)) return;
+    const res = await fetch(`${API}/usuarios/${id}`, { method:'DELETE', headers:H() });
+    res.ok ? (showToast('Usuário removido.'), carregarUsuarios()) : showToast('Erro ao remover', true);
+  }
+
+  // ── SISTEMAS ──
+  async function carregarSistemas() {
+    const res = await fetch(`${API}/sistemas`, { headers: H() });
+    if (res.status === 401) { logout(); return; }
+    sistemas = await res.json();
+    document.getElementById('statSistemas').textContent = sistemas.filter(s => s.ativo).length;
+    renderSistemaCards();
+  }
+
+  function renderSistemaCards() {
+    const c = document.getElementById('sistemaCards');
+    if (!sistemas.length) { c.innerHTML = '<div style="color:var(--gray);padding:40px 0;grid-column:1/-1;">Nenhum sistema cadastrado.</div>'; return; }
+    c.innerHTML = sistemas.map(s => `
+      <div class="sistema-card">
+        <div class="sistema-card-header">
+          <div class="sistema-icon-box">${s.icone || '🖥️'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="sistema-card-name">${s.nome}</div>
+            <div class="sistema-card-url">${s.url}</div>
+          </div>
+        </div>
+        <div class="sistema-card-desc">${s.descricao || '<span style="font-style:italic;color:var(--gray);">Sem descrição</span>'}</div>
+        <div class="sistema-card-footer">
+          <span class="badge badge-${s.ativo?'ativo':'inativo'}">${s.ativo?'Ativo':'Inativo'}</span>
+          <div class="actions">
+            <button class="btn-edit" onclick="editarSistema(${s.id})">Editar</button>
+            <button class="btn-del"  onclick="deletarSistema(${s.id},'${s.nome}')">Remover</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function abrirModalSistema(id = null) {
+    document.getElementById('editSistemaId').value = id || '';
+    document.getElementById('tituloModalSistema').innerHTML = id ? 'Editar <span>Sistema</span>' : 'Novo <span>Sistema</span>';
+    if (id) {
+      const s = sistemas.find(x => x.id === id);
+      document.getElementById('sIcone').value = s.icone || '🖥️';
+      document.getElementById('sNome').value  = s.nome;
+      document.getElementById('sSlug').value  = s.slug;
+      document.getElementById('sUrl').value   = s.url;
+      document.getElementById('sDesc').value  = s.descricao || '';
+      document.getElementById('sAtivo').value = s.ativo ? 'true' : 'false';
+    } else {
+      ['sIcone','sNome','sSlug','sUrl','sDesc'].forEach(i => document.getElementById(i).value = '');
+      document.getElementById('sIcone').value = '🖥️';
+      document.getElementById('sAtivo').value = 'true';
+    }
+    document.getElementById('overlaySistema').classList.add('active');
+  }
+
+  // Auto-gerar slug a partir do nome
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('sNome').addEventListener('input', function() {
+      if (!document.getElementById('editSistemaId').value) {
+        document.getElementById('sSlug').value = this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+      }
+    });
+  });
+
+  function editarSistema(id) { abrirModalSistema(id); }
+
+  async function salvarSistema() {
+    const id   = document.getElementById('editSistemaId').value;
+    const body = {
+      nome:     document.getElementById('sNome').value.trim(),
+      slug:     document.getElementById('sSlug').value.trim(),
+      url:      document.getElementById('sUrl').value.trim(),
+      descricao:document.getElementById('sDesc').value.trim(),
+      icone:    document.getElementById('sIcone').value.trim() || '🖥️',
+      ativo:    document.getElementById('sAtivo').value === 'true',
+    };
+    if (!body.nome || !body.url) { showToast('Nome e URL são obrigatórios', true); return; }
+    try {
+      const res  = await fetch(id ? `${API}/sistemas/${id}` : `${API}/sistemas`, { method:id?'PUT':'POST', headers:H(), body:JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Erro');
+      fecharModal('overlaySistema'); showToast(id ? 'Sistema atualizado!' : 'Sistema criado!');
+      await carregarSistemas(); renderSistemaCheckboxes();
+    } catch(e) { showToast(e.message, true); }
+  }
+
+  async function deletarSistema(id, nome) {
+    if (!confirm(`Remover o sistema "${nome}"?`)) return;
+    const res = await fetch(`${API}/sistemas/${id}`, { method:'DELETE', headers:H() });
+    res.ok ? (showToast('Sistema removido.'), carregarSistemas()) : showToast('Erro ao remover', true);
   }
 
   // ── PERFIS ──
   async function carregarPerfis() {
-    const res = await fetch(`${API}/perfis`, { headers: authH() });
+    const res = await fetch(`${API}/perfis`, { headers: H() });
     if (res.status === 401) { logout(); return; }
     perfis = await res.json();
-    renderPerfilCards();
     document.getElementById('statPerfis').textContent = perfis.length;
+    renderPerfilCards();
   }
 
   function renderPerfilCards() {
-    const container = document.getElementById('perfilCards');
-    if (!perfis.length) {
-      container.innerHTML = '<div style="color:var(--gray);padding:40px;text-align:center;grid-column:1/-1;">Nenhum perfil cadastrado.</div>'; return;
-    }
-    container.innerHTML = perfis.map(p => `
+    const c = document.getElementById('perfilCards');
+    if (!perfis.length) { c.innerHTML = '<div style="color:var(--gray);padding:40px 0;grid-column:1/-1;">Nenhum perfil cadastrado.</div>'; return; }
+    c.innerHTML = perfis.map(p => `
       <div class="perfil-card">
         <div class="perfil-card-header">
           <div class="perfil-card-name">${p.nome}</div>
           <div class="actions">
             <button class="btn-edit" onclick="editarPerfil(${p.id})">Editar</button>
-            <button class="btn-del" onclick="deletarPerfil(${p.id},'${p.nome}')">Remover</button>
+            <button class="btn-del"  onclick="deletarPerfil(${p.id},'${p.nome}')">Remover</button>
           </div>
         </div>
-        <div class="perfil-card-desc">${p.descricao || '<span style="color:var(--gray);font-style:italic;">Sem descrição</span>'}</div>
-        <div class="perfil-card-menus">
-          ${p.menus.length ? p.menus.map(m => {
-            const mod = MODULOS.find(x => x.slug === m);
-            return `<span class="badge badge-menu">${mod ? mod.icon + ' ' + mod.label : m}</span>`;
-          }).join('') : '<span style="color:var(--gray);font-size:12px;">Sem módulos atribuídos</span>'}
+        <div class="perfil-card-desc">${p.descricao || '<span style="font-style:italic;color:var(--gray);">Sem descrição</span>'}</div>
+        <div class="perfil-card-sistemas">
+          ${p.sistemas.length
+            ? p.sistemas.map(s => `<span class="sistema-chip">${s.icone || '🖥️'} ${s.nome}</span>`).join('')
+            : '<span style="color:var(--gray);font-size:12px;">Sem sistemas atribuídos</span>'}
         </div>
         <div class="perfil-card-footer">
-          <div class="perfil-users-count"><span>${p.total_usuarios}</span> usuário${p.total_usuarios !== 1 ? 's' : ''}</div>
+          <div class="perfil-users-count"><span>${p.total_usuarios}</span> usuário${p.total_usuarios!==1?'s':''}</div>
         </div>
       </div>
     `).join('');
   }
 
-  function renderMenusGrid(selecionados = []) {
-    document.getElementById('menusGrid').innerHTML = MODULOS.map(m => `
-      <div class="menu-check ${selecionados.includes(m.slug) ? 'checked' : ''}" data-slug="${m.slug}" onclick="toggleMenu(this)">
-        <div class="check-box">
+  function renderSistemaCheckboxes(selecionados = []) {
+    const grid = document.getElementById('sistemasCheckGrid');
+    if (!sistemas.length) { grid.innerHTML = '<div style="color:var(--gray);font-size:13px;">Nenhum sistema cadastrado. Cadastre primeiro na aba Sistemas.</div>'; return; }
+    grid.innerHTML = sistemas.filter(s => s.ativo).map(s => `
+      <div class="sys-check ${selecionados.includes(s.id) ? 'checked' : ''}" data-id="${s.id}" onclick="toggleSysCheck(this)">
+        <div class="chk-box">
           <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#0A0F0A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div>
-          <div style="font-size:16px;">${m.icon}</div>
-          <div class="menu-check-label">${m.label}</div>
+          <div style="font-size:18px;">${s.icone || '🖥️'}</div>
+          <div class="sys-check-label">${s.nome}</div>
         </div>
       </div>
     `).join('');
   }
 
-  function toggleMenu(el) {
-    el.classList.toggle('checked');
-  }
+  function toggleSysCheck(el) { el.classList.toggle('checked'); }
 
-  function getMenusSelecionados() {
-    return Array.from(document.querySelectorAll('#menusGrid .menu-check.checked')).map(el => el.dataset.slug);
+  function getSistemasSelecionados() {
+    return Array.from(document.querySelectorAll('#sistemasCheckGrid .sys-check.checked')).map(el => parseInt(el.dataset.id));
   }
 
   function abrirModalPerfil(id = null) {
     document.getElementById('editPerfilId').value = id || '';
-    document.getElementById('modalPerfilTitle').innerHTML = id ? 'Editar <span>Perfil</span>' : 'Novo <span>Perfil</span>';
+    document.getElementById('tituloModalPerfil').innerHTML = id ? 'Editar <span>Perfil</span>' : 'Novo <span>Perfil</span>';
     if (id) {
       const p = perfis.find(x => x.id === id);
       document.getElementById('pNome').value = p.nome;
       document.getElementById('pDesc').value = p.descricao || '';
-      renderMenusGrid(p.menus);
+      renderSistemaCheckboxes(p.sistemas.map(s => s.id));
     } else {
       document.getElementById('pNome').value = '';
       document.getElementById('pDesc').value = '';
-      renderMenusGrid([]);
+      renderSistemaCheckboxes([]);
     }
     document.getElementById('overlayPerfil').classList.add('active');
   }
@@ -539,58 +579,43 @@
   function editarPerfil(id) { abrirModalPerfil(id); }
 
   async function salvarPerfil() {
-    const id = document.getElementById('editPerfilId').value;
-    const body = {
-      nome: document.getElementById('pNome').value.trim(),
-      descricao: document.getElementById('pDesc').value.trim(),
-      menus: getMenusSelecionados()
-    };
+    const id   = document.getElementById('editPerfilId').value;
+    const body = { nome: document.getElementById('pNome').value.trim(), descricao: document.getElementById('pDesc').value.trim(), sistemas: getSistemasSelecionados() };
     if (!body.nome) { showToast('Informe o nome do perfil', true); return; }
     try {
-      const res = await fetch(id ? `${API}/perfis/${id}` : `${API}/perfis`, {
-        method: id ? 'PUT' : 'POST', headers: authH(), body: JSON.stringify(body)
-      });
+      const res  = await fetch(id ? `${API}/perfis/${id}` : `${API}/perfis`, { method:id?'PUT':'POST', headers:H(), body:JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Erro');
-      fecharModal('overlayPerfil');
-      showToast(id ? 'Perfil atualizado!' : 'Perfil criado!');
-      carregarPerfis();
+      fecharModal('overlayPerfil'); showToast(id ? 'Perfil atualizado!' : 'Perfil criado!'); carregarPerfis();
     } catch(e) { showToast(e.message, true); }
   }
 
   async function deletarPerfil(id, nome) {
     if (!confirm(`Remover o perfil "${nome}"?`)) return;
-    const res = await fetch(`${API}/perfis/${id}`, { method: 'DELETE', headers: authH() });
+    const res  = await fetch(`${API}/perfis/${id}`, { method:'DELETE', headers:H() });
     const data = await res.json();
-    if (res.ok) { showToast('Perfil removido.'); carregarPerfis(); }
-    else showToast(data.detail || 'Erro ao remover', true);
+    res.ok ? (showToast('Perfil removido.'), carregarPerfis()) : showToast(data.detail || 'Erro', true);
   }
 
-  // ── UTILITÁRIOS ──
+  // ── UTILS ──
   function fecharModal(id) { document.getElementById(id).classList.remove('active'); }
-  function showToast(msg, error = false) {
+  function showToast(msg, error=false) {
     const t = document.getElementById('toast');
-    t.textContent = msg; t.className = 'toast' + (error ? ' error' : '');
-    t.style.display = 'block';
+    t.textContent = msg; t.className = 'toast' + (error?' error':''); t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
   }
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      fecharModal('overlayUsuario');
-      fecharModal('overlayPerfil');
-    }
-  });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') ['overlayUsuario','overlayPerfil','overlaySistema'].forEach(fecharModal); });
   document.getElementById('wallSenha').addEventListener('keydown', e => { if(e.key==='Enter') doWallLogin(); });
-  document.getElementById('overlayUsuario').addEventListener('click', e => { if(e.target===e.currentTarget) fecharModal('overlayUsuario'); });
-  document.getElementById('overlayPerfil').addEventListener('click', e => { if(e.target===e.currentTarget) fecharModal('overlayPerfil'); });
+  ['overlayUsuario','overlayPerfil','overlaySistema'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => { if(e.target===e.currentTarget) fecharModal(id); });
+  });
 
-  // ── INIT ──
+  // INIT
   if (TOKEN) {
     document.getElementById('loginWall').style.display = 'none';
     document.getElementById('sidebarNome').textContent = localStorage.getItem('admin_nome') || 'Admin';
-    carregarUsuarios();
-    carregarPerfis();
+    iniciar();
   }
 </script>
 </body>

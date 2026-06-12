@@ -40,12 +40,12 @@ def get_conn():
     )
 
 
-def create_token(user_id: int, email: str, perfil_slug: str, menus: list) -> str:
+def create_token(user_id: int, email: str, perfil_slug: str, sistemas: list) -> str:
     payload = {
         "sub": str(user_id),
         "email": email,
         "perfil": perfil_slug,
-        "menus": menus,
+        "sistemas": sistemas,
         "exp": datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -65,6 +65,29 @@ def require_admin(token=Depends(verify_token)):
     if token.get("perfil") != "admin":
         raise HTTPException(status_code=403, detail="Acesso restrito ao administrador")
     return token
+
+
+def get_user_sistemas(conn, perfil_id) -> list:
+    if not perfil_id:
+        return []
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT s.id, s.nome, s.slug, s.descricao, s.url, s.icone
+        FROM perfil_sistemas ps
+        JOIN sistemas s ON s.id = ps.sistema_id
+        WHERE ps.perfil_id = %s AND s.ativo = TRUE
+        ORDER BY s.nome
+    """, (perfil_id,))
+    return [dict(r) for r in cur.fetchall()]
+
+
+def get_perfil_slug(conn, perfil_id) -> str:
+    if not perfil_id:
+        return "cliente"
+    cur = conn.cursor()
+    cur.execute("SELECT slug FROM perfis WHERE id = %s", (perfil_id,))
+    row = cur.fetchone()
+    return row["slug"] if row else "cliente"
 
 
 # ── SCHEMAS ──
@@ -89,38 +112,37 @@ class UserUpdate(BaseModel):
 class PerfilCreate(BaseModel):
     nome: str
     descricao: Optional[str] = ""
-    menus: List[str] = []
+    sistemas: List[int] = []
 
 class PerfilUpdate(BaseModel):
     nome: Optional[str] = None
     descricao: Optional[str] = None
-    menus: Optional[List[str]] = None
+    sistemas: Optional[List[int]] = None
+
+class SistemaCreate(BaseModel):
+    nome: str
+    slug: str
+    descricao: Optional[str] = ""
+    url: str
+    icone: Optional[str] = "🖥️"
+    ativo: bool = True
+
+class SistemaUpdate(BaseModel):
+    nome: Optional[str] = None
+    slug: Optional[str] = None
+    descricao: Optional[str] = None
+    url: Optional[str] = None
+    icone: Optional[str] = None
+    ativo: Optional[bool] = None
 
 
-# ── HELPERS ──
-def get_user_menus(conn, perfil_id) -> list:
-    if not perfil_id:
-        return []
-    cur = conn.cursor()
-    cur.execute("SELECT menu_slug FROM perfil_menus WHERE perfil_id = %s", (perfil_id,))
-    return [r["menu_slug"] for r in cur.fetchall()]
-
-def get_perfil_slug(conn, perfil_id) -> str:
-    if not perfil_id:
-        return "cliente"
-    cur = conn.cursor()
-    cur.execute("SELECT slug FROM perfis WHERE id = %s", (perfil_id,))
-    row = cur.fetchone()
-    return row["slug"] if row else "cliente"
-
-
-# ── ROTAS ──
-
+# ── HEALTH ──
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
 
 
+# ── LOGIN ──
 @app.post("/api/login")
 def login(body: LoginRequest):
     try:
@@ -138,17 +160,17 @@ def login(body: LoginRequest):
     if not bcrypt.checkpw(body.senha.encode(), user["senha_hash"].encode()):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    menus = get_user_menus(conn, user["perfil_id"])
     perfil_slug = get_perfil_slug(conn, user["perfil_id"])
+    sistemas = [] if perfil_slug == "admin" else get_user_sistemas(conn, user["perfil_id"])
     conn.close()
 
-    token = create_token(user["id"], user["email"], perfil_slug, menus)
+    token = create_token(user["id"], user["email"], perfil_slug, sistemas)
     return {
         "token": token,
         "perfil": perfil_slug,
         "nome": user["nome"],
         "email": user["email"],
-        "menus": menus
+        "sistemas": sistemas
     }
 
 
@@ -158,7 +180,6 @@ def me(token=Depends(verify_token)):
 
 
 # ── USUÁRIOS ──
-
 @app.get("/api/usuarios")
 def listar_usuarios(token=Depends(require_admin)):
     conn = get_conn()
@@ -166,9 +187,7 @@ def listar_usuarios(token=Depends(require_admin)):
     cur.execute("""
         SELECT u.id, u.nome, u.email, u.ativo, u.criado_em,
                u.perfil_id, p.nome as perfil_nome, p.slug as perfil_slug
-        FROM usuarios u
-        LEFT JOIN perfis p ON p.id = u.perfil_id
-        ORDER BY u.id
+        FROM usuarios u LEFT JOIN perfis p ON p.id = u.perfil_id ORDER BY u.id
     """)
     users = cur.fetchall()
     conn.close()
@@ -188,7 +207,7 @@ def criar_usuario(body: UserCreate, token=Depends(require_admin)):
         new_id = cur.fetchone()["id"]
         conn.commit()
         conn.close()
-        return {"id": new_id, "mensagem": "Usuário criado com sucesso"}
+        return {"id": new_id, "mensagem": "Usuário criado"}
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
 
@@ -198,8 +217,7 @@ def atualizar_usuario(user_id: int, body: UserUpdate, token=Depends(require_admi
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
-    user = cur.fetchone()
-    if not user:
+    if not cur.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
@@ -213,10 +231,8 @@ def atualizar_usuario(user_id: int, body: UserUpdate, token=Depends(require_admi
 
     if updates:
         sets = ", ".join(f"{k} = %s" for k in updates)
-        vals = list(updates.values()) + [user_id]
-        cur.execute(f"UPDATE usuarios SET {sets} WHERE id = %s", vals)
+        cur.execute(f"UPDATE usuarios SET {sets} WHERE id = %s", list(updates.values()) + [user_id])
         conn.commit()
-
     conn.close()
     return {"mensagem": "Usuário atualizado"}
 
@@ -235,7 +251,6 @@ def deletar_usuario(user_id: int, token=Depends(require_admin)):
 
 
 # ── PERFIS ──
-
 @app.get("/api/perfis")
 def listar_perfis(token=Depends(require_admin)):
     conn = get_conn()
@@ -244,11 +259,14 @@ def listar_perfis(token=Depends(require_admin)):
     perfis = cur.fetchall()
     result = []
     for p in perfis:
-        cur.execute("SELECT menu_slug FROM perfil_menus WHERE perfil_id = %s", (p["id"],))
-        menus = [r["menu_slug"] for r in cur.fetchall()]
+        cur.execute("""
+            SELECT s.id, s.nome, s.slug, s.icone FROM perfil_sistemas ps
+            JOIN sistemas s ON s.id = ps.sistema_id WHERE ps.perfil_id = %s
+        """, (p["id"],))
+        sistemas = [dict(s) for s in cur.fetchall()]
         cur.execute("SELECT COUNT(*) as total FROM usuarios WHERE perfil_id = %s", (p["id"],))
-        total_users = cur.fetchone()["total"]
-        result.append({**dict(p), "menus": menus, "total_usuarios": total_users})
+        total = cur.fetchone()["total"]
+        result.append({**dict(p), "sistemas": sistemas, "total_usuarios": total})
     conn.close()
     return result
 
@@ -259,13 +277,11 @@ def criar_perfil(body: PerfilCreate, token=Depends(require_admin)):
     try:
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO perfis (nome, slug, descricao) VALUES (%s,%s,%s) RETURNING id",
-            (body.nome, slug, body.descricao)
-        )
+        cur.execute("INSERT INTO perfis (nome, slug, descricao) VALUES (%s,%s,%s) RETURNING id",
+                    (body.nome, slug, body.descricao))
         perfil_id = cur.fetchone()["id"]
-        for menu in body.menus:
-            cur.execute("INSERT INTO perfil_menus (perfil_id, menu_slug) VALUES (%s,%s)", (perfil_id, menu))
+        for sid in body.sistemas:
+            cur.execute("INSERT INTO perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
         conn.commit()
         conn.close()
         return {"id": perfil_id, "mensagem": "Perfil criado"}
@@ -287,10 +303,10 @@ def atualizar_perfil(perfil_id: int, body: PerfilUpdate, token=Depends(require_a
         cur.execute("UPDATE perfis SET nome=%s, slug=%s WHERE id=%s", (body.nome, slug, perfil_id))
     if body.descricao is not None:
         cur.execute("UPDATE perfis SET descricao=%s WHERE id=%s", (body.descricao, perfil_id))
-    if body.menus is not None:
-        cur.execute("DELETE FROM perfil_menus WHERE perfil_id=%s", (perfil_id,))
-        for menu in body.menus:
-            cur.execute("INSERT INTO perfil_menus (perfil_id, menu_slug) VALUES (%s,%s)", (perfil_id, menu))
+    if body.sistemas is not None:
+        cur.execute("DELETE FROM perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
+        for sid in body.sistemas:
+            cur.execute("INSERT INTO perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
 
     conn.commit()
     conn.close()
@@ -305,7 +321,7 @@ def deletar_perfil(perfil_id: int, token=Depends(require_admin)):
     if cur.fetchone()["total"] > 0:
         conn.close()
         raise HTTPException(status_code=400, detail="Remova os usuários deste perfil antes de deletá-lo")
-    cur.execute("DELETE FROM perfil_menus WHERE perfil_id=%s", (perfil_id,))
+    cur.execute("DELETE FROM perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
     cur.execute("DELETE FROM perfis WHERE id=%s RETURNING id", (perfil_id,))
     deleted = cur.fetchone()
     conn.commit()
@@ -313,3 +329,70 @@ def deletar_perfil(perfil_id: int, token=Depends(require_admin)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
     return {"mensagem": "Perfil removido"}
+
+
+# ── SISTEMAS ──
+@app.get("/api/sistemas")
+def listar_sistemas(token=Depends(require_admin)):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM sistemas ORDER BY nome")
+    sistemas = cur.fetchall()
+    conn.close()
+    return [dict(s) for s in sistemas]
+
+
+@app.post("/api/sistemas", status_code=201)
+def criar_sistema(body: SistemaCreate, token=Depends(require_admin)):
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO sistemas (nome, slug, descricao, url, icone, ativo) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id",
+            (body.nome, body.slug, body.descricao, body.url, body.icone, body.ativo)
+        )
+        new_id = cur.fetchone()["id"]
+        conn.commit()
+        conn.close()
+        return {"id": new_id, "mensagem": "Sistema criado"}
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(status_code=409, detail="Slug já existe")
+
+
+@app.put("/api/sistemas/{sistema_id}")
+def atualizar_sistema(sistema_id: int, body: SistemaUpdate, token=Depends(require_admin)):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM sistemas WHERE id = %s", (sistema_id,))
+    if not cur.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Sistema não encontrado")
+
+    updates = {}
+    if body.nome is not None: updates["nome"] = body.nome
+    if body.slug is not None: updates["slug"] = body.slug
+    if body.descricao is not None: updates["descricao"] = body.descricao
+    if body.url is not None: updates["url"] = body.url
+    if body.icone is not None: updates["icone"] = body.icone
+    if body.ativo is not None: updates["ativo"] = body.ativo
+
+    if updates:
+        sets = ", ".join(f"{k} = %s" for k in updates)
+        cur.execute(f"UPDATE sistemas SET {sets} WHERE id = %s", list(updates.values()) + [sistema_id])
+        conn.commit()
+    conn.close()
+    return {"mensagem": "Sistema atualizado"}
+
+
+@app.delete("/api/sistemas/{sistema_id}")
+def deletar_sistema(sistema_id: int, token=Depends(require_admin)):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM perfil_sistemas WHERE sistema_id=%s", (sistema_id,))
+    cur.execute("DELETE FROM sistemas WHERE id=%s RETURNING id", (sistema_id,))
+    deleted = cur.fetchone()
+    conn.commit()
+    conn.close()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Sistema não encontrado")
+    return {"mensagem": "Sistema removido"}

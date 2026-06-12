@@ -7,14 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --green: #3DDB82; --green-dark: #18A558; --green-deep: #0F7A40;
-      --black: #0A0F0A; --black-green: #1A241C;
+      --green: #3DDB82; --black: #0A0F0A; --black-green: #1A241C;
       --gray: #5C6B5E; --gray-light: #A8B8AA;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--black); color: #fff; min-height: 100vh; }
 
-    /* ── TOPBAR ── */
     .topbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 50;
       display: flex; justify-content: space-between; align-items: center;
@@ -27,9 +25,8 @@
     .topbar-logo .name span { color: var(--green); }
     .topbar-logo .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
     .topbar-right { display: flex; align-items: center; gap: 20px; }
-    .topbar-user { text-align: right; }
-    .topbar-user .name { font-size: 14px; font-weight: 500; }
-    .topbar-user .role { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 1px; }
+    .topbar-user .name { font-size: 14px; font-weight: 500; text-align: right; }
+    .topbar-user .role { font-size: 11px; color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 1px; text-align: right; }
     .btn-logout {
       background: transparent; border: 0.5px solid rgba(255,255,255,0.12);
       color: var(--gray); font-size: 13px; font-family: 'Inter', sans-serif;
@@ -37,7 +34,6 @@
     }
     .btn-logout:hover { border-color: #E24B4A; color: #E24B4A; }
 
-    /* ── CONTEÚDO ── */
     .content { padding: 100px 48px 60px; max-width: 1100px; margin: 0 auto; }
 
     .greeting { margin-bottom: 48px; }
@@ -46,59 +42,52 @@
     .greeting-name span { color: var(--green); }
     .greeting-sub { font-size: 15px; color: var(--gray); margin-top: 8px; }
 
-    /* ── MÓDULOS ── */
-    .modules-label {
-      font-size: 11px; color: var(--gray); text-transform: uppercase;
-      letter-spacing: 0.12em; margin-bottom: 20px;
-    }
+    .modules-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 20px; }
+
     .modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 
     .module-card {
-      background: var(--black-green);
-      border: 0.5px solid rgba(255,255,255,0.07);
-      border-radius: 16px; padding: 28px;
-      cursor: pointer; text-decoration: none; color: inherit;
-      display: flex; flex-direction: column;
-      transition: border-color .25s, transform .2s, background .2s;
-      position: relative; overflow: hidden;
+      background: var(--black-green); border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 28px; cursor: pointer;
+      text-decoration: none; color: inherit; display: flex; flex-direction: column;
+      transition: border-color .25s, transform .2s; position: relative; overflow: hidden;
     }
     .module-card::before {
-      content: '';
-      position: absolute; inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: radial-gradient(circle at top left, rgba(61,219,130,0.06), transparent 60%);
       opacity: 0; transition: opacity .3s;
     }
     .module-card:hover { border-color: rgba(61,219,130,0.35); transform: translateY(-3px); }
     .module-card:hover::before { opacity: 1; }
+    .module-card.admin-card { border-color: rgba(61,219,130,0.15); }
 
     .module-icon {
       width: 52px; height: 52px; border-radius: 12px;
-      background: rgba(61,219,130,0.08);
-      border: 0.5px solid rgba(61,219,130,0.15);
+      background: rgba(61,219,130,0.08); border: 0.5px solid rgba(61,219,130,0.15);
       display: flex; align-items: center; justify-content: center;
       font-size: 24px; margin-bottom: 20px;
     }
-    .module-card.admin-card .module-icon { background: rgba(61,219,130,0.12); border-color: rgba(61,219,130,0.3); }
-
     .module-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
     .module-desc { font-size: 13px; color: var(--gray); line-height: 1.6; flex: 1; }
     .module-arrow {
-      margin-top: 20px; padding-top: 16px;
-      border-top: 0.5px solid rgba(255,255,255,0.06);
-      font-size: 12px; color: var(--green);
-      display: flex; align-items: center; gap: 6px;
+      margin-top: 20px; padding-top: 16px; border-top: 0.5px solid rgba(255,255,255,0.06);
+      font-size: 12px; color: var(--green); display: flex; align-items: center; gap: 6px;
     }
     .module-arrow::after { content: '→'; transition: transform .2s; }
     .module-card:hover .module-arrow::after { transform: translateX(4px); }
 
-    /* ── SEM ACESSO ── */
-    .no-access {
-      text-align: center; padding: 80px 20px;
-      color: var(--gray);
-    }
+    .no-access { text-align: center; padding: 80px 20px; color: var(--gray); }
     .no-access .icon { font-size: 48px; margin-bottom: 16px; }
     .no-access h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
     .no-access p { font-size: 14px; line-height: 1.6; }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, var(--black-green) 25%, #243024 50%, var(--black-green) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite;
+      border-radius: 16px; height: 200px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
     @media (max-width: 768px) {
       .topbar { padding: 0 20px; }
@@ -110,7 +99,6 @@
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <a href="/" class="topbar-logo">
     <svg viewBox="0 0 56 56" width="28" height="28">
@@ -135,76 +123,21 @@
   </div>
 </div>
 
-<!-- CONTEÚDO -->
 <div class="content">
   <div class="greeting">
     <div class="greeting-time" id="greetingTime"></div>
     <div class="greeting-name">Olá, <span id="greetingNome">—</span></div>
-    <div class="greeting-sub">Selecione um módulo para começar.</div>
+    <div class="greeting-sub" id="greetingSub">Carregando seus módulos...</div>
   </div>
-
   <div class="modules-label">Seus módulos</div>
   <div class="modules-grid" id="modulesGrid">
-    <div style="color:var(--gray);padding:40px 0;">Carregando...</div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
   </div>
 </div>
 
 <script>
-  // Definição de todos os módulos disponíveis
-  const TODOS_MODULOS = [
-    {
-      slug: 'central_sistemas',
-      title: 'Central de Sistemas',
-      desc: 'Portal principal com acesso unificado a todas as ferramentas e microsserviços.',
-      icon: '🏠',
-      href: 'http://147.15.47.151:8000'
-    },
-    {
-      slug: 'gerenciador_credenciais',
-      title: 'Gerenciador de Credenciais',
-      desc: 'Governança e custódia de senhas corporativas com controle de acesso seguro.',
-      icon: '🔐',
-      href: '#'
-    },
-    {
-      slug: 'automacao_financeira',
-      title: 'Automação Financeira',
-      desc: 'Controle de lançamentos, amortizações e auditoria automatizada de movimentações.',
-      icon: '💰',
-      href: '#'
-    },
-    {
-      slug: 'classificador_emails',
-      title: 'Classificador de E-mails (IA)',
-      desc: 'Triagem automática de e-mails corporativos por urgência, categoria e filial.',
-      icon: '🤖',
-      href: '#'
-    },
-    {
-      slug: 'conciliacao_bancaria',
-      title: 'Conciliação Bancária',
-      desc: 'Robô RPA que cruza extratos e aponta divergências automaticamente.',
-      icon: '🏦',
-      href: '#'
-    },
-    {
-      slug: 'extracao_documentos',
-      title: 'Extração de Documentos',
-      desc: 'OCR e parsing de PDFs e notas fiscais, alimentando o banco sem digitação manual.',
-      icon: '📄',
-      href: '#'
-    },
-  ];
-
-  const MODULO_ADMIN = {
-    slug: 'admin',
-    title: 'Painel Administrativo',
-    desc: 'Gerencie usuários, perfis de acesso e permissões de todos os módulos do sistema.',
-    icon: '⚙️',
-    href: '/admin/',
-    admin: true
-  };
-
   function getGreeting() {
     const h = new Date().getHours();
     if (h < 12) return 'Bom dia';
@@ -212,48 +145,56 @@
     return 'Boa noite';
   }
 
-  function logout() {
-    localStorage.clear();
-    window.location.href = '/';
-  }
+  function logout() { localStorage.clear(); window.location.href = '/'; }
 
-  function init() {
+  async function init() {
     const token = localStorage.getItem('admin_token');
     const nome  = localStorage.getItem('admin_nome');
-
     if (!token) { window.location.href = '/'; return; }
 
-    // Decodifica token (sem verificação de assinatura — só leitura)
     let payload;
-    try {
-      payload = JSON.parse(atob(token.split('.')[1]));
-    } catch(e) { logout(); return; }
+    try { payload = JSON.parse(atob(token.split('.')[1])); }
+    catch(e) { logout(); return; }
 
-    // Verifica expiração
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      logout(); return;
+    if (payload.exp && Date.now() / 1000 > payload.exp) { logout(); return; }
+
+    const perfil   = payload.perfil || '';
+    const isAdmin  = perfil === 'admin';
+    const primeiroNome = (nome || '').split(' ')[0] || 'usuário';
+
+    document.getElementById('topNome').textContent    = nome || payload.email;
+    document.getElementById('topPerfil').textContent  = isAdmin ? 'Administrador' : perfil;
+    document.getElementById('greetingTime').textContent = getGreeting() + ',';
+    document.getElementById('greetingNome').textContent  = primeiroNome;
+
+    // Admin vai buscar lista de sistemas da API; outros usam o token
+    let sistemas = [];
+
+    if (isAdmin) {
+      try {
+        const res = await fetch('/api/sistemas', { headers: { 'Authorization': `Bearer ${token}` } });
+        sistemas = res.ok ? await res.json() : [];
+      } catch(e) { sistemas = []; }
+    } else {
+      sistemas = payload.sistemas || [];
     }
 
-    const perfil = payload.perfil || '';
-    const menus  = payload.menus  || [];
-    const isAdmin = perfil === 'admin';
+    // ── Redirect automático se só 1 sistema ──
+    if (!isAdmin && sistemas.length === 1 && sistemas[0].url && sistemas[0].url !== '#') {
+      window.location.href = sistemas[0].url;
+      return;
+    }
 
-    // Topbar
-    document.getElementById('topNome').textContent   = nome || payload.email;
-    document.getElementById('topPerfil').textContent = isAdmin ? 'Administrador' : perfil;
+    document.getElementById('greetingSub').textContent = 'Selecione um módulo para começar.';
+    renderGrid(sistemas, isAdmin);
+  }
 
-    // Saudação
-    document.getElementById('greetingTime').textContent = getGreeting() + ',';
-    document.getElementById('greetingNome').textContent  = (nome || '').split(' ')[0] || 'usuário';
-
-    // Módulos visíveis
-    const visiveis = isAdmin
-      ? TODOS_MODULOS  // admin vê tudo
-      : TODOS_MODULOS.filter(m => menus.includes(m.slug));
-
+  function renderGrid(sistemas, isAdmin) {
     const grid = document.getElementById('modulesGrid');
 
-    if (!visiveis.length && !isAdmin) {
+    const sistemasAtivos = sistemas.filter(s => s.ativo !== false);
+
+    if (!sistemasAtivos.length && !isAdmin) {
       grid.innerHTML = `
         <div class="no-access" style="grid-column:1/-1;">
           <div class="icon">🔒</div>
@@ -263,21 +204,20 @@
       return;
     }
 
-    const cards = visiveis.map(m => `
-      <a class="module-card" href="${m.href}">
-        <div class="module-icon">${m.icon}</div>
-        <div class="module-title">${m.title}</div>
-        <div class="module-desc">${m.desc}</div>
+    const cards = sistemasAtivos.map(s => `
+      <a class="module-card" href="${s.url || '#'}" ${s.url && s.url !== '#' ? 'target="_blank"' : ''}>
+        <div class="module-icon">${s.icone || '🖥️'}</div>
+        <div class="module-title">${s.nome}</div>
+        <div class="module-desc">${s.descricao || ''}</div>
         <div class="module-arrow">Acessar módulo</div>
       </a>
     `).join('');
 
-    // Card admin só para admins
     const adminCard = isAdmin ? `
-      <a class="module-card admin-card" href="${MODULO_ADMIN.href}">
-        <div class="module-icon">${MODULO_ADMIN.icon}</div>
-        <div class="module-title">${MODULO_ADMIN.title}</div>
-        <div class="module-desc">${MODULO_ADMIN.desc}</div>
+      <a class="module-card admin-card" href="/admin/">
+        <div class="module-icon">⚙️</div>
+        <div class="module-title">Painel Administrativo</div>
+        <div class="module-desc">Gerencie usuários, perfis, sistemas e permissões de acesso.</div>
         <div class="module-arrow">Acessar painel</div>
       </a>` : '';
 
