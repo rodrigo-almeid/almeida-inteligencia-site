@@ -813,7 +813,7 @@
       if (!res.ok) { toast.style.display = 'block'; return; }
       localStorage.setItem('admin_token', data.token);
       localStorage.setItem('admin_nome', data.nome);
-      if (data.perfil === 'admin' || data.menus?.length > 0) {
+      if (data.perfil === 'admin' || data.sistemas?.length > 0) {
         window.location.href = '/dashboard/';
       } else {
         toast.textContent = `Bem-vindo, ${data.nome}!`;
