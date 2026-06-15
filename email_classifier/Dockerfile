@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/li
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN python -m nltk.downloader stopwords punkt punkt_tab -q || true
+# RUN python -m nltk.downloader stopwords punkt punkt_tab -q || true  # ML desabilitado
 
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/

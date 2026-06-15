@@ -224,12 +224,7 @@ def status_modelo(user: User = Depends(get_current_user)):
 
 @router.post("/treinar")
 def treinar_modelo(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    registros = db.query(EmailExtraido).filter(EmailExtraido.user_id == user.id).all()
-    if not registros:
-        raise HTTPException(status_code=400, detail="Nenhum e-mail encontrado para treinar.")
-    dados = [{"assunto": r.assunto, "corpo": r.corpo or "", "subcategoria": r.subcategoria, "sla": r.sla}
-             for r in registros]
-    return treinar(dados, user.id)
+    return {"status": "desabilitado", "msg": "ML desabilitado temporariamente. Reative scikit-learn no requirements.txt."}
 
 
 @router.get("/pendentes")
@@ -381,13 +376,7 @@ def _executar_classificacao(job_id: str, user_id: int):
 
 @router.post("/classificar")
 def classificar_emails(user: User = Depends(get_current_user)):
-    status = modelo_existe(user.id)
-    if not status.get("subcategoria"):
-        raise HTTPException(status_code=400, detail="Modelo não treinado. Treine a IA antes de classificar.")
-    job_id = str(uuid.uuid4())
-    _jobs[job_id] = {"status": "pendente", "progresso": [], "tipo": "classificacao"}
-    threading.Thread(target=_executar_classificacao, args=(job_id, user.id), daemon=True).start()
-    return {"job_id": job_id}
+    return {"status": "desabilitado", "msg": "ML desabilitado temporariamente. Reative scikit-learn no requirements.txt."}
 
 
 # ── Listagem ──────────────────────────────────────────────────────────────────
