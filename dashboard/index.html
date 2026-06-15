@@ -205,7 +205,7 @@
     }
 
     const cards = sistemasAtivos.map(s => `
-      <a class="module-card" href="${s.url || '#'}" ${s.url && s.url !== '#' ? 'target="_blank"' : ''}>
+      <a class="module-card" href="${s.url || '#'}" onclick="acessarModulo(event, '${s.url || '#'}')">
         <div class="module-icon">${s.icone || '🖥️'}</div>
         <div class="module-title">${s.nome}</div>
         <div class="module-desc">${s.descricao || ''}</div>
@@ -222,6 +222,52 @@
       </a>` : '';
 
     grid.innerHTML = cards + adminCard;
+  }
+
+  async function acessarModulo(event, url) {
+    if (!url || url === '#') return;
+    event.preventDefault();
+
+    const token = localStorage.getItem('admin_token');
+
+    // Módulos centrais (credenciais / financeiro)
+    if (url.includes('/credenciais') || url.includes('/financeiro')) {
+      try {
+        const res = await fetch('/central/auth/sso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ portal_token: token })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('central_token', data.access_token);
+          localStorage.setItem('central_email', data.email);
+        }
+      } catch(e) {}
+      window.location.href = url;
+      return;
+    }
+
+    // Módulo de e-mails
+    if (url.includes('/email')) {
+      try {
+        const res = await fetch('/email/auth/sso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ portal_token: token })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('email_token', data.access_token);
+          localStorage.setItem('email_nome', data.nome);
+          localStorage.setItem('email_email', data.email);
+        }
+      } catch(e) {}
+      window.location.href = url;
+      return;
+    }
+
+    window.location.href = url;
   }
 
   init();

@@ -48,6 +48,7 @@ services:
       DATABASE_URL: "postgresql://email_user:email_pass_2025@email-db:5432/email_manager"
       FERNET_SECRET_KEY: "_Vst7BJB0-lkH4_WBLn2K7OzOwBOS-pG49AYLlAKyuY="
       JWT_SECRET_KEY: "f970d76284788d78273ab4bbe58e627190232299468af188c788eb973546148e"
+      PORTAL_SECRET_KEY: "almeida-super-secret-2025"
       JWT_ALGORITHM: "HS256"
       JWT_EXPIRE_MINUTES: "480"
     depends_on:
@@ -80,6 +81,7 @@ services:
       DATABASE_URL: "postgresql://central_user:central_pass_2025@central-db:5432/central_db"
       FERNET_SECRET_KEY: "YWxzT1RxZU9EUW1lWjhkVVlCS2tpN1htUDFwZzBVbTk="
       JWT_SECRET_KEY: "c3e8d1a04f2b9e7c6d5a4b3f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2"
+      PORTAL_SECRET_KEY: "almeida-super-secret-2025"
       JWT_ALGORITHM: "HS256"
       JWT_EXPIRE_MINUTES: "480"
     depends_on:
