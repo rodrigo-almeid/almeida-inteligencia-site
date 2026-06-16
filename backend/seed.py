@@ -57,12 +57,12 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 # Sistemas padrão
 sistemas_seed = [
-    ("Central de Sistemas",         "central_sistemas",       "Portal principal com acesso unificado a todas as ferramentas.",           "http://147.15.47.151:8000", "🏠"),
-    ("Gerenciador de Credenciais",  "gerenciador_credenciais","Governança e custódia de senhas corporativas com controle de acesso.",    "#",                         "🔐"),
-    ("Automação Financeira",        "automacao_financeira",   "Controle de lançamentos, amortizações e auditoria automatizada.",         "#",                         "💰"),
-    ("Classificador de E-mails",    "classificador_emails",   "Triagem automática de e-mails por urgência, categoria e filial.",         "#",                         "🤖"),
-    ("Conciliação Bancária",        "conciliacao_bancaria",   "Robô RPA que cruza extratos e aponta divergências automaticamente.",      "#",                         "🏦"),
-    ("Extração de Documentos",      "extracao_documentos",    "OCR e parsing de PDFs e notas fiscais sem digitação manual.",             "#",                         "📄"),
+    ("Central de Sistemas",         "central_sistemas",       "Portal principal com acesso unificado a todas as ferramentas.",           "/",                              "🏠"),
+    ("Gerenciador de Credenciais",  "gerenciador_credenciais","Governança e custódia de senhas corporativas com controle de acesso.",    "/credenciais/",                  "🔐"),
+    ("Automação Financeira",        "automacao_financeira",   "Controle de lançamentos, amortizações e auditoria automatizada.",         "/financeiro/",                   "💰"),
+    ("Classificador de E-mails",    "classificador_emails",   "Triagem automática de e-mails por urgência, categoria e filial.",         "/email/",                        "🤖"),
+    ("Conciliação Bancária",        "conciliacao_bancaria",   "Robô RPA que cruza extratos e aponta divergências automaticamente.",      "#",                              "🏦"),
+    ("Extração de Documentos",      "extracao_documentos",    "OCR e parsing de PDFs e notas fiscais sem digitação manual.",             "#",                              "📄"),
 ]
 
 for nome, slug, desc, url, icone in sistemas_seed:
