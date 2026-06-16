@@ -44,35 +44,31 @@ let _toastTimer = null;
 function toast(msg, tipo = 'ok') {
   const el = document.getElementById('toast');
   const msgEl = document.getElementById('toast-msg');
-  const cor = tipo === 'ok' ? 'text-green-400' : tipo === 'erro' ? 'text-red-400' : 'text-yellow-400';
-  const icone = tipo === 'ok' ? 'fa-circle-check' : tipo === 'erro' ? 'fa-circle-xmark' : 'fa-circle-info';
-  msgEl.innerHTML = `<i class="fa-solid ${icone} ${cor}"></i> ${msg}`;
-  el.classList.remove('hidden');
+  const icone = tipo === 'ok' ? '✓' : tipo === 'erro' ? '✕' : 'ℹ';
+  const cor = tipo === 'ok' ? 'var(--green-primary)' : tipo === 'erro' ? '#E24B4A' : '#E6B432';
+  msgEl.innerHTML = `<span style="color:${cor}">${icone}</span> ${msg}`;
+  el.style.display = 'block';
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.add('hidden'), 4000);
+  _toastTimer = setTimeout(() => el.style.display = 'none', 4000);
 }
 
 // ── Badges ─────────────────────────────────────────────────────────────────
 function badgeSla(v) {
-  if (!v) return '<span class="text-gray-600 text-xs">—</span>';
-  const map = { 'D+0':'bg-red-900 text-red-300 border border-red-700','D+1':'bg-orange-900 text-orange-300',
-                'D+2':'bg-yellow-900 text-yellow-300','D+3+':'bg-gray-800 text-gray-400' };
-  return `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${map[v]||'bg-gray-800 text-gray-300'}">${v}</span>`;
+  if (!v) return '<span style="color:var(--gray-moss);font-size:12px">—</span>';
+  const map = { 'D+0':'background:rgba(226,75,74,0.15);color:#E24B4A', 'D+1':'background:rgba(230,140,50,0.15);color:#E68C32',
+                'D+2':'background:rgba(230,180,50,0.12);color:#E6B432', 'D+3+':'background:rgba(255,255,255,0.06);color:var(--gray-light)' };
+  return `<span class="tag-sla" style="${map[v]||''}">${v}</span>`;
 }
 function badgeCategoria(v) {
-  if (!v) return '<span class="text-gray-600 text-xs">—</span>';
-  const map = { 'VT':'bg-blue-900 text-blue-300','VR':'bg-purple-900 text-purple-300','Outros':'bg-gray-800 text-gray-300' };
-  return `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${map[v]||'bg-gray-800 text-gray-300'}">${v}</span>`;
+  if (!v) return '<span style="color:var(--gray-moss);font-size:12px">—</span>';
+  return `<span class="tag-categoria">${v}</span>`;
 }
 function badgeStatus(v) {
-  const map = { 'novo':'bg-blue-900 text-blue-300','classificado':'bg-emerald-900 text-emerald-300',
-                'nao_classificado':'bg-red-900 text-red-300','tratado':'bg-green-900 text-green-300',
-                'ignorado':'bg-gray-800 text-gray-400' };
   const label = { 'nao_classificado':'não classif.' };
-  return `<span class="text-xs px-2 py-0.5 rounded-full font-medium ${map[v]||'bg-gray-800 text-gray-300'}">${label[v]||v}</span>`;
+  return `<span class="tag-status status-${v}">${label[v]||v}</span>`;
 }
 function iconeGerencial(v) {
-  return v==='sim' ? '<i class="fa-solid fa-circle-exclamation text-red-400" title="Gerencial"></i>' : '';
+  return v==='sim' ? '<span style="color:#E24B4A" title="Gerencial">⚠</span>' : '';
 }
 function fmtData(iso) {
   if (!iso) return '—';
@@ -112,13 +108,10 @@ const ICONE_TIPO = {
 
 function abrirModalProgresso(titulo, icone, corBtn) {
   document.getElementById('progresso-log').innerHTML = '';
-  document.getElementById('progresso-rodape').classList.add('hidden');
+  document.getElementById('progresso-rodape').style.display = 'none';
   document.getElementById('progresso-titulo').textContent = titulo;
-  document.getElementById('progresso-icone').className = `fa-solid ${icone} ${corBtn}`;
+  document.getElementById('progresso-icone').textContent = icone === 'fa-brain' ? '◈' : '↓';
   document.getElementById('progresso-pill').textContent = 'em andamento…';
-  document.getElementById('progresso-pill').className = 'text-xs text-gray-500 animate-pulse';
-  document.getElementById('progresso-btn-fechar').className =
-    `px-4 py-2 ${corBtn.includes('purple') ? 'bg-purple-600 hover:bg-purple-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white text-sm rounded-lg transition`;
   document.getElementById('modal-progresso').classList.remove('hidden');
 }
 function fecharModalProgresso() { document.getElementById('modal-progresso').classList.add('hidden'); }
@@ -132,7 +125,7 @@ function _iniciarPolling(jobId, onConcluido) {
     if (++tentativas > 240) {
       clearInterval(poll);
       pill.textContent = 'tempo esgotado';
-      document.getElementById('progresso-rodape').classList.remove('hidden');
+      document.getElementById('progresso-rodape').style.display = 'block';
       return;
     }
     try {
@@ -141,10 +134,9 @@ function _iniciarPolling(jobId, onConcluido) {
 
       const novas = (job.progresso || []).slice(visto);
       novas.forEach(p => {
-        const t = ICONE_TIPO[p.tipo] || ICONE_TIPO.info;
         const div = document.createElement('div');
-        div.className = 'flex items-start gap-2 py-1 border-b border-gray-800/50';
-        div.innerHTML = `<i class="fa-solid ${t.icon} ${t.cor} mt-0.5 shrink-0 text-xs"></i><span class="text-xs text-gray-300 leading-relaxed">${p.msg}</span>`;
+        div.style.cssText = 'padding:3px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)';
+        div.textContent = p.msg;
         logEl.appendChild(div);
       });
       visto += novas.length;
@@ -154,13 +146,12 @@ function _iniciarPolling(jobId, onConcluido) {
         clearInterval(poll);
         pill.textContent = 'concluído';
         pill.classList.remove('animate-pulse');
-        document.getElementById('progresso-rodape').classList.remove('hidden');
+        document.getElementById('progresso-rodape').style.display = 'block';
         onConcluido(job.resultado);
       } else if (job.status === 'erro') {
         clearInterval(poll);
         pill.textContent = 'erro';
-        pill.classList.remove('animate-pulse');
-        document.getElementById('progresso-rodape').classList.remove('hidden');
+        document.getElementById('progresso-rodape').style.display = 'block';
         toast('Erro: ' + (job.erro || 'desconhecido'), 'erro');
       }
     } catch (_) {}
@@ -171,7 +162,7 @@ function _iniciarPolling(jobId, onConcluido) {
 async function executarExtracao() {
   const btn = document.getElementById('btn-extrair');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Extraindo…';
+  btn.innerHTML = '↻ Extraindo…';
   abrirModalProgresso('Extraindo E-mails', 'fa-download', 'text-indigo-400');
 
   try {
@@ -183,14 +174,14 @@ async function executarExtracao() {
       carregarEmails(); verificarPendentes();
     });
   } catch (err) { fecharModalProgresso(); toast('Erro: ' + err.message, 'erro'); }
-  finally { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-download"></i> Extrair E-mails'; }
+  finally { btn.disabled=false; btn.innerHTML='↓ Extrair E-mails'; }
 }
 
 // ── Classificação ──────────────────────────────────────────────────────────
 async function executarClassificacao() {
   const btn = document.getElementById('btn-classificar');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Classificando…';
+  btn.innerHTML = '↻ Classificando…';
   abrirModalProgresso('Classificando com IA', 'fa-brain', 'text-purple-400');
 
   try {
@@ -202,7 +193,7 @@ async function executarClassificacao() {
       carregarEmails(); verificarPendentes();
     });
   } catch (err) { fecharModalProgresso(); toast('Erro: ' + err.message, 'erro'); }
-  finally { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-brain"></i> Classificar E-mails'; }
+  finally { btn.disabled=false; btn.innerHTML='◈ Classificar E-mails'; }
 }
 
 // ── Exportar Dataset ────────────────────────────────────────────────────────
@@ -224,8 +215,8 @@ async function verificarPendentes() {
     if (!res.ok) return;
     const { pendentes } = await res.json();
     const badge = document.getElementById('badge-pendentes');
-    if (pendentes > 0) { badge.textContent = `${pendentes} aguardando classificação`; badge.classList.remove('hidden'); }
-    else badge.classList.add('hidden');
+    if (pendentes > 0) { badge.textContent = `${pendentes} aguardando classificação`; badge.style.display = 'inline-block'; }
+    else badge.style.display = 'none';
   } catch (_) {}
 }
 
@@ -240,18 +231,16 @@ async function verificarModelo() {
     if (s.subcategoria || s.sla) {
       const partes = [s.subcategoria&&'Subcategoria', s.sla&&'SLA'].filter(Boolean);
       badge.textContent = `IA ativa: ${partes.join(' + ')}`;
-      badge.className = 'text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-900 text-emerald-300';
+      badge.className = 'badge badge-green';
       btn.disabled = false;
-      btn.classList.remove('opacity-50','cursor-not-allowed');
       btn.title = '';
     } else {
       badge.textContent = 'IA não treinada';
-      badge.className = 'text-xs px-2.5 py-1 rounded-full font-medium bg-gray-800 text-gray-400';
+      badge.className = 'badge badge-gray';
       btn.disabled = true;
-      btn.classList.add('opacity-50','cursor-not-allowed');
       btn.title = 'Treine o modelo antes de classificar';
     }
-    badge.classList.remove('hidden');
+    badge.style.display = 'inline-block';
   } catch (_) {}
 }
 
@@ -261,7 +250,7 @@ function fecharModalTreinar() { document.getElementById('modal-treinar').classLi
 async function executarTreinamento() {
   const btn = document.getElementById('btn-confirmar-treinar');
   const statusEl = document.getElementById('treinar-status');
-  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Treinando…';
+  btn.disabled=true; btn.innerHTML='↻ Treinando…';
   try {
     const res = await fetch(`${API}/treinar`, { method:'POST', headers: headers() });
     const data = await res.json();
@@ -278,7 +267,7 @@ async function executarTreinamento() {
     statusEl.innerHTML=html; statusEl.classList.remove('hidden');
     toast('Treinamento concluído!','ok'); verificarModelo();
   } catch (err) { toast('Erro: '+err.message,'erro'); }
-  finally { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-brain"></i> Iniciar Treinamento'; }
+  finally { btn.disabled=false; btn.innerHTML='◈ Iniciar Treinamento'; }
 }
 
 // ── Contas IMAP ────────────────────────────────────────────────────────────
@@ -290,7 +279,7 @@ async function carregarContas() {
 
     // Atualiza aviso sem conta
     const aviso = document.getElementById('aviso-sem-conta');
-    todasContas.filter(c=>c.ativo).length === 0 ? aviso.classList.remove('hidden') : aviso.classList.add('hidden');
+    todasContas.filter(c=>c.ativo).length === 0 ? aviso.classList.add('show') : aviso.classList.remove('show');
 
     // Atualiza filtro de contas
     const sel = document.getElementById('filtro-conta');
@@ -314,33 +303,16 @@ function renderizarListaContas() {
     return;
   }
   el.innerHTML = todasContas.map(c => `
-    <div class="bg-gray-800 rounded-xl p-4 flex items-center gap-3">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-          <span class="font-medium text-sm">${c.nome}</span>
-          <span class="text-xs px-1.5 py-0.5 rounded ${c.provider==='gmail'?'bg-red-900 text-red-300':'bg-blue-900 text-blue-300'}">${c.provider}</span>
-          ${c.ativo ? '' : '<span class="text-xs bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded">inativo</span>'}
-        </div>
-        <p class="text-xs text-gray-400 mt-0.5 truncate">${c.email}</p>
-        <p class="text-xs text-gray-600">${c.imap_server}:${c.imap_port}</p>
+    <div class="conta-card">
+      <div class="conta-info">
+        <strong>${c.nome}</strong>
+        <small>${c.email} · ${c.imap_server}:${c.imap_port} ${c.ativo ? '' : '· <span style="color:var(--gray-moss)">inativo</span>'}</small>
       </div>
-      <div class="flex gap-1 flex-shrink-0">
-        <button onclick="testarConta(${c.id}, this)" title="Testar conexão IMAP"
-          class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-yellow-400 transition">
-          <i class="fa-solid fa-plug text-xs"></i>
-        </button>
-        <button onclick="toggleAtivoConta(${c.id})" title="${c.ativo?'Desativar':'Ativar'}"
-          class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 transition ${c.ativo?'text-green-400':'text-gray-500'}">
-          <i class="fa-solid ${c.ativo?'fa-toggle-on':'fa-toggle-off'}"></i>
-        </button>
-        <button onclick="editarConta(${c.id})" title="Editar"
-          class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-indigo-400 transition">
-          <i class="fa-solid fa-pen-to-square text-xs"></i>
-        </button>
-        <button onclick="removerConta(${c.id})" title="Remover"
-          class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-700 text-red-400 transition">
-          <i class="fa-solid fa-trash text-xs"></i>
-        </button>
+      <div class="conta-actions">
+        <button onclick="testarConta(${c.id}, this)" class="btn-icon" title="Testar">⚡</button>
+        <button onclick="toggleAtivoConta(${c.id})" class="btn-icon" title="${c.ativo?'Desativar':'Ativar'}" style="color:${c.ativo?'var(--green-primary)':'var(--gray-moss)'}">●</button>
+        <button onclick="editarConta(${c.id})" class="btn-icon" title="Editar">✎</button>
+        <button onclick="removerConta(${c.id})" class="btn-icon danger" title="Remover">✕</button>
       </div>
     </div>`).join('');
 }
@@ -477,54 +449,49 @@ async function carregarEmails() {
   if (f.status)       params.set('status',f.status);
 
   const tbody = document.getElementById('tabela-body');
-  tbody.innerHTML = '<tr><td colspan="9" class="text-center py-16 text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Carregando…</td></tr>';
 
   try {
     const res = await fetch(`${API}/emails?${params}`, { headers: headers() });
-    if (!res.ok) { tbody.innerHTML='<tr><td colspan="9" class="text-center py-16 text-red-400">Erro ao carregar.</td></tr>'; return; }
+    if (!res.ok) { tbody.innerHTML='<tr><td colspan="9" class="empty-state" style="color:#E24B4A">Erro ao carregar.</td></tr>'; return; }
     const data = await res.json();
 
     totalPaginas = data.paginas||1;
     document.getElementById('badge-total').textContent = `${data.total} e-mail${data.total!==1?'s':''}`;
-    document.getElementById('badge-total').classList.remove('hidden');
+    document.getElementById('badge-total').style.display = 'inline-block';
 
     const pag = document.getElementById('paginacao');
     if (data.total>0) {
-      pag.classList.remove('hidden');
+      pag.classList.add('show');
       document.getElementById('pag-info').textContent = `Página ${paginaAtual} de ${totalPaginas} — ${data.total} registros`;
       document.getElementById('btn-prev').disabled = paginaAtual<=1;
       document.getElementById('btn-next').disabled = paginaAtual>=totalPaginas;
-    } else pag.classList.add('hidden');
+    } else pag.classList.remove('show');
 
-    if (!data.items.length) { tbody.innerHTML='<tr><td colspan="9" class="text-center py-16 text-gray-500">Nenhum e-mail encontrado.</td></tr>'; return; }
+    if (!data.items.length) { tbody.innerHTML='<tr><td colspan="9" class="empty-state">Nenhum e-mail encontrado.</td></tr>'; return; }
 
     const contaMap = Object.fromEntries(todasContas.map(c=>[c.id, c.nome]));
 
     tbody.innerHTML = data.items.map(e => {
-      const rowClass = e.gerencial==='sim' ? 'border-l-2 border-red-600' : '';
+      const borderGerencial = e.gerencial==='sim' ? 'border-left:2px solid #E24B4A;' : '';
       const nomeConta = e.conta_id ? (contaMap[e.conta_id]||`#${e.conta_id}`) : '—';
       return `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/40 transition cursor-pointer ${rowClass}" onclick="abrirDetalhe(${e.id})">
-        <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">${fmtData(e.data_recebimento)}</td>
-        <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">${truncar(nomeConta,18)}</td>
-        <td class="px-4 py-3 text-sm max-w-[140px]">
-          <div class="flex items-center gap-1.5">${iconeGerencial(e.gerencial)}<span class="truncate block" title="${e.remetente}">${truncar(e.remetente,24)}</span></div>
-        </td>
-        <td class="px-4 py-3 text-sm max-w-[200px]"><span class="truncate block" title="${e.assunto}">${truncar(e.assunto,42)}</span></td>
-        <td class="px-4 py-3 text-center">${badgeCategoria(e.categoria)}</td>
-        <td class="px-4 py-3 text-center max-w-[140px]"><span class="text-xs text-gray-300">${truncar(e.subcategoria,24)}</span></td>
-        <td class="px-4 py-3 text-center">${badgeSla(e.sla)}</td>
-        <td class="px-4 py-3 text-center">${badgeStatus(e.status)}</td>
-        <td class="px-4 py-3 text-center">
-          <button onclick="event.stopPropagation();abrirDetalhe(${e.id})"
-            class="text-indigo-400 hover:text-indigo-300 text-xs px-2 py-1 rounded hover:bg-indigo-900/30 transition">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
+      <tr style="${borderGerencial}cursor:pointer" onclick="abrirDetalhe(${e.id})">
+        <td style="white-space:nowrap">${fmtData(e.data_recebimento)}</td>
+        <td>${truncar(nomeConta,18)}</td>
+        <td>${iconeGerencial(e.gerencial)} ${truncar(e.remetente,24)}</td>
+        <td><strong>${truncar(e.assunto,42)}</strong></td>
+        <td class="center">${badgeCategoria(e.categoria)}</td>
+        <td class="center" style="font-size:12px">${truncar(e.subcategoria,24)||'—'}</td>
+        <td class="center">${badgeSla(e.sla)}</td>
+        <td class="center">${badgeStatus(e.status)}</td>
+        <td class="center">
+          <button class="btn-ver" onclick="event.stopPropagation();abrirDetalhe(${e.id})">✎</button>
         </td>
       </tr>`;
     }).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-16 text-red-400">Erro: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-state" style="color:#E24B4A">Erro: ${err.message}</td></tr>`;
   }
 }
 

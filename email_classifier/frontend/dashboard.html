@@ -421,6 +421,8 @@
       gap: 8px;
     }
 
+    .hidden { display: none !important; }
+
     @media (max-width: 768px) {
       aside { display: none; }
     }
@@ -563,7 +565,7 @@
   </main>
 
   <!-- MODAL PROGRESSO -->
-  <div id="modal-progresso" class="modal-overlay">
+  <div id="modal-progresso" class="modal-overlay hidden">
     <div class="modal" style="max-width:520px">
       <div class="modal-header">
         <span id="progresso-icone">↓</span>
@@ -582,7 +584,7 @@
   </div>
 
   <!-- MODAL CONTAS IMAP -->
-  <div id="modal-contas" class="modal-overlay">
+  <div id="modal-contas" class="modal-overlay hidden">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
         <span>@</span>
@@ -599,7 +601,7 @@
   </div>
 
   <!-- MODAL FORM CONTA -->
-  <div id="modal-form-conta" class="modal-overlay">
+  <div id="modal-form-conta" class="modal-overlay hidden">
     <div class="modal" style="max-width:440px">
       <div class="modal-header">
         <h3 id="form-conta-titulo">Nova Conta IMAP</h3>
@@ -654,7 +656,7 @@
   </div>
 
   <!-- MODAL TREINAR -->
-  <div id="modal-treinar" class="modal-overlay">
+  <div id="modal-treinar" class="modal-overlay hidden">
     <div class="modal" style="max-width:440px">
       <div class="modal-header">
         <h3>Treinar Modelo de IA</h3>
@@ -677,7 +679,7 @@
   </div>
 
   <!-- MODAL DETALHE -->
-  <div id="modal-detalhe" class="modal-overlay top">
+  <div id="modal-detalhe" class="modal-overlay top hidden">
     <div class="modal" style="max-width:640px;margin:32px auto;max-height:none">
       <div class="modal-header">
         <div style="flex:1">
