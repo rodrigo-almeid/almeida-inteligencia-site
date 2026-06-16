@@ -3,112 +3,522 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Manager</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-950 text-white font-sans flex h-screen overflow-hidden">
+  <title>Classificador de E-mails — Almeida Inteligência</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-primary: #3DDB82;
+      --green-dark: #18A558;
+      --green-deep: #0F7A40;
+      --black-tech: #0A0F0A;
+      --black-green: #1A241C;
+      --gray-moss: #5C6B5E;
+      --gray-light: #A8B8AA;
+      --white-cold: #F7FAF7;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --border: 0.5px solid #2A3A2C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--black-tech); color: #fff; display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
 
-  <aside class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-screen flex-shrink-0 hidden lg:flex">
-    <div class="px-5 py-5 border-b border-gray-800 flex items-center gap-3">
-      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-        <i class="fa-solid fa-envelope-open-text text-sm"></i>
+    /* ── SIDEBAR ── */
+    aside {
+      width: 240px;
+      background: var(--black-green);
+      border-right: var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-brand {
+      padding: 20px;
+      border-bottom: var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-text .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
+    .brand-text .name span { color: var(--green-primary); }
+    .brand-text .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 3px; }
+    .sidebar-module {
+      padding: 12px 20px;
+      border-bottom: var(--border);
+      font-size: 11px;
+      color: var(--green-primary);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    nav { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+    nav a, nav button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--gray-light);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      width: 100%;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    nav a:hover, nav button:hover { background: rgba(61,219,130,0.08); color: #fff; }
+    nav a.active { background: rgba(61,219,130,0.12); color: var(--green-primary); }
+    nav .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+    .sidebar-footer {
+      padding: 12px;
+      border-top: var(--border);
+    }
+    .sidebar-user { padding: 8px 12px; font-size: 11px; color: var(--gray-moss); margin-bottom: 4px; }
+    .btn-logout {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius);
+      font-size: 13px; color: #E24B4A;
+      background: none; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; width: 100%; text-align: left;
+      transition: background 0.15s;
+    }
+    .btn-logout:hover { background: rgba(226,75,74,0.1); }
+
+    /* ── MAIN ── */
+    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header {
+      background: var(--black-green);
+      border-bottom: var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 15px; font-weight: 600; flex: 1; }
+    .badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 500;
+    }
+    .badge-warn { background: rgba(230,180,50,0.15); color: #E6B432; border: 0.5px solid rgba(230,180,50,0.3); }
+    .badge-green { background: rgba(61,219,130,0.12); color: var(--green-primary); border: 0.5px solid rgba(61,219,130,0.2); }
+    .badge-gray { background: rgba(255,255,255,0.06); color: var(--gray-light); border: 0.5px solid #2A3A2C; }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ── ALERT ── */
+    .alert-warn {
+      display: none;
+      background: rgba(230,180,50,0.08);
+      border: 0.5px solid rgba(230,180,50,0.3);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .alert-warn.show { display: flex; }
+    .alert-warn strong { color: #E6B432; }
+    .alert-warn span { color: var(--gray-light); font-size: 12px; }
+    .alert-warn .btn-alert {
+      margin-left: auto;
+      background: rgba(230,180,50,0.15);
+      border: 0.5px solid rgba(230,180,50,0.3);
+      color: #E6B432;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius);
+      font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
+      border: none; cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .btn-primary { background: var(--green-dark); color: #fff; }
+    .btn-primary:hover { background: var(--green-primary); color: var(--black-tech); }
+    .btn-secondary { background: rgba(61,219,130,0.08); color: var(--green-primary); border: 0.5px solid rgba(61,219,130,0.2); }
+    .btn-secondary:hover { background: rgba(61,219,130,0.15); }
+    .btn-ghost { background: rgba(255,255,255,0.05); color: var(--gray-light); border: 0.5px solid #2A3A2C; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.09); color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-wrap input {
+      width: 100%;
+      background: var(--black-green);
+      border: 0.5px solid #2A3A2C;
+      border-radius: var(--radius);
+      padding: 8px 14px 8px 36px;
+      font-size: 13px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--green-primary); }
+    .search-wrap input::placeholder { color: var(--gray-moss); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-moss); font-size: 12px; }
+
+    /* ── FILTERS ── */
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filters select {
+      background: var(--black-green);
+      border: 0.5px solid #2A3A2C;
+      border-radius: var(--radius);
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--gray-light);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .filters select:focus { border-color: var(--green-primary); color: #fff; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--black-green);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { border-bottom: var(--border); }
+    thead th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--gray-moss);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    thead th.center { text-align: center; }
+    tbody tr { border-bottom: var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(61,219,130,0.04); }
+    tbody td { padding: 12px 16px; color: var(--gray-light); vertical-align: middle; }
+    tbody td.center { text-align: center; }
+    tbody td strong { color: #fff; font-weight: 500; }
+    .tag-categoria {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(61,219,130,0.1);
+      color: var(--green-primary);
+      border: 0.5px solid rgba(61,219,130,0.2);
+    }
+    .tag-sla {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.06);
+      color: var(--gray-light);
+      border: 0.5px solid #2A3A2C;
+    }
+    .tag-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .status-novo { background: rgba(61,219,130,0.1); color: var(--green-primary); border: 0.5px solid rgba(61,219,130,0.2); }
+    .status-classificado { background: rgba(24,165,88,0.12); color: #18A558; border: 0.5px solid rgba(24,165,88,0.2); }
+    .status-tratado { background: rgba(255,255,255,0.06); color: var(--gray-light); border: 0.5px solid #2A3A2C; }
+    .status-ignorado { background: rgba(226,75,74,0.08); color: #E24B4A; border: 0.5px solid rgba(226,75,74,0.15); }
+    .status-nao_classificado { background: rgba(230,180,50,0.1); color: #E6B432; border: 0.5px solid rgba(230,180,50,0.2); }
+    .btn-ver {
+      background: none; border: 0.5px solid #2A3A2C; border-radius: 8px;
+      color: var(--gray-light); padding: 4px 12px; font-size: 12px;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
+    }
+    .btn-ver:hover { border-color: var(--green-primary); color: var(--green-primary); }
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--gray-moss); font-size: 13px; }
+
+    /* ── PAGINATION ── */
+    .pagination {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--gray-moss);
+    }
+    .pagination.show { display: flex; }
+    .pag-btns { display: flex; gap: 6px; }
+    .pag-btns button {
+      background: var(--black-green); border: 0.5px solid #2A3A2C;
+      border-radius: 8px; padding: 6px 12px; color: var(--gray-light);
+      cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;
+      transition: all 0.15s;
+    }
+    .pag-btns button:hover { border-color: var(--green-primary); color: var(--green-primary); }
+    .pag-btns button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 50;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-overlay.top { align-items: flex-start; overflow-y: auto; }
+    .modal {
+      background: var(--black-green);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 20px 24px; border-bottom: var(--border); flex-shrink: 0;
+    }
+    .modal-header h3 { font-size: 15px; font-weight: 600; flex: 1; }
+    .modal-close {
+      background: none; border: none; color: var(--gray-moss);
+      font-size: 18px; cursor: pointer; line-height: 1; padding: 2px;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .modal-footer { padding: 16px 24px; border-top: var(--border); flex-shrink: 0; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn { flex: 1; justify-content: center; }
+
+    /* Form fields inside modals */
+    .form-field { margin-bottom: 14px; }
+    .form-field label { display: block; font-size: 11px; color: var(--gray-light); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .form-field input, .form-field select {
+      width: 100%;
+      background: var(--black-tech);
+      border: 0.5px solid #2A3A2C;
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--green-primary); }
+    .form-field input::placeholder { color: var(--gray-moss); }
+    .form-field select option { background: var(--black-green); }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+    .form-hint { font-size: 11px; color: var(--gray-moss); margin-top: 5px; line-height: 1.5; }
+    .form-hint a { color: var(--green-primary); }
+    .form-erro { color: #E24B4A; font-size: 12px; margin-bottom: 10px; display: none; }
+    .pass-wrap { position: relative; }
+    .pass-wrap input { padding-right: 40px; }
+    .pass-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--gray-moss); cursor: pointer; font-size: 13px;
+    }
+    .pass-toggle:hover { color: var(--gray-light); }
+
+    /* Conta IMAP card */
+    .conta-card {
+      background: var(--black-tech);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .conta-info { flex: 1; }
+    .conta-info strong { font-size: 13px; font-weight: 500; color: #fff; }
+    .conta-info small { font-size: 11px; color: var(--gray-moss); display: block; margin-top: 2px; }
+    .conta-actions { display: flex; gap: 6px; }
+    .btn-icon {
+      background: none; border: 0.5px solid #2A3A2C; border-radius: 8px;
+      color: var(--gray-light); padding: 5px 10px; font-size: 12px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-icon:hover { border-color: var(--green-primary); color: var(--green-primary); }
+    .btn-icon.danger:hover { border-color: #E24B4A; color: #E24B4A; }
+
+    /* Log terminal */
+    .log-terminal {
+      background: var(--black-tech);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: var(--green-primary);
+      min-height: 200px;
+      max-height: 380px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    /* Info box */
+    .info-box {
+      background: rgba(61,219,130,0.06);
+      border: 0.5px solid rgba(61,219,130,0.2);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--gray-light);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .info-box strong { color: var(--green-primary); }
+
+    /* Email body */
+    .email-body {
+      background: var(--black-tech);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 13px;
+      color: var(--gray-light);
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 100;
+      display: none;
+    }
+    #toast-msg {
+      background: var(--black-green);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      font-size: 13px;
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 768px) {
+      aside { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-brand">
+      <svg viewBox="0 0 56 56" width="32" height="32">
+        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+        <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+        <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+        <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      </svg>
+      <div class="brand-text">
+        <div class="name">Almeida <span>Inteligência</span></div>
+        <div class="tag">Processos · IA · Resultados</div>
       </div>
-      <span class="font-semibold text-sm">Email Manager</span>
     </div>
-    <nav class="flex-1 px-3 py-4 space-y-1">
-      <a href="/email/dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600/20 text-indigo-300 text-sm font-medium">
-        <i class="fa-solid fa-inbox w-4 text-center"></i> Caixa de E-mails
+    <div class="sidebar-module">Classificador de E-mails</div>
+    <nav>
+      <a href="/email/dashboard.html" class="active">
+        <span class="nav-icon">✉</span> Caixa de E-mails
       </a>
-      <button onclick="abrirModalContas()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
-        <i class="fa-solid fa-at w-4 text-center"></i> Contas IMAP
+      <button onclick="abrirModalContas()">
+        <span class="nav-icon">@</span> Contas IMAP
       </button>
-      <button onclick="abrirModalTreinar()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
-        <i class="fa-solid fa-brain w-4 text-center"></i> Treinar IA
+      <button onclick="abrirModalTreinar()">
+        <span class="nav-icon">◈</span> Treinar IA
       </button>
-      <button onclick="exportarDataset()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white text-sm transition text-left">
-        <i class="fa-solid fa-file-export w-4 text-center"></i> Exportar Dataset
+      <button onclick="exportarDataset()">
+        <span class="nav-icon">↓</span> Exportar Dataset
       </button>
     </nav>
-    <div class="px-3 py-4 border-t border-gray-800">
-      <div class="px-3 py-2 text-xs text-gray-500 mb-1" id="sidebar-usuario"></div>
-      <button onclick="fazerLogout()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/30 text-red-400 text-sm transition">
-        <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sair
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-usuario"></div>
+      <button class="btn-logout" onclick="fazerLogout()">
+        <span>⎋</span> Sair
       </button>
     </div>
   </aside>
 
-  <main class="flex-1 flex flex-col h-screen overflow-y-auto">
-
-    <header class="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-4 flex items-center gap-3 sticky top-0 z-10">
-      <i class="fa-solid fa-inbox text-indigo-400"></i>
-      <span class="font-semibold flex-1">Caixa de E-mails</span>
-      <div class="flex items-center gap-2 flex-wrap justify-end">
-        <span id="badge-pendentes" class="hidden bg-yellow-900 text-yellow-300 text-xs px-2.5 py-1 rounded-full font-medium"></span>
-        <span id="badge-modelo" class="hidden text-xs px-2.5 py-1 rounded-full font-medium"></span>
-        <span id="badge-total" class="hidden bg-gray-800 text-gray-300 text-xs px-2.5 py-1 rounded-full"></span>
-      </div>
+  <!-- MAIN -->
+  <main>
+    <header>
+      <h1>Caixa de E-mails</h1>
+      <span id="badge-pendentes" class="badge badge-warn" style="display:none"></span>
+      <span id="badge-modelo" class="badge" style="display:none"></span>
+      <span id="badge-total" class="badge badge-gray" style="display:none"></span>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 w-full space-y-4">
-
-      <!-- Aviso sem contas -->
-      <div id="aviso-sem-conta" class="hidden bg-yellow-900/30 border border-yellow-700 rounded-xl p-4 flex items-center gap-3">
-        <i class="fa-solid fa-triangle-exclamation text-yellow-400 text-lg"></i>
+    <div class="content">
+      <!-- Alerta sem contas -->
+      <div id="aviso-sem-conta" class="alert-warn">
+        <span style="color:#E6B432;font-size:16px;">⚠</span>
         <div>
-          <p class="text-sm font-medium text-yellow-300">Nenhuma conta IMAP configurada</p>
-          <p class="text-xs text-yellow-500 mt-0.5">Adicione uma conta para começar a extrair e-mails.</p>
+          <strong>Nenhuma conta IMAP configurada</strong><br>
+          <span>Adicione uma conta para começar a extrair e-mails.</span>
         </div>
-        <button onclick="abrirModalContas()" class="ml-auto bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-3 py-1.5 rounded-lg transition">
-          Configurar agora
-        </button>
+        <button class="btn-alert" onclick="abrirModalContas()">Configurar agora</button>
       </div>
 
-      <!-- Barra de ações -->
-      <div class="flex flex-wrap items-center gap-2">
-        <button id="btn-extrair" onclick="executarExtracao()"
-          class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-          <i class="fa-solid fa-download"></i> Extrair E-mails
-        </button>
-        <button id="btn-classificar" onclick="executarClassificacao()"
-          class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 opacity-50 cursor-not-allowed"
-          disabled title="Treine o modelo antes de classificar">
-          <i class="fa-solid fa-brain"></i> Classificar E-mails
-        </button>
-        <div class="relative flex-1 min-w-[180px]">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
-          <input id="campo-busca" type="text" placeholder="Buscar remetente ou assunto…" oninput="aplicarFiltros()"
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500" />
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button id="btn-extrair" class="btn btn-primary" onclick="executarExtracao()">↓ Extrair E-mails</button>
+        <button id="btn-classificar" class="btn btn-secondary" onclick="executarClassificacao()" disabled title="Treine o modelo antes de classificar">◈ Classificar E-mails</button>
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="campo-busca" type="text" placeholder="Buscar remetente ou assunto…" oninput="aplicarFiltros()" />
         </div>
       </div>
 
       <!-- Filtros -->
-      <div class="flex flex-wrap gap-2">
-        <select id="filtro-conta" onchange="aplicarFiltros()"
-          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+      <div class="filters">
+        <select id="filtro-conta" onchange="aplicarFiltros()">
           <option value="">Todas as contas</option>
         </select>
-        <select id="filtro-categoria" onchange="aplicarFiltros()"
-          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+        <select id="filtro-categoria" onchange="aplicarFiltros()">
           <option value="">Todas as categorias</option>
           <option value="VT">VT – Vale Transporte</option>
           <option value="VR">VR – Vale Refeição</option>
           <option value="Outros">Outros</option>
         </select>
-        <select id="filtro-subcategoria" onchange="aplicarFiltros()"
-          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+        <select id="filtro-subcategoria" onchange="aplicarFiltros()">
           <option value="">Todas as subcategorias</option>
         </select>
-        <select id="filtro-sla" onchange="aplicarFiltros()"
-          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+        <select id="filtro-sla" onchange="aplicarFiltros()">
           <option value="">Todos os SLAs</option>
           <option value="D+0">D+0 — Urgente</option>
           <option value="D+1">D+1 — Próximo dia</option>
           <option value="D+2">D+2 — Padrão</option>
           <option value="D+3+">D+3+ — Baixa prioridade</option>
         </select>
-        <select id="filtro-status" onchange="aplicarFiltros()"
-          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+        <select id="filtro-status" onchange="aplicarFiltros()">
           <option value="">Todos os status</option>
           <option value="novo">Novo</option>
           <option value="classificado">Classificado</option>
@@ -116,248 +526,224 @@
           <option value="tratado">Tratado</option>
           <option value="ignorado">Ignorado</option>
         </select>
-        <button onclick="limparFiltros()"
-          class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition flex items-center gap-1.5">
-          <i class="fa-solid fa-xmark text-xs"></i> Limpar
-        </button>
+        <button class="btn btn-ghost" onclick="limparFiltros()">✕ Limpar</button>
       </div>
 
       <!-- Tabela -->
-      <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
-        <table class="w-full text-sm">
+      <div class="table-wrap">
+        <table>
           <thead>
-            <tr class="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wide">
-              <th class="text-left px-4 py-3 whitespace-nowrap">Data</th>
-              <th class="text-left px-4 py-3">Conta</th>
-              <th class="text-left px-4 py-3">Remetente</th>
-              <th class="text-left px-4 py-3">Assunto</th>
-              <th class="text-center px-4 py-3">Categoria</th>
-              <th class="text-center px-4 py-3">Subcategoria</th>
-              <th class="text-center px-4 py-3">SLA</th>
-              <th class="text-center px-4 py-3">Status</th>
-              <th class="text-center px-4 py-3">Ação</th>
+            <tr>
+              <th>Data</th>
+              <th>Conta</th>
+              <th>Remetente</th>
+              <th>Assunto</th>
+              <th class="center">Categoria</th>
+              <th class="center">Subcategoria</th>
+              <th class="center">SLA</th>
+              <th class="center">Status</th>
+              <th class="center">Ação</th>
             </tr>
           </thead>
           <tbody id="tabela-body">
-            <tr><td colspan="9" class="text-center py-16 text-gray-500">Carregando...</td></tr>
+            <tr><td colspan="9" class="empty-state">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- Paginação -->
-      <div id="paginacao" class="flex items-center justify-between text-sm text-gray-400 hidden">
+      <div id="paginacao" class="pagination">
         <span id="pag-info"></span>
-        <div class="flex gap-2">
-          <button id="btn-prev" onclick="mudarPagina(-1)"
-            class="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg transition">
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <button id="btn-next" onclick="mudarPagina(1)"
-            class="bg-gray-800 hover:bg-gray-700 border border-gray-700 px-3 py-1.5 rounded-lg transition">
-            <i class="fa-solid fa-chevron-right"></i>
-          </button>
+        <div class="pag-btns">
+          <button id="btn-prev" onclick="mudarPagina(-1)">‹ Anterior</button>
+          <button id="btn-next" onclick="mudarPagina(1)">Próxima ›</button>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- MODAL PROGRESSO (extração e classificação) -->
-  <div id="modal-progresso" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg flex flex-col" style="max-height:80vh">
-      <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-800">
-        <i id="progresso-icone" class="fa-solid fa-download text-indigo-400"></i>
-        <h3 id="progresso-titulo" class="text-base font-semibold flex-1"></h3>
-        <span id="progresso-pill" class="text-xs text-gray-500 animate-pulse">em andamento…</span>
+  <!-- MODAL PROGRESSO -->
+  <div id="modal-progresso" class="modal-overlay">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <span id="progresso-icone">↓</span>
+        <h3 id="progresso-titulo"></h3>
+        <span id="progresso-pill" style="font-size:11px;color:var(--gray-moss)">em andamento…</span>
       </div>
-      <div id="progresso-log" class="flex-1 overflow-y-auto px-5 py-3 font-mono text-xs bg-gray-950" style="min-height:220px;max-height:420px"></div>
-      <div id="progresso-rodape" class="hidden px-6 py-4 border-t border-gray-800 flex justify-end">
-        <button onclick="fecharModalProgresso()" id="progresso-btn-fechar"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition">
-          <i class="fa-solid fa-check mr-1"></i> Fechar
-        </button>
+      <div class="modal-body" style="padding:16px 20px">
+        <div id="progresso-log" class="log-terminal"></div>
+      </div>
+      <div id="progresso-rodape" class="modal-footer" style="display:none">
+        <div class="modal-actions">
+          <button class="btn btn-primary" onclick="fecharModalProgresso()">✓ Fechar</button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- MODAL CONTAS IMAP -->
-  <div id="modal-contas" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg flex flex-col" style="max-height:90vh">
-      <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-800">
-        <i class="fa-solid fa-at text-indigo-400"></i>
-        <h3 class="text-base font-semibold flex-1">Contas IMAP</h3>
-        <button onclick="fecharModalContas()" class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
+  <div id="modal-contas" class="modal-overlay">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <span>@</span>
+        <h3>Contas IMAP</h3>
+        <button class="modal-close" onclick="fecharModalContas()">✕</button>
       </div>
-      <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3" id="lista-contas">
-        <p class="text-gray-500 text-sm">Carregando…</p>
+      <div class="modal-body" id="lista-contas">
+        <p style="color:var(--gray-moss);font-size:13px">Carregando…</p>
       </div>
-      <div class="px-6 py-4 border-t border-gray-800">
-        <button onclick="abrirFormConta()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm py-2.5 rounded-lg font-medium transition">
-          <i class="fa-solid fa-plus mr-1"></i> Adicionar Conta
-        </button>
+      <div class="modal-footer">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="abrirFormConta()">+ Adicionar Conta</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL FORM CONTA -->
-  <div id="modal-form-conta" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md p-6">
-      <h3 class="text-base font-semibold mb-4" id="form-conta-titulo">Nova Conta IMAP</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Nome / Apelido</label>
-          <input id="fc-nome" type="text" placeholder="Ex: Gmail RH, Outlook Benefícios"
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+  <div id="modal-form-conta" class="modal-overlay">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3 id="form-conta-titulo">Nova Conta IMAP</h3>
+        <button class="modal-close" onclick="fecharFormConta()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label>Nome / Apelido</label>
+          <input id="fc-nome" type="text" placeholder="Ex: Gmail RH, Outlook Benefícios" />
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Provedor</label>
-          <select id="fc-provider" onchange="preencherServidorPadrao()"
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        <div class="form-field">
+          <label>Provedor</label>
+          <select id="fc-provider" onchange="preencherServidorPadrao()">
             <option value="gmail">Gmail</option>
             <option value="outlook">Outlook / Office 365</option>
             <option value="other">Outro</option>
           </select>
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">E-mail</label>
-          <input id="fc-email" type="email" placeholder="seu@email.com"
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        <div class="form-field">
+          <label>E-mail</label>
+          <input id="fc-email" type="email" placeholder="seu@email.com" />
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">App Password / Senha</label>
-          <div class="relative">
-            <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:border-indigo-500" />
-            <button type="button" onclick="toggleSenhaForm()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
-              <i id="fc-eye" class="fa-solid fa-eye text-sm"></i>
+        <div class="form-field">
+          <label>App Password / Senha</label>
+          <div class="pass-wrap">
+            <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx" />
+            <button type="button" class="pass-toggle" onclick="toggleSenhaForm()">
+              <span id="fc-eye">👁</span>
             </button>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Gmail: use uma <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-indigo-400 hover:underline">App Password</a>. Outlook: ative IMAP nas configurações da conta.</p>
+          <p class="form-hint">Gmail: use uma <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a>. Outlook: ative IMAP nas configurações da conta.</p>
         </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-2">
-            <label class="text-xs text-gray-400 block mb-1">Servidor IMAP</label>
-            <input id="fc-server" type="text" value="imap.gmail.com"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        <div class="form-grid-3">
+          <div class="form-field">
+            <label>Servidor IMAP</label>
+            <input id="fc-server" type="text" value="imap.gmail.com" />
           </div>
-          <div>
-            <label class="text-xs text-gray-400 block mb-1">Porta</label>
-            <input id="fc-port" type="number" value="993"
-              class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <div class="form-field">
+            <label>Porta</label>
+            <input id="fc-port" type="number" value="993" />
           </div>
         </div>
-        <div id="fc-erro" class="hidden text-red-400 text-xs pt-1"></div>
+        <div class="form-erro" id="fc-erro"></div>
       </div>
-      <div class="flex gap-3 mt-5">
-        <button onclick="fecharFormConta()"
-          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Cancelar</button>
-        <button onclick="salvarConta()"
-          class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-sm py-2.5 rounded-lg font-medium transition">
-          <i class="fa-solid fa-floppy-disk mr-1"></i> Salvar
-        </button>
+      <div class="modal-footer">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="fecharFormConta()">Cancelar</button>
+          <button class="btn btn-primary" onclick="salvarConta()">💾 Salvar</button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- MODAL TREINAR -->
-  <div id="modal-treinar" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md p-6">
-      <h3 class="text-lg font-semibold mb-1">Treinar Modelo de IA</h3>
-      <p class="text-xs text-gray-400 mb-4">O modelo aprende com os e-mails que tiverem subcategoria e SLA definidos. Mínimo 5 por classe.</p>
-      <div id="treinar-status" class="hidden bg-gray-800 rounded-xl p-4 mb-4 space-y-2 text-sm"></div>
-      <div class="bg-blue-900/30 border border-blue-700 rounded-xl p-3 mb-4 text-xs text-blue-300 flex items-start gap-2">
-        <i class="fa-solid fa-circle-info mt-0.5"></i>
-        <span>Quanto mais e-mails classificados manualmente, maior a precisão da IA.</span>
+  <div id="modal-treinar" class="modal-overlay">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3>Treinar Modelo de IA</h3>
+        <button class="modal-close" onclick="fecharModalTreinar()">✕</button>
       </div>
-      <div class="flex gap-3">
-        <button onclick="fecharModalTreinar()"
-          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Fechar</button>
-        <button id="btn-confirmar-treinar" onclick="executarTreinamento()"
-          class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-sm py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-brain"></i> Iniciar Treinamento
-        </button>
+      <div class="modal-body">
+        <div id="treinar-status" style="display:none;background:var(--black-tech);border:var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-size:13px;"></div>
+        <div class="info-box">
+          <span>◈</span>
+          <span>O modelo aprende com os e-mails que tiverem subcategoria e SLA definidos. Mínimo 5 por classe. Quanto mais e-mails classificados manualmente, maior a precisão.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="fecharModalTreinar()">Fechar</button>
+          <button id="btn-confirmar-treinar" class="btn btn-primary" onclick="executarTreinamento()">◈ Iniciar Treinamento</button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- MODAL DETALHE -->
-  <div id="modal-detalhe" class="hidden fixed inset-0 bg-black/70 flex items-start justify-center z-50 p-4 overflow-y-auto">
-    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl p-6 mt-8">
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex-1 pr-4">
-          <div class="flex items-center gap-2 mb-1">
-            <span id="det-gerencial-badge" class="hidden bg-red-900 text-red-300 text-xs px-2 py-0.5 rounded-full font-medium">
-              <i class="fa-solid fa-circle-exclamation mr-1"></i>GERENCIAL
-            </span>
+  <div id="modal-detalhe" class="modal-overlay top">
+    <div class="modal" style="max-width:640px;margin:32px auto;max-height:none">
+      <div class="modal-header">
+        <div style="flex:1">
+          <span id="det-gerencial-badge" style="display:none;background:rgba(226,75,74,0.12);color:#E24B4A;border:0.5px solid rgba(226,75,74,0.2);border-radius:100px;font-size:11px;padding:2px 10px;font-weight:500;margin-bottom:6px;display:none">⚠ GERENCIAL</span>
+          <h3 id="det-assunto" style="font-size:14px;margin-top:4px"></h3>
+          <p style="font-size:12px;color:var(--gray-moss);margin-top:3px">De: <span id="det-remetente" style="color:var(--gray-light)"></span> · <span id="det-data" style="color:var(--gray-light)"></span></p>
+        </div>
+        <button class="modal-close" onclick="fecharDetalhe()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2" style="margin-bottom:12px">
+          <div class="form-field">
+            <label>Categoria</label>
+            <select id="det-categoria" onchange="atualizarSubcategoriasModal()">
+              <option value="">— Sem categoria —</option>
+              <option value="VT">VT – Vale Transporte</option>
+              <option value="VR">VR – Vale Refeição</option>
+              <option value="Outros">Outros</option>
+            </select>
           </div>
-          <h3 class="text-base font-semibold" id="det-assunto"></h3>
-          <p class="text-xs text-gray-400 mt-1">De: <span id="det-remetente" class="text-gray-300"></span></p>
-          <p class="text-xs text-gray-400">Data: <span id="det-data" class="text-gray-300"></span></p>
+          <div class="form-field">
+            <label>SLA</label>
+            <select id="det-sla">
+              <option value="">— Sem SLA —</option>
+              <option value="D+0">D+0 — Urgente</option>
+              <option value="D+1">D+1 — Próximo dia útil</option>
+              <option value="D+2">D+2 — Até 2 dias úteis</option>
+              <option value="D+3+">D+3+ — Baixa prioridade</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Subcategoria</label>
+            <select id="det-subcategoria"></select>
+          </div>
+          <div class="form-field">
+            <label>Gerencial</label>
+            <select id="det-gerencial">
+              <option value="nao">Não</option>
+              <option value="sim">Sim — Alta prioridade</option>
+            </select>
+          </div>
+          <div class="form-field" style="grid-column:span 2">
+            <label>Status</label>
+            <select id="det-status">
+              <option value="novo">Novo</option>
+              <option value="classificado">Classificado</option>
+              <option value="nao_classificado">Não classificado</option>
+              <option value="tratado">Tratado</option>
+              <option value="ignorado">Ignorado</option>
+            </select>
+          </div>
         </div>
-        <button onclick="fecharDetalhe()" class="text-gray-500 hover:text-white text-xl leading-none flex-shrink-0">✕</button>
+        <div class="email-body" id="det-corpo"></div>
       </div>
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Categoria</label>
-          <select id="det-categoria" onchange="atualizarSubcategoriasModal()"
-            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
-            <option value="">— Sem categoria —</option>
-            <option value="VT">VT – Vale Transporte</option>
-            <option value="VR">VR – Vale Refeição</option>
-            <option value="Outros">Outros</option>
-          </select>
+      <div class="modal-footer">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="fecharDetalhe()">Fechar</button>
+          <button class="btn btn-primary" onclick="salvarClassificacao()">💾 Salvar classificação</button>
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">SLA</label>
-          <select id="det-sla"
-            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
-            <option value="">— Sem SLA —</option>
-            <option value="D+0">D+0 — Urgente</option>
-            <option value="D+1">D+1 — Próximo dia útil</option>
-            <option value="D+2">D+2 — Até 2 dias úteis</option>
-            <option value="D+3+">D+3+ — Baixa prioridade</option>
-          </select>
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-gray-400 block mb-1">Subcategoria</label>
-          <select id="det-subcategoria"
-            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Gerencial</label>
-          <select id="det-gerencial"
-            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
-            <option value="nao">Não</option>
-            <option value="sim">Sim — Alta prioridade</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Status</label>
-          <select id="det-status"
-            class="w-full bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-2 py-2 focus:outline-none focus:border-indigo-500">
-            <option value="novo">Novo</option>
-            <option value="classificado">Classificado</option>
-            <option value="nao_classificado">Não classificado</option>
-            <option value="tratado">Tratado</option>
-            <option value="ignorado">Ignorado</option>
-          </select>
-        </div>
-      </div>
-      <div class="bg-gray-800 rounded-xl p-4 text-sm text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto leading-relaxed" id="det-corpo"></div>
-      <div class="flex gap-3 mt-5">
-        <button onclick="fecharDetalhe()"
-          class="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm py-2.5 rounded-lg transition">Fechar</button>
-        <button onclick="salvarClassificacao()"
-          class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-sm py-2.5 rounded-lg font-medium transition">
-          <i class="fa-solid fa-floppy-disk mr-1"></i> Salvar classificação
-        </button>
       </div>
     </div>
   </div>
 
   <!-- TOAST -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden">
-    <div id="toast-msg" class="bg-gray-800 border border-gray-700 text-sm text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2"></div>
+  <div id="toast">
+    <div id="toast-msg"></div>
   </div>
 
   <script src="dashboard.js"></script>

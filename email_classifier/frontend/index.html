@@ -3,45 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Manager — Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>Classificador de E-mails — Almeida Inteligência</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-primary: #3DDB82;
+      --green-dark: #18A558;
+      --green-deep: #0F7A40;
+      --black-tech: #0A0F0A;
+      --black-green: #1A241C;
+      --gray-moss: #5C6B5E;
+      --gray-light: #A8B8AA;
+      --white-cold: #F7FAF7;
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--black-tech);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .login-wrap { width: 100%; max-width: 380px; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .brand-text .name { font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.02em; line-height: 1; }
+    .brand-text .name span { color: var(--green-primary); }
+    .brand-text .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 4px; }
+    .module-label {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .module-label h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+    .module-label p { font-size: 13px; color: var(--gray-moss); margin-top: 4px; }
+    .card {
+      background: var(--black-green);
+      border: 0.5px solid #2A3A2C;
+      border-radius: var(--radius-lg);
+      padding: 28px;
+    }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; color: var(--gray-light); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .field input {
+      width: 100%;
+      background: var(--black-tech);
+      border: 0.5px solid #2A3A2C;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--green-primary); }
+    .field input::placeholder { color: var(--gray-moss); }
+    .erro { color: #E24B4A; font-size: 12px; margin-bottom: 12px; display: none; }
+    .btn-login {
+      width: 100%;
+      background: var(--green-dark);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    .btn-login:hover { background: var(--green-primary); color: var(--black-tech); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-sm px-6">
-
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4">
-        <i class="fa-solid fa-envelope-open-text text-2xl"></i>
+<body>
+  <div class="login-wrap">
+    <div class="brand">
+      <svg viewBox="0 0 56 56" width="40" height="40">
+        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+        <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+        <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <circle cx="28" cy="36" r="2" fill="#3DDB82" opacity="0.5"/>
+        <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+        <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+        <line x1="18" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+        <line x1="38" y1="32" x2="28" y2="34" stroke="#3DDB82" stroke-width="0.8" opacity="0.4"/>
+      </svg>
+      <div class="brand-text">
+        <div class="name">Almeida <span>Inteligência</span></div>
+        <div class="tag">Processos · IA · Resultados</div>
       </div>
-      <h1 class="text-2xl font-semibold">Email Manager</h1>
-      <p class="text-gray-400 text-sm mt-1">Classificação inteligente de e-mails</p>
     </div>
 
-    <div class="bg-gray-900 rounded-2xl border border-gray-800 p-6">
-      <div class="space-y-4">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">E-mail</label>
-          <input id="inp-email" type="email" placeholder="seu@email.com" autofocus
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Senha</label>
-          <input id="inp-senha" type="password" placeholder="••••••••"
-            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
-        </div>
-        <div id="erro" class="hidden text-red-400 text-xs pt-1"></div>
-        <button onclick="login()" id="btn-login"
-          class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg font-medium text-sm transition mt-2">
-          Entrar
-        </button>
+    <div class="module-label">
+      <h1>Classificador de E-mails</h1>
+      <p>Triagem automática por IA</p>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>E-mail</label>
+        <input id="inp-email" type="email" placeholder="seu@email.com" autofocus />
       </div>
+      <div class="field">
+        <label>Senha</label>
+        <input id="inp-senha" type="password" placeholder="••••••••" />
+      </div>
+      <div class="erro" id="erro"></div>
+      <button class="btn-login" id="btn-login" onclick="login()">Entrar</button>
     </div>
   </div>
 
   <script>
     if (localStorage.getItem('email_token')) window.location.href = '/email/dashboard.html';
-
     document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 
     async function login() {
@@ -49,31 +136,28 @@
       const senha = document.getElementById('inp-senha').value;
       const erroEl = document.getElementById('erro');
       const btn = document.getElementById('btn-login');
-      erroEl.classList.add('hidden');
+      erroEl.style.display = 'none';
 
-      if (!email || !senha) { erroEl.textContent = 'Preencha e-mail e senha.'; erroEl.classList.remove('hidden'); return; }
+      if (!email || !senha) { erroEl.textContent = 'Preencha e-mail e senha.'; erroEl.style.display = 'block'; return; }
 
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Entrando…';
+      btn.textContent = 'Entrando…';
 
       try {
         const form = new URLSearchParams();
         form.append('username', email);
         form.append('password', senha);
-
         const res = await fetch('/email/auth/login', { method: 'POST', body: form });
         const data = await res.json();
-
-        if (!res.ok) { erroEl.textContent = data.detail || 'Credenciais inválidas.'; erroEl.classList.remove('hidden'); return; }
-
+        if (!res.ok) { erroEl.textContent = data.detail || 'Credenciais inválidas.'; erroEl.style.display = 'block'; return; }
         localStorage.setItem('email_token', data.access_token);
         localStorage.setItem('email_nome', data.nome);
         window.location.href = '/email/dashboard.html';
       } catch (_) {
-        erroEl.textContent = 'Erro de conexão.'; erroEl.classList.remove('hidden');
+        erroEl.textContent = 'Erro de conexão.'; erroEl.style.display = 'block';
       } finally {
         btn.disabled = false;
-        btn.innerHTML = 'Entrar';
+        btn.textContent = 'Entrar';
       }
     }
   </script>
