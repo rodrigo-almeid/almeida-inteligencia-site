@@ -61,7 +61,7 @@ def sso(body: SSORequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        user = User(nome=nome, email=email, password_hash=hash_password(os.urandom(32).hex()))
+        user = User(nome=nome, email=email, password_hash=hash_password(os.urandom(16).hex()))
         db.add(user)
         db.commit()
         db.refresh(user)
