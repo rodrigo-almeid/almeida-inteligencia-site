@@ -7,7 +7,7 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.12
 pydantic==2.9.2
 cryptography==43.0.3
-# scikit-learn==1.5.2  # ML desabilitado temporariamente
-# joblib==1.4.2
-# nltk==3.9.1
+scikit-learn==1.5.2
+joblib==1.4.2
+nltk==3.9.1
 python-dotenv==1.0.1
