@@ -37,6 +37,9 @@ def criar_conta(conta: schemas.ContaCreate, db: Session = Depends(get_db),
             dados_parcela = dados_conta.copy()
             dados_parcela["parcela_atual"] = i + 1
             dados_parcela["vencimento"] = somar_meses(conta.vencimento, i)
+            if conta.competencia:
+                comp_base = somar_meses(date(int(conta.competencia[:4]), int(conta.competencia[5:7]), 1), i)
+                dados_parcela["competencia"] = f"{comp_base.year}-{comp_base.month:02d}"
 
             nova_parcela = models.Conta(**dados_parcela)
             db.add(nova_parcela)
