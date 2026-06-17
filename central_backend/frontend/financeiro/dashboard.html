@@ -163,6 +163,7 @@
   <div class="section-header">
     <span class="section-title">Lançamentos</span>
     <div class="toolbar">
+      <input id="busca" placeholder="Buscar descrição ou valor…" oninput="renderTabela()" style="background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:13px;color:#fff;font-family:'Inter',sans-serif;outline:none;width:220px;">
       <button class="btn-export" onclick="exportar('excel')">⬇ Excel</button>
       <button class="btn-export" onclick="exportar('pdf')">⬇ PDF</button>
       <button class="btn-add" onclick="abrirModal()">+ Nova Conta</button>
@@ -182,9 +183,10 @@
       <thead>
         <tr>
           <th>Descrição</th>
-          <th>Vencimento</th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('vencimento')" id="th-venc">Vencimento <span id="ord-venc"></span></th>
+          <th>Categoria</th>
           <th>Natureza</th>
-          <th>Valor</th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('valor')" id="th-valor">Valor <span id="ord-valor"></span></th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -225,6 +227,10 @@
       </div>
     </div>
     <div class="field">
+      <label>Categoria</label>
+      <select id="f-categoria"><option value="">— Sem categoria —</option></select>
+    </div>
+    <div class="field">
       <label>Recorrência</label>
       <select id="f-recorrencia">
         <option value="unica">Única</option>
@@ -249,10 +255,13 @@
 const API = '/central';
 let token = localStorage.getItem('central_token');
 let contasRaw = [];
+let categorias = [];
 let filtroAtivo = 'todos';
 let editandoId = null;
 let mesAtual = new Date().getMonth() + 1;
 let anoAtual = new Date().getFullYear();
+let ordemCampo = 'vencimento';
+let ordemDir = 'asc';
 
 if (!token) location.href = '/financeiro/';
 document.getElementById('user-email').textContent = localStorage.getItem('central_email') || '—';
@@ -291,9 +300,13 @@ async function api(path, opts={}) {
 }
 
 async function carregar() {
-  const res = await api(`/contas/?mes=${mesAtual}&ano=${anoAtual}`);
-  if (!res) return;
-  contasRaw = await res.json();
+  const [resContas, resCats] = await Promise.all([
+    api(`/contas/?mes=${mesAtual}&ano=${anoAtual}`),
+    api('/categorias/')
+  ]);
+  if (!resContas) return;
+  contasRaw = await resContas.json();
+  if (resCats?.ok) categorias = await resCats.json();
   renderKpis(); renderTabela();
 }
 
@@ -316,12 +329,37 @@ function renderKpis() {
   document.getElementById('kpi-apagar-n').textContent = `${pendentes.length} pendente${pendentes.length!==1?'s':''}`;
 }
 
+function ordenarPor(campo) {
+  if (ordemCampo === campo) ordemDir = ordemDir === 'asc' ? 'desc' : 'asc';
+  else { ordemCampo = campo; ordemDir = 'asc'; }
+  document.getElementById('ord-venc').textContent  = ordemCampo==='vencimento' ? (ordemDir==='asc'?'↑':'↓') : '';
+  document.getElementById('ord-valor').textContent = ordemCampo==='valor'      ? (ordemDir==='asc'?'↑':'↓') : '';
+  renderTabela();
+}
+
 function renderTabela() {
   let lista = contasRaw;
+
+  // Filtro de status/natureza
   if (filtroAtivo === 'pendente') lista = lista.filter(c => c.status === 'pendente');
   else if (filtroAtivo === 'paga') lista = lista.filter(c => c.status === 'paga');
   else if (filtroAtivo === 'receita') lista = lista.filter(c => c.natureza === 'receita');
   else if (filtroAtivo === 'despesa') lista = lista.filter(c => c.natureza === 'despesa');
+
+  // Busca por descrição ou valor
+  const busca = document.getElementById('busca').value.trim().toLowerCase();
+  if (busca) lista = lista.filter(c =>
+    c.descricao.toLowerCase().includes(busca) ||
+    String(c.valor).includes(busca)
+  );
+
+  // Ordenação: despesas primeiro, receitas depois; dentro de cada grupo ordena pelo campo escolhido
+  lista = [...lista].sort((a, b) => {
+    if (a.natureza !== b.natureza) return a.natureza === 'despesa' ? -1 : 1;
+    const va = ordemCampo === 'valor' ? Number(a.valor) : (a.vencimento || '');
+    const vb = ordemCampo === 'valor' ? Number(b.valor) : (b.vencimento || '');
+    return ordemDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
 
   const tbody = document.getElementById('tbody');
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum lançamento neste período.</td></tr>'; return; }
@@ -329,13 +367,13 @@ function renderTabela() {
   tbody.innerHTML = lista.map(c => {
     const vencMes = c.vencimento ? c.vencimento.substring(0,7) : null;
     const compDiferente = c.competencia && c.competencia !== vencMes;
-    const compLabel = compDiferente
-      ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">Comp: ${fmtMes(c.competencia)}</div>`
-      : '';
+    const compLabel = compDiferente ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">Comp: ${fmtMes(c.competencia)}</div>` : '';
+    const catNome = c.categoria_id ? (categorias.find(x=>x.id===c.categoria_id)?.nome || '—') : '—';
     return `
     <tr>
       <td>${esc(c.descricao)}</td>
       <td>${fmtDate(c.vencimento)}${compLabel}</td>
+      <td style="font-size:12px;color:var(--gray-l)">${esc(catNome)}</td>
       <td><span class="badge ${c.natureza}">${c.natureza||'—'}</span></td>
       <td style="font-weight:500">${fmt(c.valor)}</td>
       <td><span class="badge ${c.status}">${c.status||'—'}</span></td>
@@ -377,6 +415,13 @@ function abrirModal(dados=null) {
   document.getElementById('f-status').value = dados?.status || 'pendente';
   document.getElementById('f-recorrencia').value = dados?.tipo_recorrencia || 'unica';
   document.getElementById('parcelas-field').style.display = 'none';
+
+  // Popula categorias
+  const sel = document.getElementById('f-categoria');
+  sel.innerHTML = '<option value="">— Sem categoria —</option>' +
+    categorias.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  sel.value = dados?.categoria_id || '';
+
   document.getElementById('modal').classList.add('show');
 }
 
@@ -412,10 +457,11 @@ async function salvar() {
   const tipo_recorrencia = document.getElementById('f-recorrencia').value;
   const total_parcelas = tipo_recorrencia === 'parcelada' ? parseInt(document.getElementById('f-parcelas').value)||null : null;
   const competencia = document.getElementById('f-competencia').value || null;
+  const categoria_id = document.getElementById('f-categoria').value ? parseInt(document.getElementById('f-categoria').value) : null;
 
   if (!desc||!valor||!venc) { toast('Preencha descrição, valor e vencimento.','err'); return; }
 
-  const body = { descricao:desc, valor, vencimento:venc, competencia, natureza, status, tipo_recorrencia, total_parcelas, parcela_atual:null };
+  const body = { descricao:desc, valor, vencimento:venc, competencia, natureza, status, tipo_recorrencia, total_parcelas, parcela_atual:null, categoria_id };
   const url = editandoId ? `/contas/${editandoId}` : '/contas/';
   const method = editandoId ? 'PUT' : 'POST';
   const res = await api(url, { method, body: JSON.stringify(body) });
