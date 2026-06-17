@@ -183,11 +183,11 @@
     <div class="calc-inputs">
       <div class="cinput-group">
         <label>Preço Gasolina (R$/L)</label>
-        <input type="number" step="0.01" id="preco-gas" placeholder="ex: 6.29" oninput="calcularFlex()">
+        <input type="number" step="0.01" id="preco-gas" placeholder="ex: 6.29" oninput="salvarPrecos();calcularFlex()">
       </div>
       <div class="cinput-group">
         <label>Preço Etanol (R$/L)</label>
-        <input type="number" step="0.01" id="preco-eta" placeholder="ex: 4.19" oninput="calcularFlex()">
+        <input type="number" step="0.01" id="preco-eta" placeholder="ex: 4.19" oninput="salvarPrecos();calcularFlex()">
       </div>
       <div class="cinput-group">
         <label>Resultado</label>
@@ -243,12 +243,12 @@
     </div>
     <div class="field"><label>KM do Painel</label><input id="f-km" type="number" step="1" placeholder="ex: 54.320"></div>
     <div class="row2">
-      <div class="field"><label>Valor Unitário (R$/L)</label><input id="f-unitario" type="number" step="0.001" placeholder="0,000" oninput="calcTotal()"></div>
-      <div class="field"><label>Litros</label><input id="f-litros" type="number" step="0.001" placeholder="0,000" oninput="calcTotal()"></div>
+      <div class="field"><label>Valor Unitário (R$/L)</label><input id="f-unitario" type="number" step="0.001" placeholder="0,000" oninput="calcCampo('unitario')"></div>
+      <div class="field"><label>Litros</label><input id="f-litros" type="number" step="0.001" placeholder="0,000" oninput="calcCampo('litros')"></div>
     </div>
     <div class="field">
       <label>Valor Total Pago (R$)</label>
-      <input id="f-total" type="number" step="0.01" placeholder="calculado automaticamente" style="border-color:rgba(226,75,74,.3);color:var(--red);">
+      <input id="f-total" type="number" step="0.01" placeholder="calculado automaticamente" style="border-color:rgba(226,75,74,.3);color:var(--red);" oninput="calcCampo('total')">
     </div>
     <div class="field">
       <label>Forma de Pagamento</label>
@@ -394,16 +394,26 @@ function calcularFlex() {
   }
 }
 
+function salvarPrecos() {
+  const pg = document.getElementById('preco-gas').value;
+  const pe = document.getElementById('preco-eta').value;
+  if (pg) localStorage.setItem('combus_preco_gas', pg);
+  if (pe) localStorage.setItem('combus_preco_eta', pe);
+}
+
 function sugerirPrecos() {
-  let pg = 0, pe = 0;
-  for (const a of dados) {
-    if (!pg && a.tipo_combustivel.toLowerCase() === 'gasolina') pg = a.valor_unitario;
-    if (!pe && a.tipo_combustivel.toLowerCase() === 'etanol')   pe = a.valor_unitario;
-  }
   const inputG = document.getElementById('preco-gas');
   const inputE = document.getElementById('preco-eta');
-  if (!inputG.value) inputG.value = pg || '';
-  if (!inputE.value) inputE.value = pe || '';
+  // 1. Restaura do localStorage (persistido pelo usuário)
+  if (!inputG.value) inputG.value = localStorage.getItem('combus_preco_gas') || '';
+  if (!inputE.value) inputE.value = localStorage.getItem('combus_preco_eta') || '';
+  // 2. Se ainda vazio, sugere o último abastecimento (sem sobrescrever o que o usuário digitou)
+  if (!inputG.value || !inputE.value) {
+    for (const a of dados) {
+      if (!inputG.value && a.tipo_combustivel.toLowerCase() === 'gasolina') inputG.value = a.valor_unitario;
+      if (!inputE.value && a.tipo_combustivel.toLowerCase() === 'etanol')   inputE.value = a.valor_unitario;
+    }
+  }
   calcularFlex();
 }
 
@@ -414,13 +424,19 @@ function preencherPreco() {
     if (a.tipo_combustivel.toLowerCase() === tipo) { preco = a.valor_unitario; break; }
   }
   if (!preco) preco = tipo === 'gasolina' ? (parseFloat(document.getElementById('preco-gas').value)||0) : (parseFloat(document.getElementById('preco-eta').value)||0);
-  if (preco) { document.getElementById('f-unitario').value = preco; calcTotal(); }
+  if (preco) { document.getElementById('f-unitario').value = preco; calcCampo('unitario'); }
 }
 
-function calcTotal() {
-  const u = parseFloat(document.getElementById('f-unitario').value) || 0;
-  const l = parseFloat(document.getElementById('f-litros').value) || 0;
-  if (u > 0 && l > 0) document.getElementById('f-total').value = (u * l).toFixed(2);
+function calcCampo(origem) {
+  const u = parseFloat(document.getElementById('f-unitario').value);
+  const l = parseFloat(document.getElementById('f-litros').value);
+  const t = parseFloat(document.getElementById('f-total').value);
+  if (origem === 'unitario' || origem === 'litros') {
+    if (u > 0 && l > 0) document.getElementById('f-total').value = (u * l).toFixed(2);
+  } else if (origem === 'total') {
+    if (t > 0 && l > 0) document.getElementById('f-unitario').value = (t / l).toFixed(3);
+    else if (t > 0 && u > 0) document.getElementById('f-litros').value = (t / u).toFixed(3);
+  }
 }
 
 function hojeStr() {
@@ -462,6 +478,9 @@ async function salvar() {
   });
 
   if (res?.ok || res?.status === 201) {
+    // Persiste o preço do combustível abastecido
+    const chave = tipo.toLowerCase() === 'gasolina' ? 'combus_preco_gas' : 'combus_preco_eta';
+    localStorage.setItem(chave, unitario);
     fecharModal(); toast('Abastecimento registrado!'); await carregar();
   } else {
     const e = await res?.json();
