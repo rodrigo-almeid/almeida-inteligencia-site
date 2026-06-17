@@ -48,7 +48,7 @@
   <button class="btn" id="btn" onclick="login()">Entrar</button>
 </div>
 <script>
-  if (localStorage.getItem('central_token')) location.href = '/financeiro/dashboard.html';
+  if (localStorage.getItem('central_token')) location.href = '/financeiro/contas.html';
   document.addEventListener('keydown', e => { if (e.key==='Enter') login(); });
   async function login() {
     const email = document.getElementById('email').value.trim();
@@ -65,7 +65,7 @@
       if(!res.ok){erroEl.textContent=data.detail||'Credenciais inválidas.';erroEl.style.display='block';return;}
       localStorage.setItem('central_token',data.access_token);
       localStorage.setItem('central_email',data.email||email);
-      location.href='/financeiro/dashboard.html';
+      location.href='/financeiro/contas.html';
     } catch {erroEl.textContent='Erro de conexão.';erroEl.style.display='block';}
     finally{btn.disabled=false;btn.textContent='Entrar';}
   }
