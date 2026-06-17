@@ -181,7 +181,7 @@
 
     // ── Redirect automático se só 1 sistema ──
     if (!isAdmin && sistemas.length === 1 && sistemas[0].url && sistemas[0].url !== '#') {
-      window.location.href = sistemas[0].url;
+      await acessarModulo({ preventDefault: () => {} }, sistemas[0].url);
       return;
     }
 
