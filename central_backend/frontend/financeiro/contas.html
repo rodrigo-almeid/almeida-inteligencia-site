@@ -119,6 +119,10 @@
     </div>
   </div>
 
+  <a href="/financeiro/dashboard.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Dashboard
+  </a>
   <a href="/financeiro/contas.html" class="nav-item active">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
     Contas
@@ -178,16 +182,33 @@
     <button class="ftab" data-f="despesa" onclick="filtrar(this)">Despesas</button>
   </div>
 
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+    <select id="fil-categoria" onchange="renderTabela()" style="background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--gray-l);font-family:'Inter',sans-serif;outline:none;cursor:pointer;">
+      <option value="">Todas as categorias</option>
+    </select>
+    <select id="fil-natureza" onchange="renderTabela()" style="background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--gray-l);font-family:'Inter',sans-serif;outline:none;cursor:pointer;">
+      <option value="">Qualquer natureza</option>
+      <option value="despesa">Despesa</option>
+      <option value="receita">Receita</option>
+    </select>
+    <select id="fil-status" onchange="renderTabela()" style="background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--gray-l);font-family:'Inter',sans-serif;outline:none;cursor:pointer;">
+      <option value="">Qualquer status</option>
+      <option value="pendente">Pendente</option>
+      <option value="paga">Paga</option>
+      <option value="vencida">Vencida</option>
+    </select>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>Descrição</th>
-          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('vencimento')" id="th-venc">Vencimento <span id="ord-venc"></span></th>
-          <th>Categoria</th>
-          <th>Natureza</th>
-          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('valor')" id="th-valor">Valor <span id="ord-valor"></span></th>
-          <th>Status</th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('vencimento')">Vencimento <span id="ord-venc"></span></th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('categoria')">Categoria <span id="ord-cat"></span></th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('natureza')">Natureza <span id="ord-nat"></span></th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('valor')">Valor <span id="ord-valor"></span></th>
+          <th style="cursor:pointer;user-select:none" onclick="ordenarPor('status')">Status <span id="ord-status"></span></th>
           <th></th>
         </tr>
       </thead>
@@ -316,7 +337,14 @@ async function carregar() {
   ]);
   if (!resContas) return;
   contasRaw = await resContas.json();
-  if (resCats?.ok) categorias = await resCats.json();
+  if (resCats?.ok) {
+    categorias = await resCats.json();
+    const sel = document.getElementById('fil-categoria');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todas as categorias</option>' +
+      categorias.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+    sel.value = cur;
+  }
   renderKpis(); renderTabela();
 }
 
@@ -339,22 +367,33 @@ function renderKpis() {
   document.getElementById('kpi-apagar-n').textContent = `${pendentes.length} pendente${pendentes.length!==1?'s':''}`;
 }
 
+const ORD_IDS = {vencimento:'ord-venc',valor:'ord-valor',categoria:'ord-cat',natureza:'ord-nat',status:'ord-status'};
 function ordenarPor(campo) {
   if (ordemCampo === campo) ordemDir = ordemDir === 'asc' ? 'desc' : 'asc';
   else { ordemCampo = campo; ordemDir = 'asc'; }
-  document.getElementById('ord-venc').textContent  = ordemCampo==='vencimento' ? (ordemDir==='asc'?'↑':'↓') : '';
-  document.getElementById('ord-valor').textContent = ordemCampo==='valor'      ? (ordemDir==='asc'?'↑':'↓') : '';
+  Object.entries(ORD_IDS).forEach(([c,id]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = ordemCampo===c ? (ordemDir==='asc'?'↑':'↓') : '';
+  });
   renderTabela();
 }
 
 function renderTabela() {
   let lista = contasRaw;
 
-  // Filtro de status/natureza
+  // Filtro rápido (tabs)
   if (filtroAtivo === 'pendente') lista = lista.filter(c => c.status === 'pendente');
   else if (filtroAtivo === 'paga') lista = lista.filter(c => c.status === 'paga');
   else if (filtroAtivo === 'receita') lista = lista.filter(c => c.natureza === 'receita');
   else if (filtroAtivo === 'despesa') lista = lista.filter(c => c.natureza === 'despesa');
+
+  // Filtros combobox
+  const filCat = document.getElementById('fil-categoria').value;
+  const filNat = document.getElementById('fil-natureza').value;
+  const filSta = document.getElementById('fil-status').value;
+  if (filCat) lista = lista.filter(c => String(c.categoria_id||'') === filCat);
+  if (filNat) lista = lista.filter(c => c.natureza === filNat);
+  if (filSta) lista = lista.filter(c => c.status === filSta);
 
   // Busca por descrição ou valor
   const busca = document.getElementById('busca').value.trim().toLowerCase();
@@ -363,11 +402,17 @@ function renderTabela() {
     String(c.valor).includes(busca)
   );
 
-  // Ordenação: despesas primeiro, receitas depois; dentro de cada grupo ordena pelo campo escolhido
+  // Ordenação
   lista = [...lista].sort((a, b) => {
-    if (a.natureza !== b.natureza) return a.natureza === 'despesa' ? -1 : 1;
-    const va = ordemCampo === 'valor' ? Number(a.valor) : (a.vencimento || '');
-    const vb = ordemCampo === 'valor' ? Number(b.valor) : (b.vencimento || '');
+    // Se não houver sort explícito em natureza, manter despesas primeiro
+    if (ordemCampo !== 'natureza' && a.natureza !== b.natureza) return a.natureza === 'despesa' ? -1 : 1;
+    let va, vb;
+    if (ordemCampo === 'valor') { va = Number(a.valor); vb = Number(b.valor); }
+    else if (ordemCampo === 'categoria') {
+      va = (categorias.find(x=>x.id===a.categoria_id)?.nome||'').toLowerCase();
+      vb = (categorias.find(x=>x.id===b.categoria_id)?.nome||'').toLowerCase();
+    }
+    else { va = (a[ordemCampo]||''); vb = (b[ordemCampo]||''); }
     return ordemDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
 
@@ -517,10 +562,19 @@ async function deletar(id) {
   else toast('Erro.','err');
 }
 
-function exportar(tipo) {
-  const url = `/central/relatorios/${tipo}/contas`;
-  const a = document.createElement('a'); a.href = url;
-  a.setAttribute('download',''); document.body.appendChild(a); a.click(); a.remove();
+async function exportar(tipo) {
+  const url = `${API}/relatorios/${tipo}/contas?mes=${mesAtual}&ano=${anoAtual}`;
+  try {
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) { toast('Erro ao exportar.','err'); return; }
+    const blob = await res.blob();
+    const ext = tipo === 'excel' ? 'xlsx' : 'pdf';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `contas_${anoAtual}_${String(mesAtual).padStart(2,'0')}.${ext}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  } catch { toast('Erro ao exportar.','err'); }
 }
 
 function logout() {
