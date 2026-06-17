@@ -378,19 +378,36 @@ function calcularFlex() {
   const pe = parseFloat(document.getElementById('preco-eta').value);
   const el = document.getElementById('calc-result');
   if (!pg || !pe) { el.textContent = 'Insira os preços...'; el.className = 'calc-result'; return; }
-  if (!estatisticas.mediana_gasolina || !estatisticas.mediana_etanol) {
-    el.textContent = 'Sem histórico de médias ainda.'; el.className = 'calc-result'; return;
-  }
-  const custoGas = pg / estatisticas.mediana_gasolina;
-  const custoEta = pe / estatisticas.mediana_etanol;
-  if (custoEta < custoGas) {
-    const eco = ((custoGas - custoEta) / custoGas * 100).toFixed(1);
-    el.textContent = `🌱 Use Etanol — ${eco}% mais barato por km`;
-    el.className = 'calc-result eta';
+
+  const temMedias = estatisticas.mediana_gasolina > 0 && estatisticas.mediana_etanol > 0;
+
+  if (temMedias) {
+    // Cálculo preciso: custo por km com sua mediana real
+    const custoGas = pg / estatisticas.mediana_gasolina;
+    const custoEta = pe / estatisticas.mediana_etanol;
+    if (custoEta < custoGas) {
+      const eco = ((custoGas - custoEta) / custoGas * 100).toFixed(1);
+      el.textContent = `🌱 Use Etanol — ${eco}% mais barato por km`;
+      el.className = 'calc-result eta';
+    } else {
+      const eco = ((custoEta - custoGas) / custoEta * 100).toFixed(1);
+      el.textContent = `⛽ Use Gasolina — ${eco}% mais barato por km`;
+      el.className = 'calc-result gas';
+    }
   } else {
-    const eco = ((custoEta - custoGas) / custoEta * 100).toFixed(1);
-    el.textContent = `⛽ Use Gasolina — ${eco}% mais barato por km`;
-    el.className = 'calc-result gas';
+    // Sem histórico: regra padrão dos 70%
+    const proporcao = pe / pg;
+    if (proporcao <= 0.70) {
+      const pct = (proporcao * 100).toFixed(1);
+      el.textContent = `🌱 Use Etanol — ${pct}% da gasolina (≤ 70%, compensa)`;
+      el.className = 'calc-result eta';
+    } else {
+      const pct = (proporcao * 100).toFixed(1);
+      el.textContent = `⛽ Use Gasolina — Etanol está em ${pct}% (> 70%, não compensa)`;
+      el.className = 'calc-result gas';
+    }
+    document.getElementById('hint-gas').textContent = '— (usando regra 70%)';
+    document.getElementById('hint-eta').textContent = '— (usando regra 70%)';
   }
 }
 
@@ -404,16 +421,18 @@ function salvarPrecos() {
 function sugerirPrecos() {
   const inputG = document.getElementById('preco-gas');
   const inputE = document.getElementById('preco-eta');
-  // 1. Restaura do localStorage (persistido pelo usuário)
+  // 1. Último abastecimento do banco tem prioridade (é o preço real mais recente)
+  let pg = 0, pe = 0;
+  for (const a of dados) {
+    if (!pg && a.tipo_combustivel.toLowerCase() === 'gasolina') pg = a.valor_unitario;
+    if (!pe && a.tipo_combustivel.toLowerCase() === 'etanol')   pe = a.valor_unitario;
+    if (pg && pe) break;
+  }
+  if (pg) { inputG.value = pg; localStorage.setItem('combus_preco_gas', pg); }
+  if (pe) { inputE.value = pe; localStorage.setItem('combus_preco_eta', pe); }
+  // 2. Fallback: localStorage (para meses sem abastecimentos)
   if (!inputG.value) inputG.value = localStorage.getItem('combus_preco_gas') || '';
   if (!inputE.value) inputE.value = localStorage.getItem('combus_preco_eta') || '';
-  // 2. Se ainda vazio, sugere o último abastecimento (sem sobrescrever o que o usuário digitou)
-  if (!inputG.value || !inputE.value) {
-    for (const a of dados) {
-      if (!inputG.value && a.tipo_combustivel.toLowerCase() === 'gasolina') inputG.value = a.valor_unitario;
-      if (!inputE.value && a.tipo_combustivel.toLowerCase() === 'etanol')   inputE.value = a.valor_unitario;
-    }
-  }
   calcularFlex();
 }
 
