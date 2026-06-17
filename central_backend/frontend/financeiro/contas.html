@@ -295,7 +295,14 @@ let ordemDir = 'asc';
 
 if (!token) location.href = 'https://almeidainteligencia.com.br/';
 document.getElementById('user-email').textContent = localStorage.getItem('central_email') || '—';
-if (localStorage.getItem('admin_token')) document.getElementById('portal-link').style.display = '';
+try {
+  const _at = localStorage.getItem('admin_token');
+  if (_at) {
+    const _p = JSON.parse(atob(_at.split('.')[1]));
+    if (_p.perfil === 'admin' || (_p.sistemas || []).length > 1)
+      document.getElementById('portal-link').style.display = '';
+  }
+} catch(e) {}
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
