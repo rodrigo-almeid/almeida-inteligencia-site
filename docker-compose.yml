@@ -67,6 +67,8 @@ services:
       POSTGRES_PASSWORD: central_pass_2025
     volumes:
       - central_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U central_user"]
