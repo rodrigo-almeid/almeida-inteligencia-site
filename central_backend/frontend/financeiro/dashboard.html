@@ -228,7 +228,16 @@
     </div>
     <div class="field">
       <label>Categoria</label>
-      <select id="f-categoria"><option value="">— Sem categoria —</option></select>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="f-categoria" style="flex:1"><option value="">— Sem categoria —</option></select>
+        <button type="button" onclick="novaCategoria()" style="background:none;border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--green);font-size:16px;cursor:pointer;line-height:1;flex-shrink:0" title="Nova categoria">+</button>
+      </div>
+      <div id="nova-cat-field" style="display:none;margin-top:8px;display:none">
+        <div style="display:flex;gap:8px">
+          <input id="nova-cat-input" placeholder="Nome da categoria" style="flex:1;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:8px 12px;font-size:13px;color:#fff;font-family:'Inter',sans-serif;outline:none;">
+          <button type="button" onclick="salvarNovaCategoria()" style="background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Ok</button>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Recorrência</label>
@@ -427,7 +436,35 @@ function abrirModal(dados=null) {
 
 function fecharModal() {
   document.getElementById('modal').classList.remove('show');
+  document.getElementById('nova-cat-field').style.display = 'none';
   editandoId = null;
+}
+
+function novaCategoria() {
+  const field = document.getElementById('nova-cat-field');
+  field.style.display = field.style.display === 'none' ? 'block' : 'none';
+  if (field.style.display === 'block') document.getElementById('nova-cat-input').focus();
+}
+
+async function salvarNovaCategoria() {
+  const nome = document.getElementById('nova-cat-input').value.trim();
+  if (!nome) return;
+  const res = await api('/categorias/', { method:'POST', body: JSON.stringify({ nome }) });
+  if (res?.ok) {
+    const nova = await res.json();
+    categorias.push(nova);
+    const sel = document.getElementById('f-categoria');
+    const opt = document.createElement('option');
+    opt.value = nova.id; opt.textContent = nova.nome;
+    sel.appendChild(opt);
+    sel.value = nova.id;
+    document.getElementById('nova-cat-input').value = '';
+    document.getElementById('nova-cat-field').style.display = 'none';
+    toast('Categoria criada!');
+  } else {
+    const e = await res?.json();
+    toast(e?.detail || 'Erro ao criar categoria.', 'err');
+  }
 }
 
 document.getElementById('f-recorrencia').addEventListener('change', function() {
