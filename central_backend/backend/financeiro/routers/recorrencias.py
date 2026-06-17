@@ -42,7 +42,6 @@ def processar_recorrencias(mes: int, ano: int, db: Session = Depends(get_db), cu
             descricao=conta.descricao,
             vencimento=novo_vencimento,
             valor=conta.valor,
-            tipo_despesa=conta.tipo_despesa,
             natureza=conta.natureza,
             status="A Pagar",  # Volta ao status inicial para o próximo mês
             tipo_recorrencia=conta.tipo_recorrencia,

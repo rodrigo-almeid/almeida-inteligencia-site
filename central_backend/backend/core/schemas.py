@@ -85,7 +85,6 @@ class ContaCreate(BaseModel):
     vencimento: date
     competencia: Optional[str] = None
     valor: float
-    tipo_despesa: Optional[str] = None
     natureza: Optional[str] = None
     status: Optional[str] = None
     tipo_recorrencia: Optional[str] = None
@@ -100,7 +99,6 @@ class ContaResponse(ORMBase):
     vencimento: date
     competencia: Optional[str]
     valor: float
-    tipo_despesa: Optional[str]
     natureza: Optional[str]
     status: Optional[str]
     tipo_recorrencia: Optional[str]

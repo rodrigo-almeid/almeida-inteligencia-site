@@ -183,7 +183,6 @@
         <tr>
           <th>Descrição</th>
           <th>Vencimento</th>
-          <th>Tipo</th>
           <th>Natureza</th>
           <th>Valor</th>
           <th>Status</th>
@@ -225,24 +224,13 @@
         </select>
       </div>
     </div>
-    <div class="row2">
-      <div class="field">
-        <label>Tipo Despesa</label>
-        <select id="f-tipo">
-          <option value="">— Selecione —</option>
-          <option value="fixo">Fixo</option>
-          <option value="variavel">Variável</option>
-          <option value="parcelado">Parcelado</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Recorrência</label>
-        <select id="f-recorrencia">
-          <option value="unica">Única</option>
-          <option value="mensal">Mensal</option>
-          <option value="parcelada">Parcelada</option>
-        </select>
-      </div>
+    <div class="field">
+      <label>Recorrência</label>
+      <select id="f-recorrencia">
+        <option value="unica">Única</option>
+        <option value="mensal">Mensal</option>
+        <option value="parcelada">Parcelada</option>
+      </select>
     </div>
     <div class="field" id="parcelas-field" style="display:none">
       <label>Nº de Parcelas</label>
@@ -348,7 +336,6 @@ function renderTabela() {
     <tr>
       <td>${esc(c.descricao)}</td>
       <td>${fmtDate(c.vencimento)}${compLabel}</td>
-      <td>${c.tipo_despesa ? `<span class="badge">${c.tipo_despesa}</span>` : '—'}</td>
       <td><span class="badge ${c.natureza}">${c.natureza||'—'}</span></td>
       <td style="font-weight:500">${fmt(c.valor)}</td>
       <td><span class="badge ${c.status}">${c.status||'—'}</span></td>
@@ -388,7 +375,6 @@ function abrirModal(dados=null) {
   document.getElementById('f-competencia').value = dados?.competencia || mesAtualStr();
   document.getElementById('f-natureza').value = dados?.natureza || 'despesa';
   document.getElementById('f-status').value = dados?.status || 'pendente';
-  document.getElementById('f-tipo').value = dados?.tipo_despesa || '';
   document.getElementById('f-recorrencia').value = dados?.tipo_recorrencia || 'unica';
   document.getElementById('parcelas-field').style.display = 'none';
   document.getElementById('modal').classList.add('show');
@@ -423,14 +409,13 @@ async function salvar() {
   const venc = document.getElementById('f-venc').value;
   const natureza = document.getElementById('f-natureza').value;
   const status = document.getElementById('f-status').value;
-  const tipo_despesa = document.getElementById('f-tipo').value || null;
   const tipo_recorrencia = document.getElementById('f-recorrencia').value;
   const total_parcelas = tipo_recorrencia === 'parcelada' ? parseInt(document.getElementById('f-parcelas').value)||null : null;
   const competencia = document.getElementById('f-competencia').value || null;
 
   if (!desc||!valor||!venc) { toast('Preencha descrição, valor e vencimento.','err'); return; }
 
-  const body = { descricao:desc, valor, vencimento:venc, competencia, natureza, status, tipo_despesa, tipo_recorrencia, total_parcelas, parcela_atual:null };
+  const body = { descricao:desc, valor, vencimento:venc, competencia, natureza, status, tipo_recorrencia, total_parcelas, parcela_atual:null };
   const url = editandoId ? `/contas/${editandoId}` : '/contas/';
   const method = editandoId ? 'PUT' : 'POST';
   const res = await api(url, { method, body: JSON.stringify(body) });

@@ -30,7 +30,7 @@ def exportar_excel_contas(db: Session = Depends(get_db), current_user: models.Us
     ws.title = "Minhas Contas"
 
     # Cabeçalho estilizado
-    cabecalho = ["ID", "Descrição", "Vencimento", "Tipo", "Valor (R$)", "Natureza", "Status"]
+    cabecalho = ["ID", "Descrição", "Vencimento", "Competência", "Valor (R$)", "Natureza", "Status"]
     ws.append(cabecalho)
     header_fill = PatternFill("solid", fgColor="1A241C")
     header_font = Font(bold=True, color="3DDB82")
@@ -45,7 +45,7 @@ def exportar_excel_contas(db: Session = Depends(get_db), current_user: models.Us
             c.id,
             c.descricao,
             c.vencimento.strftime("%d/%m/%Y"),
-            c.tipo_despesa or "",
+            c.competencia or "",
             c.valor,
             c.natureza or "",
             c.status or "",

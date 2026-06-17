@@ -66,7 +66,6 @@ def criar_abastecimento(
             vencimento=abastecimento.data,
             valor=abastecimento.valor_total,
             natureza="debito",
-            tipo_despesa="Combustível",
             status="pago",
             tipo_recorrencia="unica",
             parcela_atual=1,

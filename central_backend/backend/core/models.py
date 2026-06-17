@@ -107,7 +107,6 @@ class Conta(Base):
     descricao = Column(String, nullable=False)
     vencimento = Column(Date, nullable=False)
     competencia = Column(String, nullable=True)  # formato "YYYY-MM", ex: "2025-07"
-    tipo_despesa = Column(String, index=True)
     valor = Column(Float, nullable=False)
     natureza = Column(String)  # Recebe os dados do ENUM tiponatureza
     status = Column(String)  # Recebe os dados do ENUM statusconta
