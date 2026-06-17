@@ -83,6 +83,7 @@ class CategoriaResponse(ORMBase):
 class ContaCreate(BaseModel):
     descricao: str
     vencimento: date
+    competencia: Optional[str] = None
     valor: float
     tipo_despesa: Optional[str] = None
     natureza: Optional[str] = None
@@ -97,6 +98,7 @@ class ContaResponse(ORMBase):
     id: int
     descricao: str
     vencimento: date
+    competencia: Optional[str]
     valor: float
     tipo_despesa: Optional[str]
     natureza: Optional[str]

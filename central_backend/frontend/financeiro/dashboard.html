@@ -204,6 +204,10 @@
       <div class="field"><label>Valor (R$)</label><input id="f-valor" type="number" step="0.01" placeholder="0,00"></div>
       <div class="field"><label>Vencimento</label><input id="f-venc" type="date"></div>
     </div>
+    <div class="field">
+      <label>Competência <span style="color:var(--gray);font-weight:400;text-transform:none;letter-spacing:0">(mês de referência)</span></label>
+      <input id="f-competencia" type="month">
+    </div>
     <div class="row2">
       <div class="field">
         <label>Natureza</label>
@@ -287,6 +291,7 @@ function toast(msg, tipo='ok') {
 
 function fmt(v) { return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
 function fmtDate(s) { if(!s) return '—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function fmtMes(s) { if(!s) return '—'; const [y,m]=s.split('-'); return `${MESES[parseInt(m)-1].substring(0,3)}/${y.substring(2)}`; }
 
 async function api(path, opts={}) {
   const res = await fetch(API + path, {
@@ -333,10 +338,16 @@ function renderTabela() {
   const tbody = document.getElementById('tbody');
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum lançamento neste período.</td></tr>'; return; }
 
-  tbody.innerHTML = lista.map(c => `
+  tbody.innerHTML = lista.map(c => {
+    const vencMes = c.vencimento ? c.vencimento.substring(0,7) : null;
+    const compDiferente = c.competencia && c.competencia !== vencMes;
+    const compLabel = compDiferente
+      ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">Comp: ${fmtMes(c.competencia)}</div>`
+      : '';
+    return `
     <tr>
       <td>${esc(c.descricao)}</td>
-      <td>${fmtDate(c.vencimento)}</td>
+      <td>${fmtDate(c.vencimento)}${compLabel}</td>
       <td>${c.tipo_despesa ? `<span class="badge">${c.tipo_despesa}</span>` : '—'}</td>
       <td><span class="badge ${c.natureza}">${c.natureza||'—'}</span></td>
       <td style="font-weight:500">${fmt(c.valor)}</td>
@@ -346,7 +357,8 @@ function renderTabela() {
         <button class="icon-btn" onclick="editar(${c.id})" title="Editar">✎</button>
         <button class="icon-btn del" onclick="deletar(${c.id})" title="Excluir">🗑</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function esc(s) { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -358,16 +370,27 @@ function filtrar(btn) {
   renderTabela();
 }
 
+function mesAtualStr() {
+  return `${anoAtual}-${String(mesAtual).padStart(2,'0')}`;
+}
+
+function hojeStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function abrirModal(dados=null) {
   editandoId = dados?.id || null;
   document.getElementById('modal-title').textContent = editandoId ? 'Editar Conta' : 'Nova Conta';
   document.getElementById('f-desc').value = dados?.descricao || '';
   document.getElementById('f-valor').value = dados?.valor || '';
-  document.getElementById('f-venc').value = dados?.vencimento || '';
+  document.getElementById('f-venc').value = dados?.vencimento || hojeStr();
+  document.getElementById('f-competencia').value = dados?.competencia || mesAtualStr();
   document.getElementById('f-natureza').value = dados?.natureza || 'despesa';
   document.getElementById('f-status').value = dados?.status || 'pendente';
   document.getElementById('f-tipo').value = dados?.tipo_despesa || '';
   document.getElementById('f-recorrencia').value = dados?.tipo_recorrencia || 'unica';
+  document.getElementById('parcelas-field').style.display = 'none';
   document.getElementById('modal').classList.add('show');
 }
 
@@ -403,10 +426,11 @@ async function salvar() {
   const tipo_despesa = document.getElementById('f-tipo').value || null;
   const tipo_recorrencia = document.getElementById('f-recorrencia').value;
   const total_parcelas = tipo_recorrencia === 'parcelada' ? parseInt(document.getElementById('f-parcelas').value)||null : null;
+  const competencia = document.getElementById('f-competencia').value || null;
 
   if (!desc||!valor||!venc) { toast('Preencha descrição, valor e vencimento.','err'); return; }
 
-  const body = { descricao:desc, valor, vencimento:venc, natureza, status, tipo_despesa, tipo_recorrencia, total_parcelas, parcela_atual:null };
+  const body = { descricao:desc, valor, vencimento:venc, competencia, natureza, status, tipo_despesa, tipo_recorrencia, total_parcelas, parcela_atual:null };
   const url = editandoId ? `/contas/${editandoId}` : '/contas/';
   const method = editandoId ? 'PUT' : 'POST';
   const res = await api(url, { method, body: JSON.stringify(body) });

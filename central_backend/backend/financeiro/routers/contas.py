@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import extract
+from sqlalchemy import extract, or_, and_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import calendar
@@ -64,11 +64,23 @@ async def listar_contas(
     # 1. Começa por buscar apenas as contas do utilizador logado (Segurança)
     query = db.query(models.Conta).filter(models.Conta.user_id == current_user.id)
 
-    # 2. Se o Front-end enviou o mês e o ano, aplica o filtro de data!
+    # 2. Filtra por competência (se preenchida) ou vencimento como fallback
     if mes and ano:
+        competencia_str = f"{ano}-{mes:02d}"
         query = query.filter(
-            extract('year', models.Conta.vencimento) == ano,
-            extract('month', models.Conta.vencimento) == mes
+            or_(
+                # Tem competência definida e bate com o mês/ano solicitado
+                and_(
+                    models.Conta.competencia != None,
+                    models.Conta.competencia == competencia_str
+                ),
+                # Sem competência: usa o mês/ano do vencimento
+                and_(
+                    models.Conta.competencia == None,
+                    extract('year', models.Conta.vencimento) == ano,
+                    extract('month', models.Conta.vencimento) == mes
+                )
+            )
         )
 
     # 3. Devolve apenas as contas filtradas
