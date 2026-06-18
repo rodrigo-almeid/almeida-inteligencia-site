@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import date as date_type
 import statistics
 
 from backend.core import models, schemas
@@ -63,7 +64,7 @@ def criar_abastecimento(
         # Insere direto nas Contas como Pago
         nova_conta = models.Conta(
             descricao=f"Abastecimento - {abastecimento.tipo_combustivel}",
-            vencimento=abastecimento.data,
+            vencimento=date_type.fromisoformat(abastecimento.data),
             valor=abastecimento.valor_total,
             natureza="despesa",
             status="paga",
