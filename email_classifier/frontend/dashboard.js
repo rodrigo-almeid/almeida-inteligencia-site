@@ -548,7 +548,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+(async () => {
   // Nav sidebar
   document.getElementById('nav-contas').addEventListener('click', abrirModalContas);
   document.getElementById('nav-treinar').addEventListener('click', abrirModalTreinar);
@@ -625,4 +625,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   verificarPendentes();
   carregarSubcategorias();
   carregarEmails();
-});
+})();
