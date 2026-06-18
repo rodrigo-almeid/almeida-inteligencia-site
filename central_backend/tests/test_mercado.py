@@ -108,6 +108,44 @@ class TestListarCompras:
         assert res.status_code == 401
 
 
+class TestResumoMensal:
+    def test_resumo_separa_debito_e_vale(self, client, auth_headers):
+        client.post("/mercado/compras", json=COMPRA_BASE, headers=auth_headers)
+        vale = {
+            **COMPRA_BASE,
+            "forma_pagamento": "vale_alimentacao",
+            "bandeira_vale": "ticket",
+            "itens": [{"nome": "Frango", "valor": 30.0}],
+        }
+        client.post("/mercado/compras", json=vale, headers=auth_headers)
+        res = client.get("/mercado/compras?mes=6&ano=2026", headers=auth_headers)
+        resumo = res.json()["resumo"]
+        assert resumo["total_debito"] == pytest.approx(38.40)
+        assert resumo["total_vale"] == pytest.approx(30.0)
+        assert resumo["total_credito"] == 0.0
+
+    def test_resumo_qtd_compras(self, client, auth_headers):
+        for _ in range(3):
+            client.post("/mercado/compras", json=COMPRA_BASE, headers=auth_headers)
+        res = client.get("/mercado/compras?mes=6&ano=2026", headers=auth_headers)
+        assert res.json()["resumo"]["qtd_compras"] == 3
+
+    def test_resumo_mes_sem_compras(self, client, auth_headers):
+        res = client.get("/mercado/compras?mes=1&ano=2020", headers=auth_headers)
+        resumo = res.json()["resumo"]
+        assert resumo["total_mes"] == 0.0
+        assert resumo["qtd_compras"] == 0
+
+    def test_compras_ordenadas_por_data_desc(self, client, auth_headers):
+        payload_antiga = {**COMPRA_BASE, "data": "2026-06-01"}
+        payload_nova = {**COMPRA_BASE, "data": "2026-06-20"}
+        client.post("/mercado/compras", json=payload_antiga, headers=auth_headers)
+        client.post("/mercado/compras", json=payload_nova, headers=auth_headers)
+        res = client.get("/mercado/compras?mes=6&ano=2026", headers=auth_headers)
+        compras = res.json()["compras"]
+        assert compras[0]["data"] >= compras[1]["data"]
+
+
 class TestExcluirCompra:
     def test_excluir_compra_success(self, client, auth_headers):
         res = client.post("/mercado/compras", json=COMPRA_BASE, headers=auth_headers)

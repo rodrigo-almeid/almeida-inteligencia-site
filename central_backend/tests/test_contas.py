@@ -191,6 +191,75 @@ class TestDividas:
         assert d.id not in ids
 
 
+class TestContasParcelamento:
+    def test_parcelada_gera_todas_parcelas(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        payload = {
+            **CONTA_BASE,
+            "tipo_recorrencia": "parcelada",
+            "total_parcelas": 6,
+            "vencimento": "2026-01-10",
+        }
+        res = client.post("/contas/", json=payload, headers=auth_headers)
+        assert res.status_code == 201
+        db.expire_all()
+        total = db.query(Conta).filter(Conta.user_id == user.id).count()
+        assert total == 6
+
+    def test_parcelada_vencimentos_mensais(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        payload = {
+            **CONTA_BASE,
+            "tipo_recorrencia": "parcelada",
+            "total_parcelas": 3,
+            "vencimento": "2026-01-10",
+        }
+        client.post("/contas/", json=payload, headers=auth_headers)
+        db.expire_all()
+        contas = db.query(Conta).filter(Conta.user_id == user.id).order_by(Conta.vencimento).all()
+        meses = [c.vencimento.month for c in contas]
+        assert meses == [1, 2, 3]
+
+    def test_parcelada_retorna_primeira_parcela(self, client, auth_headers):
+        payload = {
+            **CONTA_BASE,
+            "tipo_recorrencia": "parcelada",
+            "total_parcelas": 4,
+        }
+        res = client.post("/contas/", json=payload, headers=auth_headers)
+        assert res.json()["parcela_atual"] == 1
+
+    def test_parcelada_1x_cria_conta_simples(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        payload = {**CONTA_BASE, "tipo_recorrencia": "parcelada", "total_parcelas": 1}
+        client.post("/contas/", json=payload, headers=auth_headers)
+        db.expire_all()
+        total = db.query(Conta).filter(Conta.user_id == user.id).count()
+        assert total == 1
+
+    def test_filtro_competencia(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        c = Conta(
+            descricao="Com Competência", vencimento=date(2026, 5, 30), competencia="2026-06",
+            valor=200.0, natureza="despesa", status="pendente", tipo_recorrencia="unica", user_id=user.id
+        )
+        db.add(c); db.commit()
+        res = client.get("/contas/?mes=6&ano=2026", headers=auth_headers)
+        descricoes = [c["descricao"] for c in res.json()]
+        assert "Com Competência" in descricoes
+
+    def test_filtro_exclui_competencia_errada(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        c = Conta(
+            descricao="Competência Julho", vencimento=date(2026, 6, 1), competencia="2026-07",
+            valor=100.0, natureza="despesa", status="pendente", tipo_recorrencia="unica", user_id=user.id
+        )
+        db.add(c); db.commit()
+        res = client.get("/contas/?mes=6&ano=2026", headers=auth_headers)
+        descricoes = [c["descricao"] for c in res.json()]
+        assert "Competência Julho" not in descricoes
+
+
 class TestRelatorios:
     def test_exportar_excel(self, client, auth_headers, conta):
         res = client.get("/relatorios/excel/contas", headers=auth_headers)
