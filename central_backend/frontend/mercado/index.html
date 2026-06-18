@@ -146,14 +146,26 @@
     </div>
   </div>
 
+  <a href="/financeiro/dashboard.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Dashboard
+  </a>
+  <a href="/financeiro/contas.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Contas
+  </a>
+  <a href="/financeiro/combustivel.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 22V8l6-6h6l2 2v2h2a2 2 0 0 1 2 2v3"/><path d="M3 12h10"/><path d="M13 22V10"/><circle cx="18" cy="18" r="3"/><path d="M18 15v3l2 1"/></svg>
+    Combustível
+  </a>
   <a href="/mercado/" class="nav-item active">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-    Compras
+    Mercado
   </a>
 
   <div class="sidebar-spacer"></div>
   <div class="user-chip">
-    <div id="user-nome">Usuário</div>
+    <div id="user-nome">Conta</div>
     <div class="email" id="user-email">—</div>
   </div>
   <button class="logout-btn" onclick="logout()">Sair</button>
@@ -535,14 +547,9 @@ async function excluirCompra() {
 async function init() {
   if (!token()) { window.location.href = 'https://almeidainteligencia.com.br'; return }
 
-  try {
-    const r = await fetch(`${API}/auth/me`, { headers: headers() })
-    if (r.ok) {
-      const u = await r.json()
-      document.getElementById('user-email').textContent = u.email
-      document.getElementById('user-nome').textContent = u.email.split('@')[0]
-    }
-  } catch {}
+  const email = localStorage.getItem('central_email') || '—'
+  document.getElementById('user-email').textContent = email
+  document.getElementById('user-nome').textContent = email !== '—' ? email.split('@')[0] : 'Conta'
 
   atualizarMesLabel()
   carregarCompras()
