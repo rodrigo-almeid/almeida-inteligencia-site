@@ -57,7 +57,6 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 # Sistemas padrão
 sistemas_seed = [
-    ("Central de Sistemas",         "central_sistemas",       "Portal principal com acesso unificado a todas as ferramentas.",           "/",                              "🏠"),
     ("Gerenciador de Credenciais",  "gerenciador_credenciais","Governança e custódia de senhas corporativas com controle de acesso.",    "/credenciais/",                  "🔐"),
     ("Automação Financeira",        "automacao_financeira",   "Controle de lançamentos, amortizações e auditoria automatizada.",         "/financeiro/",                   "💰"),
     ("Classificador de E-mails",    "classificador_emails",   "Triagem automática de e-mails por urgência, categoria e filial.",         "/email/",                        "🤖"),

@@ -35,7 +35,15 @@ async function checarAuth() {
     const res = await fetch(`${API.replace('/api','/auth')}/me`, { headers: headers() });
     if (!res.ok) { fazerLogout(); return; }
     const u = await res.json();
-    document.getElementById('sidebar-usuario').textContent = u.nome;
+    document.getElementById('sidebar-usuario-email').textContent = u.email || u.nome;
+    try {
+      const at = localStorage.getItem('admin_token');
+      if (at) {
+        const p = JSON.parse(atob(at.split('.')[1]));
+        if (p.perfil === 'admin' || (p.sistemas || []).length > 1)
+          document.getElementById('portal-link').style.display = '';
+      }
+    } catch (_) {}
   } catch (_) { fazerLogout(); }
 }
 
@@ -245,7 +253,7 @@ async function verificarModelo() {
 }
 
 // ── Modal Treinar ───────────────────────────────────────────────────────────
-function abrirModalTreinar() { document.getElementById('treinar-status').classList.add('hidden'); document.getElementById('modal-treinar').classList.remove('hidden'); }
+function abrirModalTreinar() { document.getElementById('treinar-status').style.display='none'; document.getElementById('modal-treinar').classList.remove('hidden'); }
 function fecharModalTreinar() { document.getElementById('modal-treinar').classList.add('hidden'); }
 async function executarTreinamento() {
   const btn = document.getElementById('btn-confirmar-treinar');
@@ -258,13 +266,13 @@ async function executarTreinamento() {
     let html='';
     for (const [alvo, info] of Object.entries(data)) {
       if (info.status==='insuficiente')
-        html+=`<div class="text-yellow-400 flex gap-2"><i class="fa-solid fa-triangle-exclamation mt-0.5"></i><span><b>${alvo}</b>: insuficiente (${info.amostras} amostras, mín. 5)</span></div>`;
+        html+=`<div style="color:#E6B432;margin-bottom:6px">⚠ <b>${alvo}</b>: insuficiente (${info.amostras} amostras, mín. 5)</div>`;
       else {
-        html+=`<div class="text-emerald-400 flex gap-2"><i class="fa-solid fa-circle-check mt-0.5"></i><span><b>${alvo}</b>: ${(info.acuracia*100).toFixed(1)}% — ${info.amostras_treino} treino / ${info.amostras_teste} teste</span></div>`;
-        html+=`<div class="text-xs text-gray-400 pl-6">Classes: ${info.classes.join(', ')}</div>`;
+        html+=`<div style="color:var(--green-primary);margin-bottom:4px">✓ <b>${alvo}</b>: ${(info.acuracia*100).toFixed(1)}% — ${info.amostras_treino} treino / ${info.amostras_teste} teste</div>`;
+        html+=`<div style="font-size:11px;color:var(--gray-moss);margin-bottom:8px;padding-left:14px">Classes: ${info.classes.join(', ')}</div>`;
       }
     }
-    statusEl.innerHTML=html; statusEl.classList.remove('hidden');
+    statusEl.innerHTML=html; statusEl.style.display='block';
     toast('Treinamento concluído!','ok'); verificarModelo();
   } catch (err) { toast('Erro: '+err.message,'erro'); }
   finally { btn.disabled=false; btn.innerHTML='◈ Iniciar Treinamento'; }
@@ -309,10 +317,10 @@ function renderizarListaContas() {
         <small>${c.email} · ${c.imap_server}:${c.imap_port} ${c.ativo ? '' : '· <span style="color:var(--gray-moss)">inativo</span>'}</small>
       </div>
       <div class="conta-actions">
-        <button onclick="testarConta(${c.id}, this)" class="btn-icon" title="Testar">⚡</button>
-        <button onclick="toggleAtivoConta(${c.id})" class="btn-icon" title="${c.ativo?'Desativar':'Ativar'}" style="color:${c.ativo?'var(--green-primary)':'var(--gray-moss)'}">●</button>
-        <button onclick="editarConta(${c.id})" class="btn-icon" title="Editar">✎</button>
-        <button onclick="removerConta(${c.id})" class="btn-icon danger" title="Remover">✕</button>
+        <button class="btn-icon" data-action="testar" data-id="${c.id}" title="Testar">⚡</button>
+        <button class="btn-icon" data-action="toggle" data-id="${c.id}" title="${c.ativo?'Desativar':'Ativar'}" style="color:${c.ativo?'var(--green-primary)':'var(--gray-moss)'}">●</button>
+        <button class="btn-icon" data-action="editar" data-id="${c.id}" title="Editar">✎</button>
+        <button class="btn-icon danger" data-action="remover" data-id="${c.id}" title="Remover">✕</button>
       </div>
     </div>`).join('');
 }
@@ -397,19 +405,19 @@ async function removerConta(id) {
 }
 
 async function testarConta(id, btn) {
-  const ico = btn.querySelector('i');
-  const orig = ico.className;
-  ico.className = 'fa-solid fa-spinner fa-spin text-xs';
+  const orig = btn.textContent;
+  btn.textContent = '↻';
   btn.disabled = true;
   try {
     const res = await fetch(`${API}/contas/${id}/testar`, { method: 'POST', headers: headers() });
     const data = await res.json();
     toast(data.msg, data.ok ? 'ok' : 'erro');
-    ico.className = data.ok ? 'fa-solid fa-plug text-xs text-green-400' : 'fa-solid fa-plug text-xs text-red-400';
-    setTimeout(() => { ico.className = orig; btn.disabled = false; }, 3000);
+    btn.textContent = data.ok ? '✓' : '✕';
+    btn.style.color = data.ok ? 'var(--green-primary)' : '#E24B4A';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 3000);
   } catch (_) {
     toast('Erro ao testar conexão.', 'erro');
-    ico.className = orig;
+    btn.textContent = orig;
     btn.disabled = false;
   }
 }
@@ -476,7 +484,7 @@ async function carregarEmails() {
       const borderGerencial = e.gerencial==='sim' ? 'border-left:2px solid #E24B4A;' : '';
       const nomeConta = e.conta_id ? (contaMap[e.conta_id]||`#${e.conta_id}`) : '—';
       return `
-      <tr style="${borderGerencial}cursor:pointer" onclick="abrirDetalhe(${e.id})">
+      <tr style="${borderGerencial}cursor:pointer" data-email-id="${e.id}">
         <td style="white-space:nowrap">${fmtData(e.data_recebimento)}</td>
         <td>${truncar(nomeConta,18)}</td>
         <td>${iconeGerencial(e.gerencial)} ${truncar(e.remetente,24)}</td>
@@ -486,7 +494,7 @@ async function carregarEmails() {
         <td class="center">${badgeSla(e.sla)}</td>
         <td class="center">${badgeStatus(e.status)}</td>
         <td class="center">
-          <button class="btn-ver" onclick="event.stopPropagation();abrirDetalhe(${e.id})">✎</button>
+          <button class="btn-ver" data-email-id="${e.id}">✎</button>
         </td>
       </tr>`;
     }).join('');
@@ -540,11 +548,81 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
-(async () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Nav sidebar
+  document.getElementById('nav-contas').addEventListener('click', abrirModalContas);
+  document.getElementById('nav-treinar').addEventListener('click', abrirModalTreinar);
+  document.getElementById('nav-exportar').addEventListener('click', exportarDataset);
+
+  // Toolbar
+  document.getElementById('btn-extrair').addEventListener('click', executarExtracao);
+  document.getElementById('btn-classificar').addEventListener('click', executarClassificacao);
+  document.getElementById('campo-busca').addEventListener('input', aplicarFiltros);
+  document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
+
+  // Filtros
+  document.getElementById('filtro-conta').addEventListener('change', aplicarFiltros);
+  document.getElementById('filtro-categoria').addEventListener('change', aplicarFiltros);
+  document.getElementById('filtro-subcategoria').addEventListener('change', aplicarFiltros);
+  document.getElementById('filtro-sla').addEventListener('change', aplicarFiltros);
+  document.getElementById('filtro-status').addEventListener('change', aplicarFiltros);
+
+  // Paginação
+  document.getElementById('btn-prev').addEventListener('click', () => mudarPagina(-1));
+  document.getElementById('btn-next').addEventListener('click', () => mudarPagina(1));
+
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', fazerLogout);
+
+  // Modal Progresso
+  document.getElementById('btn-fechar-progresso').addEventListener('click', fecharModalProgresso);
+  document.getElementById('btn-fechar-progresso-rodape').addEventListener('click', fecharModalProgresso);
+
+  // Modal Contas
+  document.getElementById('btn-fechar-contas').addEventListener('click', fecharModalContas);
+  document.getElementById('btn-adicionar-conta').addEventListener('click', () => abrirFormConta());
+
+  // Modal Form Conta
+  document.getElementById('btn-fechar-form-conta').addEventListener('click', fecharFormConta);
+  document.getElementById('btn-cancelar-form-conta').addEventListener('click', fecharFormConta);
+  document.getElementById('btn-salvar-conta').addEventListener('click', salvarConta);
+  document.getElementById('btn-toggle-senha').addEventListener('click', toggleSenhaForm);
+  document.getElementById('fc-provider').addEventListener('change', preencherServidorPadrao);
+
+  // Modal Treinar
+  document.getElementById('btn-fechar-treinar').addEventListener('click', fecharModalTreinar);
+  document.getElementById('btn-fechar-treinar-rodape').addEventListener('click', fecharModalTreinar);
+  document.getElementById('btn-confirmar-treinar').addEventListener('click', executarTreinamento);
+
+  // Modal Detalhe
+  document.getElementById('btn-fechar-detalhe').addEventListener('click', fecharDetalhe);
+  document.getElementById('btn-fechar-detalhe-rodape').addEventListener('click', fecharDetalhe);
+  document.getElementById('btn-salvar-classificacao').addEventListener('click', salvarClassificacao);
+  document.getElementById('det-categoria').addEventListener('change', atualizarSubcategoriasModal);
+
+  // Event delegation — conteúdo dinâmico (conta cards e tabela de e-mails)
+  document.getElementById('lista-contas').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id);
+    const action = btn.dataset.action;
+    if (action === 'testar')   testarConta(id, btn);
+    if (action === 'toggle')   toggleAtivoConta(id);
+    if (action === 'editar')   editarConta(id);
+    if (action === 'remover')  removerConta(id);
+  });
+
+  document.getElementById('tabela-body').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-email-id]');
+    const row = e.target.closest('tr[data-email-id]');
+    if (btn) { e.stopPropagation(); abrirDetalhe(parseInt(btn.dataset.emailId)); }
+    else if (row) abrirDetalhe(parseInt(row.dataset.emailId));
+  });
+
   await checarAuth();
   await carregarContas();
   verificarModelo();
   verificarPendentes();
   carregarSubcategorias();
   carregarEmails();
-})();
+});

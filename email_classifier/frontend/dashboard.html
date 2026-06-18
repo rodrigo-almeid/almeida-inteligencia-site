@@ -73,20 +73,31 @@
     nav a:hover, nav button:hover { background: rgba(61,219,130,0.08); color: #fff; }
     nav a.active { background: rgba(61,219,130,0.12); color: var(--green-primary); }
     nav .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
-    .sidebar-footer {
-      padding: 12px;
-      border-top: var(--border);
+    .sidebar-spacer { flex: 1; }
+    .user-chip {
+      margin: 0 12px 6px;
+      background: rgba(255,255,255,0.04);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 11px;
     }
-    .sidebar-user { padding: 8px 12px; font-size: 11px; color: var(--gray-moss); margin-bottom: 4px; }
+    .user-chip-label { color: var(--gray-moss); margin-bottom: 3px; }
+    .user-chip-email { color: var(--gray-light); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .btn-logout {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 12px; border-radius: var(--radius);
-      font-size: 13px; color: #E24B4A;
-      background: none; border: none; cursor: pointer;
-      font-family: 'Inter', sans-serif; width: 100%; text-align: left;
-      transition: background 0.15s;
+      margin: 0 12px 12px;
+      width: calc(100% - 24px);
+      background: none;
+      border: 0.5px solid rgba(226,75,74,0.3);
+      border-radius: var(--radius);
+      padding: 9px;
+      color: #E24B4A;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .btn-logout:hover { background: rgba(226,75,74,0.1); }
+    .btn-logout:hover { background: rgba(226,75,74,0.08); }
 
     /* ── MAIN ── */
     main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -450,22 +461,25 @@
       <a href="/email/dashboard.html" class="active">
         <span class="nav-icon">✉</span> Caixa de E-mails
       </a>
-      <button onclick="abrirModalContas()">
+      <button id="nav-contas">
         <span class="nav-icon">@</span> Contas IMAP
       </button>
-      <button onclick="abrirModalTreinar()">
+      <button id="nav-treinar">
         <span class="nav-icon">◈</span> Treinar IA
       </button>
-      <button onclick="exportarDataset()">
+      <button id="nav-exportar">
         <span class="nav-icon">↓</span> Exportar Dataset
       </button>
     </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-user" id="sidebar-usuario"></div>
-      <button class="btn-logout" onclick="fazerLogout()">
-        <span>⎋</span> Sair
-      </button>
+    <div class="sidebar-spacer"></div>
+    <a href="https://almeidainteligencia.com.br/dashboard/" class="nav-item" id="portal-link" style="display:none">
+      <span class="nav-icon">🏠</span> Portal
+    </a>
+    <div class="user-chip">
+      <div class="user-chip-label">Conta</div>
+      <div class="user-chip-email" id="sidebar-usuario-email">—</div>
     </div>
+    <button class="btn-logout" id="btn-logout">Sair</button>
   </aside>
 
   <!-- MAIN -->
@@ -490,36 +504,36 @@
 
       <!-- Toolbar -->
       <div class="toolbar">
-        <button id="btn-extrair" class="btn btn-primary" onclick="executarExtracao()">↓ Extrair E-mails</button>
-        <button id="btn-classificar" class="btn btn-secondary" onclick="executarClassificacao()" disabled title="Treine o modelo antes de classificar">◈ Classificar E-mails</button>
+        <button id="btn-extrair" class="btn btn-primary">↓ Extrair E-mails</button>
+        <button id="btn-classificar" class="btn btn-secondary" disabled title="Treine o modelo antes de classificar">◈ Classificar E-mails</button>
         <div class="search-wrap">
           <span class="search-icon">⌕</span>
-          <input id="campo-busca" type="text" placeholder="Buscar remetente ou assunto…" oninput="aplicarFiltros()" />
+          <input id="campo-busca" type="text" placeholder="Buscar remetente ou assunto…" />
         </div>
       </div>
 
       <!-- Filtros -->
       <div class="filters">
-        <select id="filtro-conta" onchange="aplicarFiltros()">
+        <select id="filtro-conta">
           <option value="">Todas as contas</option>
         </select>
-        <select id="filtro-categoria" onchange="aplicarFiltros()">
+        <select id="filtro-categoria">
           <option value="">Todas as categorias</option>
           <option value="VT">VT – Vale Transporte</option>
           <option value="VR">VR – Vale Refeição</option>
           <option value="Outros">Outros</option>
         </select>
-        <select id="filtro-subcategoria" onchange="aplicarFiltros()">
+        <select id="filtro-subcategoria">
           <option value="">Todas as subcategorias</option>
         </select>
-        <select id="filtro-sla" onchange="aplicarFiltros()">
+        <select id="filtro-sla">
           <option value="">Todos os SLAs</option>
           <option value="D+0">D+0 — Urgente</option>
           <option value="D+1">D+1 — Próximo dia</option>
           <option value="D+2">D+2 — Padrão</option>
           <option value="D+3+">D+3+ — Baixa prioridade</option>
         </select>
-        <select id="filtro-status" onchange="aplicarFiltros()">
+        <select id="filtro-status">
           <option value="">Todos os status</option>
           <option value="novo">Novo</option>
           <option value="classificado">Classificado</option>
@@ -527,7 +541,7 @@
           <option value="tratado">Tratado</option>
           <option value="ignorado">Ignorado</option>
         </select>
-        <button class="btn btn-ghost" onclick="limparFiltros()">✕ Limpar</button>
+        <button id="btn-limpar-filtros" class="btn btn-ghost">✕ Limpar</button>
       </div>
 
       <!-- Tabela -->
@@ -556,8 +570,8 @@
       <div id="paginacao" class="pagination">
         <span id="pag-info"></span>
         <div class="pag-btns">
-          <button id="btn-prev" onclick="mudarPagina(-1)">‹ Anterior</button>
-          <button id="btn-next" onclick="mudarPagina(1)">Próxima ›</button>
+          <button id="btn-prev">‹ Anterior</button>
+          <button id="btn-next">Próxima ›</button>
         </div>
       </div>
     </div>
@@ -570,13 +584,14 @@
         <span id="progresso-icone">↓</span>
         <h3 id="progresso-titulo"></h3>
         <span id="progresso-pill" style="font-size:11px;color:var(--gray-moss)">em andamento…</span>
+        <button id="btn-fechar-progresso" class="modal-close">✕</button>
       </div>
       <div class="modal-body" style="padding:16px 20px">
         <div id="progresso-log" class="log-terminal"></div>
       </div>
       <div id="progresso-rodape" class="modal-footer" style="display:none">
         <div class="modal-actions">
-          <button class="btn btn-primary" onclick="fecharModalProgresso()">✓ Fechar</button>
+          <button id="btn-fechar-progresso-rodape" class="btn btn-primary">✓ Fechar</button>
         </div>
       </div>
     </div>
@@ -588,13 +603,13 @@
       <div class="modal-header">
         <span>@</span>
         <h3>Contas IMAP</h3>
-        <button class="modal-close" onclick="fecharModalContas()">✕</button>
+        <button id="btn-fechar-contas" class="modal-close">✕</button>
       </div>
       <div class="modal-body" id="lista-contas">
         <p style="color:var(--gray-moss);font-size:13px">Carregando…</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="abrirFormConta()">+ Adicionar Conta</button>
+        <button id="btn-adicionar-conta" class="btn btn-primary" style="width:100%;justify-content:center">+ Adicionar Conta</button>
       </div>
     </div>
   </div>
@@ -604,7 +619,7 @@
     <div class="modal" style="max-width:440px">
       <div class="modal-header">
         <h3 id="form-conta-titulo">Nova Conta IMAP</h3>
-        <button class="modal-close" onclick="fecharFormConta()">✕</button>
+        <button id="btn-fechar-form-conta" class="modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-field">
@@ -613,7 +628,7 @@
         </div>
         <div class="form-field">
           <label>Provedor</label>
-          <select id="fc-provider" onchange="preencherServidorPadrao()">
+          <select id="fc-provider">
             <option value="gmail">Gmail</option>
             <option value="outlook">Outlook / Office 365</option>
             <option value="other">Outro</option>
@@ -627,7 +642,7 @@
           <label>App Password / Senha</label>
           <div class="pass-wrap">
             <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx" />
-            <button type="button" class="pass-toggle" onclick="toggleSenhaForm()">
+            <button type="button" id="btn-toggle-senha" class="pass-toggle">
               <span id="fc-eye">👁</span>
             </button>
           </div>
@@ -647,8 +662,8 @@
       </div>
       <div class="modal-footer">
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="fecharFormConta()">Cancelar</button>
-          <button class="btn btn-primary" onclick="salvarConta()">💾 Salvar</button>
+          <button id="btn-cancelar-form-conta" class="btn btn-ghost">Cancelar</button>
+          <button id="btn-salvar-conta" class="btn btn-primary">💾 Salvar</button>
         </div>
       </div>
     </div>
@@ -659,7 +674,7 @@
     <div class="modal" style="max-width:440px">
       <div class="modal-header">
         <h3>Treinar Modelo de IA</h3>
-        <button class="modal-close" onclick="fecharModalTreinar()">✕</button>
+        <button id="btn-fechar-treinar" class="modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div id="treinar-status" style="display:none;background:var(--black-tech);border:var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-size:13px;"></div>
@@ -670,8 +685,8 @@
       </div>
       <div class="modal-footer">
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="fecharModalTreinar()">Fechar</button>
-          <button id="btn-confirmar-treinar" class="btn btn-primary" onclick="executarTreinamento()">◈ Iniciar Treinamento</button>
+          <button id="btn-fechar-treinar-rodape" class="btn btn-ghost">Fechar</button>
+          <button id="btn-confirmar-treinar" class="btn btn-primary">◈ Iniciar Treinamento</button>
         </div>
       </div>
     </div>
@@ -686,13 +701,13 @@
           <h3 id="det-assunto" style="font-size:14px;margin-top:4px"></h3>
           <p style="font-size:12px;color:var(--gray-moss);margin-top:3px">De: <span id="det-remetente" style="color:var(--gray-light)"></span> · <span id="det-data" style="color:var(--gray-light)"></span></p>
         </div>
-        <button class="modal-close" onclick="fecharDetalhe()">✕</button>
+        <button id="btn-fechar-detalhe" class="modal-close">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-grid-2" style="margin-bottom:12px">
           <div class="form-field">
             <label>Categoria</label>
-            <select id="det-categoria" onchange="atualizarSubcategoriasModal()">
+            <select id="det-categoria">
               <option value="">— Sem categoria —</option>
               <option value="VT">VT – Vale Transporte</option>
               <option value="VR">VR – Vale Refeição</option>
@@ -735,8 +750,8 @@
       </div>
       <div class="modal-footer">
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="fecharDetalhe()">Fechar</button>
-          <button class="btn btn-primary" onclick="salvarClassificacao()">💾 Salvar classificação</button>
+          <button id="btn-fechar-detalhe-rodape" class="btn btn-ghost">Fechar</button>
+          <button id="btn-salvar-classificacao" class="btn btn-primary">💾 Salvar classificação</button>
         </div>
       </div>
     </div>
