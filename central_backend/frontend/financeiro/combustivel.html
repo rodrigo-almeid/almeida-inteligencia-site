@@ -204,7 +204,10 @@
   <!-- Tabela -->
   <div class="section-header">
     <span class="section-title">Abastecimentos</span>
-    <button class="btn-add" onclick="abrirModal()">+ Novo Abastecimento</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-add" style="background:none;border:0.5px solid rgba(61,219,130,.25);color:var(--gray-l);font-size:12px;padding:8px 14px;" onclick="recalcularMedias()" title="Recalcula as médias de todos os registros em ordem de KM">↻ Recalcular médias</button>
+      <button class="btn-add" onclick="abrirModal()">+ Novo Abastecimento</button>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -321,6 +324,19 @@ async function apiFetch(path, opts={}) {
   });
   if (res.status === 401) { logout(); return null; }
   return res;
+}
+
+async function recalcularMedias() {
+  const btn = document.querySelector('[onclick="recalcularMedias()"]');
+  if (btn) { btn.textContent = '↻ Recalculando...'; btn.disabled = true; }
+  const res = await apiFetch('/abastecimentos/recalcular', { method: 'POST' });
+  if (res?.ok) {
+    const json = await res.json();
+    await carregar();
+    if (btn) { btn.textContent = '✓ ' + json.mensagem; btn.disabled = false; setTimeout(() => { btn.textContent = '↻ Recalcular médias'; }, 3000); }
+  } else {
+    if (btn) { btn.textContent = '↻ Recalcular médias'; btn.disabled = false; }
+  }
 }
 
 async function carregar() {

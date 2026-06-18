@@ -119,6 +119,35 @@ def listar_abastecimentos(
     }
 
 
+@router.post("/recalcular")
+def recalcular_medias(
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    """Recalcula media_consumo de todos os abastecimentos do usuário em ordem cronológica de km_atual."""
+    todos = db.query(models.Abastecimento).filter(
+        models.Abastecimento.user_id == current_user.id
+    ).order_by(models.Abastecimento.km_atual.asc()).all()
+
+    atualizados = 0
+    km_ant = None
+    for a in todos:
+        distancia = None
+        media = None
+        if km_ant is not None and a.km_atual > km_ant:
+            distancia = a.km_atual - km_ant
+            if a.tanque_cheio and a.litros and a.litros > 0:
+                media = distancia / a.litros
+        a.km_anterior = km_ant
+        a.distancia_percorrida = distancia
+        a.media_consumo = media
+        km_ant = a.km_atual
+        atualizados += 1
+
+    db.commit()
+    return {"mensagem": f"{atualizados} abastecimentos recalculados"}
+
+
 @router.delete("/{abastecimento_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_abastecimento(
         abastecimento_id: int,
