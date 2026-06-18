@@ -50,4 +50,3 @@ app.include_router(mercado_compras.router)
 # Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
-app.mount("/mercado",     StaticFiles(directory="frontend/mercado",     html=True), name="mercado")
