@@ -151,8 +151,7 @@ class AbastecimentoResponse(AbastecimentoCreate):
     distancia_percorrida: Optional[float] = None
     media_consumo: Optional[float] = None
 
-    class Config:
-        from_attributes = True # Se usar Pydantic v2 (se for v1, use orm_mode = True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =====================================================================
