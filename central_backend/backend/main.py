@@ -12,6 +12,7 @@ from backend.auth.routers import auth, perfis as perfis_router
 from backend.credenciais.routers import senhas, pessoas, csv as csv_router
 from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios
 from backend.combustivel.routers import abastecimentos
+from backend.mercado.routers import compras as mercado_compras
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -43,6 +44,10 @@ app.include_router(relatorios.router)
 # Combustível
 app.include_router(abastecimentos.router)
 
+# Mercado
+app.include_router(mercado_compras.router)
+
 # Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
+app.mount("/mercado",     StaticFiles(directory="frontend/mercado",     html=True), name="mercado")

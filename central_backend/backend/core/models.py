@@ -163,3 +163,33 @@ class Abastecimento(Base):
     media_consumo = Column(Float, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
+
+
+# =====================================================================
+# BLOCO 4: MERCADO (COMPRAS DE SUPERMERCADO)
+# =====================================================================
+
+class CompraSupermercado(Base):
+    __tablename__ = "compras_supermercado"
+
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(String, nullable=False, index=True)  # "YYYY-MM-DD"
+    loja = Column(String, nullable=True)
+    forma_pagamento = Column(String, nullable=False)  # debito | credito | vale_alimentacao
+    bandeira_vale = Column(String, nullable=True)     # ticket | alelo | caju (se vale_alimentacao)
+    valor_total = Column(Float, nullable=False, default=0.0)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    itens = relationship("ItemCompra", back_populates="compra", cascade="all, delete-orphan")
+
+
+class ItemCompra(Base):
+    __tablename__ = "itens_compra"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    valor = Column(Float, nullable=False)
+    categoria = Column(String, nullable=True)
+
+    compra_id = Column(Integer, ForeignKey("compras_supermercado.id", ondelete="CASCADE"), nullable=False)
+    compra = relationship("CompraSupermercado", back_populates="itens")

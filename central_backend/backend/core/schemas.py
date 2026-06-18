@@ -153,3 +153,35 @@ class AbastecimentoResponse(AbastecimentoCreate):
 
     class Config:
         from_attributes = True # Se usar Pydantic v2 (se for v1, use orm_mode = True)
+
+
+# =====================================================================
+# BLOCO 4: MERCADO
+# =====================================================================
+
+class ItemCompraCreate(BaseModel):
+    nome: str
+    valor: float
+    categoria: Optional[str] = None
+
+class ItemCompraResponse(ORMBase):
+    id: int
+    nome: str
+    valor: float
+    categoria: Optional[str]
+
+class CompraCreate(BaseModel):
+    data: str
+    loja: Optional[str] = None
+    forma_pagamento: str
+    bandeira_vale: Optional[str] = None
+    itens: List[ItemCompraCreate]
+
+class CompraResponse(ORMBase):
+    id: int
+    data: str
+    loja: Optional[str]
+    forma_pagamento: str
+    bandeira_vale: Optional[str]
+    valor_total: float
+    itens: List[ItemCompraResponse]

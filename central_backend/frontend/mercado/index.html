@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mercado — Almeida Inteligência</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--blue:#4A90E2;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    /* SIDEBAR */
+    .sidebar{width:220px;height:100vh;position:sticky;top:0;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;overflow-y:auto;}
+    .sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+    .sidebar .logo .name{font-size:13px;font-weight:600;} .sidebar .logo .name span{color:var(--green);}
+    .sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+    .nav-item:hover,.nav-item.active{background:rgba(61,219,130,.08);color:var(--green);}
+    .sidebar-spacer{flex:1;}
+    .user-chip{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+    .user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{background:rgba(226,75,74,.08);}
+
+    /* MAIN */
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+    .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+    /* MÊS NAV */
+    .mes-nav{display:flex;align-items:center;gap:8px;}
+    .mes-nav button{background:none;border:0.5px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--gray-l);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;transition:all .2s;}
+    .mes-nav button:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .mes-nav .mes-label{font-size:14px;font-weight:600;min-width:130px;text-align:center;}
+
+    /* KPI */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;}
+    .kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;}
+    .kpi .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+    .kpi .valor{font-size:20px;font-weight:600;}
+    .kpi .valor.green{color:var(--green);}
+    .kpi .valor.yellow{color:var(--yellow);}
+    .kpi .valor.blue{color:var(--blue);}
+    .kpi .sub{font-size:11px;color:var(--gray);margin-top:4px;}
+
+    /* SECTION */
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+    .section-title{font-size:15px;font-weight:600;}
+    .btn-add{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.85;}
+
+    /* TABLE */
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:0.5px solid var(--border);}
+    td{padding:12px 12px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);vertical-align:middle;}
+    tr.clickable{cursor:pointer;}
+    tr.clickable:hover td{background:rgba(255,255,255,.02);}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+    .badge.debito{background:rgba(74,144,226,.15);color:var(--blue);}
+    .badge.credito{background:rgba(245,166,35,.15);color:var(--yellow);}
+    .badge.vale{background:rgba(61,219,130,.15);color:var(--green);}
+    .empty{text-align:center;padding:48px 0;color:var(--gray);font-size:13px;}
+
+    /* MODAL NOVA COMPRA */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;}
+    .modal h3{font-size:17px;font-weight:600;margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus{border-color:rgba(61,219,130,.4);}
+    .field select option{background:var(--bg2);}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;}
+    .btn-cancel{flex:1;background:none;border:0.5px solid var(--border);border-radius:10px;padding:11px;color:var(--gray-l);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#fff;}
+    .btn-save{flex:2;background:var(--green);color:var(--black);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+    .btn-save:hover{opacity:.85;}
+
+    /* ITENS DA COMPRA */
+    .itens-section{margin:16px 0;}
+    .itens-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .itens-label{font-size:12px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;}
+    .btn-add-item{background:none;border:0.5px solid rgba(61,219,130,.3);border-radius:8px;padding:5px 12px;color:var(--green);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-add-item:hover{background:rgba(61,219,130,.08);}
+    .item-row{display:grid;grid-template-columns:1fr 100px 120px 32px;gap:8px;margin-bottom:8px;align-items:center;}
+    .item-row input,.item-row select{background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.10);border-radius:8px;padding:8px 10px;font-size:13px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;width:100%;}
+    .item-row input:focus,.item-row select:focus{border-color:rgba(61,219,130,.35);}
+    .item-row select option{background:var(--bg2);}
+    .btn-del-item{background:none;border:0.5px solid rgba(226,75,74,.25);border-radius:8px;padding:8px;color:var(--red);cursor:pointer;font-size:14px;line-height:1;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+    .btn-del-item:hover{background:rgba(226,75,74,.08);}
+    .total-preview{text-align:right;font-size:13px;color:var(--gray-l);margin-top:6px;}
+    .total-preview span{color:var(--green);font-weight:600;}
+
+    /* MODAL DETALHE */
+    .modal-det{max-width:500px;}
+    .det-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+    .det-title{font-size:17px;font-weight:600;}
+    .det-meta{font-size:12px;color:var(--gray);margin-top:4px;}
+    .btn-close{background:none;border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--gray-l);cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;}
+    .itens-table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+    .itens-table th{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px;text-align:left;border-bottom:0.5px solid var(--border);}
+    .itens-table td{padding:10px 10px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);}
+    .itens-table tr:last-child td{border-bottom:none;}
+    .det-total{display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;border-top:0.5px solid var(--border);}
+    .det-total .lbl{font-size:12px;color:var(--gray);}
+    .det-total .val{font-size:18px;font-weight:600;color:var(--green);}
+    .btn-del-compra{width:100%;margin-top:16px;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:10px;color:var(--red);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-del-compra:hover{background:rgba(226,75,74,.08);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:300;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{border-color:rgba(61,219,130,.4);color:var(--green);}
+    .toast.err{border-color:rgba(226,75,74,.4);color:var(--red);}
+
+    @media(max-width:640px){
+      .sidebar{display:none;}
+      .main{padding:16px;}
+      .kpi-grid{grid-template-columns:1fr 1fr;}
+      .item-row{grid-template-columns:1fr 80px 28px;grid-template-rows:auto auto;}
+      .item-row .cat-select{grid-column:1/-1;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="26" height="26">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Mercado</div>
+    </div>
+  </div>
+
+  <a href="/mercado/" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    Compras
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="user-chip">
+    <div id="user-nome">Usuário</div>
+    <div class="email" id="user-email">—</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <div>
+      <h1>Mercado</h1>
+      <p>Controle de compras de supermercado</p>
+    </div>
+    <div class="header-actions">
+      <div class="mes-nav">
+        <button onclick="mudarMes(-1)">&#8592;</button>
+        <span class="mes-label" id="mes-label">—</span>
+        <button onclick="mudarMes(1)">&#8594;</button>
+      </div>
+      <button class="btn-add" onclick="abrirModalCompra()">+ Nova Compra</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">Total do Mês</div>
+      <div class="valor green" id="kpi-total">R$ 0,00</div>
+      <div class="sub" id="kpi-qtd">0 compras</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Débito</div>
+      <div class="valor blue" id="kpi-debito">R$ 0,00</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Crédito</div>
+      <div class="valor yellow" id="kpi-credito">R$ 0,00</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Vale Alimentação</div>
+      <div class="valor green" id="kpi-vale">R$ 0,00</div>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="section-header">
+    <span class="section-title">Compras do Mês</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Loja</th>
+          <th>Pagamento</th>
+          <th>Total</th>
+          <th>Itens</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-compras">
+        <tr><td colspan="5" class="empty">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL: NOVA COMPRA -->
+<div class="modal-backdrop" id="modal-compra">
+  <div class="modal">
+    <h3>Nova Compra</h3>
+
+    <div class="row2">
+      <div class="field">
+        <label>Data</label>
+        <input type="date" id="f-data">
+      </div>
+      <div class="field">
+        <label>Loja (opcional)</label>
+        <input type="text" id="f-loja" placeholder="Ex: Assaí, Carrefour">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Forma de Pagamento</label>
+        <select id="f-pagamento" onchange="toggleVale()">
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+          <option value="vale_alimentacao">Vale Alimentação</option>
+        </select>
+      </div>
+      <div class="field" id="campo-vale" style="display:none">
+        <label>Bandeira do Vale</label>
+        <select id="f-bandeira">
+          <option value="ticket">Ticket</option>
+          <option value="alelo">Alelo</option>
+          <option value="caju">Caju</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Itens -->
+    <div class="itens-section">
+      <div class="itens-header">
+        <span class="itens-label">Itens da Compra</span>
+        <button class="btn-add-item" onclick="addItem()">+ Adicionar Item</button>
+      </div>
+      <div id="itens-lista"></div>
+      <div class="total-preview">Total: <span id="total-preview">R$ 0,00</span></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalCompra()">Cancelar</button>
+      <button class="btn-save" onclick="salvarCompra()">Salvar Compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALHE DA COMPRA -->
+<div class="modal-backdrop" id="modal-detalhe">
+  <div class="modal modal-det">
+    <div class="det-header">
+      <div>
+        <div class="det-title" id="det-titulo">Compra</div>
+        <div class="det-meta" id="det-meta"></div>
+      </div>
+      <button class="btn-close" onclick="fecharDetalhe()">✕</button>
+    </div>
+    <table class="itens-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Categoria</th>
+          <th style="text-align:right">Valor</th>
+        </tr>
+      </thead>
+      <tbody id="det-itens"></tbody>
+    </table>
+    <div class="det-total">
+      <span class="lbl">Total da Compra</span>
+      <span class="val" id="det-total">R$ 0,00</span>
+    </div>
+    <button class="btn-del-compra" id="btn-del-compra" onclick="excluirCompra()">Excluir esta compra</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/central'
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+const CATS = ['Hortifrúti','Carnes','Laticínios','Padaria','Bebidas','Limpeza','Higiene','Congelados','Grãos e Cereais','Outros']
+
+let mesAtual = new Date().getMonth() + 1
+let anoAtual = new Date().getFullYear()
+let compraDetalheId = null
+
+function token() { return localStorage.getItem('central_token') }
+function headers() { return { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' } }
+
+function logout() {
+  localStorage.removeItem('central_token')
+  window.location.href = 'https://almeidainteligencia.com.br'
+}
+
+function fmt(v) {
+  return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})
+}
+
+function fmtData(s) {
+  if (!s) return '—'
+  const [y,m,d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
+
+function badgePagamento(forma, bandeira) {
+  if (forma === 'debito') return '<span class="badge debito">Débito</span>'
+  if (forma === 'credito') return '<span class="badge credito">Crédito</span>'
+  const b = bandeira ? ` · ${bandeira.charAt(0).toUpperCase()+bandeira.slice(1)}` : ''
+  return `<span class="badge vale">Vale${b}</span>`
+}
+
+function toast(msg, tipo = 'ok') {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.className = `toast ${tipo} show`
+  setTimeout(() => el.classList.remove('show'), 3000)
+}
+
+function atualizarMesLabel() {
+  document.getElementById('mes-label').textContent = `${MESES[mesAtual-1]} ${anoAtual}`
+}
+
+function mudarMes(d) {
+  mesAtual += d
+  if (mesAtual > 12) { mesAtual = 1; anoAtual++ }
+  if (mesAtual < 1)  { mesAtual = 12; anoAtual-- }
+  atualizarMesLabel()
+  carregarCompras()
+}
+
+async function carregarCompras() {
+  const r = await fetch(`${API}/mercado/compras?mes=${mesAtual}&ano=${anoAtual}`, { headers: headers() })
+  if (r.status === 401) { logout(); return }
+  const data = await r.json()
+
+  const res = data.resumo
+  document.getElementById('kpi-total').textContent   = fmt(res.total_mes)
+  document.getElementById('kpi-qtd').textContent     = `${res.qtd_compras} compra${res.qtd_compras !== 1 ? 's' : ''}`
+  document.getElementById('kpi-debito').textContent  = fmt(res.total_debito)
+  document.getElementById('kpi-credito').textContent = fmt(res.total_credito)
+  document.getElementById('kpi-vale').textContent    = fmt(res.total_vale)
+
+  const tbody = document.getElementById('tabela-compras')
+  if (!data.compras.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhuma compra registrada neste mês</td></tr>'
+    return
+  }
+  tbody.innerHTML = data.compras.map(c => `
+    <tr class="clickable" onclick="abrirDetalhe(${JSON.stringify(c).replace(/"/g,'&quot;')})">
+      <td>${fmtData(c.data)}</td>
+      <td>${c.loja || '<span style="color:var(--gray)">—</span>'}</td>
+      <td>${badgePagamento(c.forma_pagamento, c.bandeira_vale)}</td>
+      <td style="font-weight:600;color:var(--green)">${fmt(c.valor_total)}</td>
+      <td style="color:var(--gray)">${c.itens.length} iten${c.itens.length !== 1 ? 's' : ''}</td>
+    </tr>
+  `).join('')
+}
+
+// ─── MODAL NOVA COMPRA ───────────────────────────────────────────────
+
+function abrirModalCompra() {
+  document.getElementById('f-data').value = new Date().toISOString().slice(0,10)
+  document.getElementById('f-loja').value = ''
+  document.getElementById('f-pagamento').value = 'debito'
+  document.getElementById('f-bandeira').value = 'ticket'
+  document.getElementById('campo-vale').style.display = 'none'
+  document.getElementById('itens-lista').innerHTML = ''
+  atualizarTotalPreview()
+  addItem()
+  document.getElementById('modal-compra').classList.add('show')
+}
+
+function fecharModalCompra() {
+  document.getElementById('modal-compra').classList.remove('show')
+}
+
+function toggleVale() {
+  const v = document.getElementById('f-pagamento').value
+  document.getElementById('campo-vale').style.display = v === 'vale_alimentacao' ? '' : 'none'
+}
+
+function addItem() {
+  const lista = document.getElementById('itens-lista')
+  const idx = Date.now()
+  const div = document.createElement('div')
+  div.className = 'item-row'
+  div.id = `item-${idx}`
+  div.innerHTML = `
+    <input type="text" placeholder="Nome do item" oninput="atualizarTotalPreview()">
+    <input type="number" placeholder="0,00" step="0.01" min="0" oninput="atualizarTotalPreview()" style="text-align:right">
+    <select class="cat-select">
+      <option value="">Categoria</option>
+      ${CATS.map(c => `<option value="${c}">${c}</option>`).join('')}
+    </select>
+    <button class="btn-del-item" onclick="removerItem('item-${idx}')">✕</button>
+  `
+  lista.appendChild(div)
+}
+
+function removerItem(id) {
+  const el = document.getElementById(id)
+  if (el) el.remove()
+  atualizarTotalPreview()
+}
+
+function atualizarTotalPreview() {
+  const rows = document.querySelectorAll('#itens-lista .item-row')
+  let total = 0
+  rows.forEach(r => {
+    const v = parseFloat(r.querySelectorAll('input')[1].value) || 0
+    total += v
+  })
+  document.getElementById('total-preview').textContent = fmt(total)
+}
+
+function coletarItens() {
+  const rows = document.querySelectorAll('#itens-lista .item-row')
+  const itens = []
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input')
+    const nome = inputs[0].value.trim()
+    const valor = parseFloat(inputs[1].value) || 0
+    const cat = r.querySelector('select').value || null
+    if (nome && valor > 0) itens.push({ nome, valor, categoria: cat })
+  })
+  return itens
+}
+
+async function salvarCompra() {
+  const itens = coletarItens()
+  if (!itens.length) { toast('Adicione ao menos um item com nome e valor', 'err'); return }
+
+  const forma = document.getElementById('f-pagamento').value
+  const payload = {
+    data: document.getElementById('f-data').value,
+    loja: document.getElementById('f-loja').value.trim() || null,
+    forma_pagamento: forma,
+    bandeira_vale: forma === 'vale_alimentacao' ? document.getElementById('f-bandeira').value : null,
+    itens
+  }
+
+  const btn = document.querySelector('#modal-compra .btn-save')
+  btn.disabled = true; btn.textContent = 'Salvando...'
+
+  const r = await fetch(`${API}/mercado/compras`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(payload)
+  })
+
+  btn.disabled = false; btn.textContent = 'Salvar Compra'
+
+  if (r.ok) {
+    fecharModalCompra()
+    toast('Compra registrada!')
+    carregarCompras()
+  } else {
+    const e = await r.json().catch(() => ({}))
+    toast(e.detail || 'Erro ao salvar', 'err')
+  }
+}
+
+// ─── MODAL DETALHE ───────────────────────────────────────────────────
+
+function abrirDetalhe(compra) {
+  compraDetalheId = compra.id
+  const pagLabel = {debito:'Débito', credito:'Crédito', vale_alimentacao:'Vale Alimentação'}
+  const bandeira = compra.bandeira_vale ? ` · ${compra.bandeira_vale.charAt(0).toUpperCase()+compra.bandeira_vale.slice(1)}` : ''
+  document.getElementById('det-titulo').textContent = compra.loja || 'Compra'
+  document.getElementById('det-meta').textContent = `${fmtData(compra.data)} · ${(pagLabel[compra.forma_pagamento]||compra.forma_pagamento)+bandeira}`
+
+  const tbody = document.getElementById('det-itens')
+  tbody.innerHTML = compra.itens.map(i => `
+    <tr>
+      <td>${i.nome}</td>
+      <td style="color:var(--gray)">${i.categoria || '—'}</td>
+      <td style="text-align:right;font-weight:500">${fmt(i.valor)}</td>
+    </tr>
+  `).join('')
+
+  document.getElementById('det-total').textContent = fmt(compra.valor_total)
+  document.getElementById('modal-detalhe').classList.add('show')
+}
+
+function fecharDetalhe() {
+  document.getElementById('modal-detalhe').classList.remove('show')
+  compraDetalheId = null
+}
+
+async function excluirCompra() {
+  if (!compraDetalheId) return
+  if (!confirm('Excluir esta compra e todos os seus itens?')) return
+
+  const r = await fetch(`${API}/mercado/compras/${compraDetalheId}`, {
+    method: 'DELETE',
+    headers: headers()
+  })
+
+  if (r.ok || r.status === 204) {
+    fecharDetalhe()
+    toast('Compra excluída')
+    carregarCompras()
+  } else {
+    toast('Erro ao excluir', 'err')
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────
+
+async function init() {
+  if (!token()) { window.location.href = 'https://almeidainteligencia.com.br'; return }
+
+  try {
+    const r = await fetch(`${API}/auth/me`, { headers: headers() })
+    if (r.ok) {
+      const u = await r.json()
+      document.getElementById('user-email').textContent = u.email
+      document.getElementById('user-nome').textContent = u.email.split('@')[0]
+    }
+  } catch {}
+
+  atualizarMesLabel()
+  carregarCompras()
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    fecharModalCompra()
+    fecharDetalhe()
+  }
+})
+
+init()
+</script>
+</body>
+</html>
