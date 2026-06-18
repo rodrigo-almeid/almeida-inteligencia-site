@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuração de E-mails — Almeida Inteligência</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green-primary: #3DDB82;
+      --green-dark: #18A558;
+      --black-tech: #0A0F0A;
+      --black-green: #1A241C;
+      --gray-moss: #5C6B5E;
+      --gray-light: #A8B8AA;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --border: 0.5px solid #2A3A2C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--black-tech); color: #fff; display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+    /* ── SIDEBAR ── */
+    aside { width: 240px; background: var(--black-green); border-right: var(--border); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
+    .sidebar-brand { padding: 20px; border-bottom: var(--border); display: flex; align-items: center; gap: 12px; }
+    .brand-text .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
+    .brand-text .name span { color: var(--green-primary); }
+    .brand-text .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 3px; }
+    .sidebar-module { padding: 12px 20px; border-bottom: var(--border); font-size: 11px; color: var(--green-primary); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+    nav { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+    nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius); font-size: 13px; color: var(--gray-light); text-decoration: none; transition: background 0.15s, color 0.15s; }
+    nav a:hover { background: rgba(61,219,130,0.08); color: #fff; }
+    nav a.active { background: rgba(61,219,130,0.12); color: var(--green-primary); }
+    .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
+    .sidebar-spacer { flex: 1; }
+    .user-chip { margin: 0 12px 6px; background: rgba(255,255,255,0.04); border: var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 11px; }
+    .user-chip-label { color: var(--gray-moss); margin-bottom: 3px; }
+    .user-chip-email { color: var(--gray-light); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-logout { margin: 0 12px 12px; width: calc(100% - 24px); background: none; border: 0.5px solid rgba(226,75,74,0.3); border-radius: var(--radius); padding: 9px; color: #E24B4A; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s; }
+    .btn-logout:hover { background: rgba(226,75,74,0.08); }
+
+    /* ── MAIN ── */
+    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header { background: var(--black-green); border-bottom: var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    header h1 { font-size: 15px; font-weight: 600; }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; border: none; cursor: pointer; transition: background 0.15s; }
+    .btn-primary { background: var(--green-dark); color: #fff; }
+    .btn-primary:hover { background: var(--green-primary); color: var(--black-tech); }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── CARDS DE CONTA ── */
+    .section-title { font-size: 13px; font-weight: 600; color: var(--gray-light); margin-bottom: 16px; }
+    .contas-grid { display: flex; flex-direction: column; gap: 10px; }
+    .conta-card { background: var(--black-green); border: var(--border); border-radius: var(--radius-lg); padding: 20px 24px; display: flex; align-items: center; gap: 16px; }
+    .conta-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(61,219,130,0.1); border: var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .conta-info { flex: 1; min-width: 0; }
+    .conta-info strong { font-size: 14px; font-weight: 500; color: #fff; display: block; }
+    .conta-info .conta-email { font-size: 12px; color: var(--gray-moss); margin-top: 2px; }
+    .conta-info .conta-meta { font-size: 11px; color: var(--gray-moss); margin-top: 4px; }
+    .conta-badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 500; }
+    .badge-ativo { background: rgba(61,219,130,0.12); color: var(--green-primary); border: 0.5px solid rgba(61,219,130,0.2); }
+    .badge-inativo { background: rgba(255,255,255,0.06); color: var(--gray-moss); border: 0.5px solid #2A3A2C; }
+    .conta-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-icon { background: none; border: 0.5px solid #2A3A2C; border-radius: 8px; color: var(--gray-light); padding: 7px 12px; font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+    .btn-icon:hover { border-color: var(--green-primary); color: var(--green-primary); }
+    .btn-icon.danger:hover { border-color: #E24B4A; color: #E24B4A; }
+    .empty-state { text-align: center; padding: 64px 24px; color: var(--gray-moss); font-size: 13px; background: var(--black-green); border: var(--border); border-radius: var(--radius-lg); }
+    .empty-state p { margin-top: 8px; font-size: 12px; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 50; align-items: center; justify-content: center; padding: 16px; }
+    .modal { background: var(--black-green); border: var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 440px; }
+    .modal-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: var(--border); }
+    .modal-header h3 { font-size: 15px; font-weight: 600; flex: 1; }
+    .modal-close { background: none; border: none; color: var(--gray-moss); font-size: 18px; cursor: pointer; line-height: 1; padding: 2px; transition: color 0.15s; }
+    .modal-close:hover { color: #fff; }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 16px 24px; border-top: var(--border); display: flex; gap: 10px; }
+    .modal-footer .btn { flex: 1; justify-content: center; }
+    .form-field { margin-bottom: 14px; }
+    .form-field label { display: block; font-size: 11px; color: var(--gray-light); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .form-field input, .form-field select { width: 100%; background: var(--black-tech); border: 0.5px solid #2A3A2C; border-radius: var(--radius); padding: 9px 12px; font-size: 13px; color: #fff; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--green-primary); }
+    .form-field input::placeholder { color: var(--gray-moss); }
+    .form-field select option { background: var(--black-green); }
+    .form-grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+    .form-hint { font-size: 11px; color: var(--gray-moss); margin-top: 5px; line-height: 1.5; }
+    .form-hint a { color: var(--green-primary); }
+    .form-erro { color: #E24B4A; font-size: 12px; margin-bottom: 10px; display: none; }
+    .pass-wrap { position: relative; }
+    .pass-wrap input { padding-right: 40px; }
+    .pass-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--gray-moss); cursor: pointer; font-size: 13px; }
+    .pass-toggle:hover { color: var(--gray-light); }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: none; }
+    #toast-msg { background: var(--black-green); border: var(--border); border-radius: var(--radius); padding: 12px 18px; font-size: 13px; color: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <aside>
+    <div class="sidebar-brand">
+      <svg viewBox="0 0 56 56" width="32" height="32">
+        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+        <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+        <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
+        <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+        <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
+      </svg>
+      <div class="brand-text">
+        <div class="name">Almeida <span>Inteligência</span></div>
+        <div class="tag">Processos · IA · Resultados</div>
+      </div>
+    </div>
+    <div class="sidebar-module">Classificador de E-mails</div>
+    <nav>
+      <a href="/email/dashboard.html">
+        <span class="nav-icon">✉</span> Caixa de E-mails
+      </a>
+      <a href="/email/contas.html" class="active">
+        <span class="nav-icon">@</span> Configuração de E-mails
+      </a>
+      <a href="/email/dashboard.html#treinar" id="nav-treinar">
+        <span class="nav-icon">◈</span> Treinar IA
+      </a>
+      <a href="/email/dashboard.html#exportar" id="nav-exportar">
+        <span class="nav-icon">↓</span> Exportar Dataset
+      </a>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <a href="https://almeidainteligencia.com.br/dashboard/" class="nav-item" id="portal-link" style="display:none">
+      <span class="nav-icon">🏠</span> Portal
+    </a>
+    <div class="user-chip">
+      <div class="user-chip-label">Conta</div>
+      <div class="user-chip-email" id="sidebar-usuario-email">—</div>
+    </div>
+    <button class="btn-logout" id="btn-logout">Sair</button>
+  </aside>
+
+  <main>
+    <header>
+      <h1>Configuração de E-mails</h1>
+      <button class="btn btn-primary" id="btn-nova-conta">+ Nova Conta</button>
+    </header>
+    <div class="content">
+      <div id="lista-contas" class="contas-grid">
+        <div class="empty-state">Carregando…</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL FORM CONTA -->
+  <div id="modal-form-conta" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="form-conta-titulo">Nova Conta</h3>
+        <button class="modal-close" id="btn-fechar-form">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label>Nome / Apelido</label>
+          <input id="fc-nome" type="text" placeholder="Ex: Gmail RH, Outlook Benefícios" />
+        </div>
+        <div class="form-field">
+          <label>Provedor</label>
+          <select id="fc-provider">
+            <option value="gmail">Gmail</option>
+            <option value="outlook">Outlook / Office 365</option>
+            <option value="other">Outro</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>E-mail</label>
+          <input id="fc-email" type="email" placeholder="seu@email.com" />
+        </div>
+        <div class="form-field">
+          <label>App Password / Senha</label>
+          <div class="pass-wrap">
+            <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx" />
+            <button type="button" class="pass-toggle" id="btn-toggle-senha">
+              <span id="fc-eye">👁</span>
+            </button>
+          </div>
+          <p class="form-hint">Gmail: use uma <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a>. Outlook: ative IMAP nas configurações da conta.</p>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label>Servidor IMAP</label>
+            <input id="fc-server" type="text" value="imap.gmail.com" />
+          </div>
+          <div class="form-field">
+            <label>Porta</label>
+            <input id="fc-port" type="number" value="993" />
+          </div>
+        </div>
+        <div class="form-erro" id="fc-erro"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-cancelar-form" style="background:rgba(255,255,255,0.05);color:var(--gray-light);border:0.5px solid #2A3A2C;">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-conta">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"><div id="toast-msg"></div></div>
+
+  <script>
+    const API = '/email/api';
+    const AUTH = '/email/auth';
+    let contaEditandoId = null;
+    let todasContas = [];
+
+    const IMAP_SERVIDORES = {
+      gmail:   { server: 'imap.gmail.com',       port: 993 },
+      outlook: { server: 'outlook.office365.com', port: 993 },
+      other:   { server: '',                      port: 993 },
+    };
+
+    function token() { return localStorage.getItem('email_token'); }
+    function hdrs() { return { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' }; }
+    function hdrsPlain() { return { 'Authorization': `Bearer ${token()}` }; }
+
+    let _toastTimer = null;
+    function toast(msg, tipo = 'ok') {
+      const el = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-msg');
+      const cor = tipo === 'ok' ? 'var(--green-primary)' : tipo === 'erro' ? '#E24B4A' : '#E6B432';
+      const icone = tipo === 'ok' ? '✓' : tipo === 'erro' ? '✕' : 'ℹ';
+      msgEl.innerHTML = `<span style="color:${cor}">${icone}</span> ${msg}`;
+      el.style.display = 'block';
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.style.display = 'none', 4000);
+    }
+
+    function abrirForm(conta = null) {
+      contaEditandoId = conta ? conta.id : null;
+      document.getElementById('form-conta-titulo').textContent = conta ? 'Editar Conta' : 'Nova Conta';
+      document.getElementById('fc-nome').value     = conta ? conta.nome : '';
+      document.getElementById('fc-provider').value = conta ? conta.provider : 'gmail';
+      document.getElementById('fc-email').value    = conta ? conta.email : '';
+      document.getElementById('fc-password').value = '';
+      document.getElementById('fc-server').value   = conta ? conta.imap_server : 'imap.gmail.com';
+      document.getElementById('fc-port').value     = conta ? conta.imap_port : 993;
+      document.getElementById('fc-erro').style.display = 'none';
+      document.getElementById('modal-form-conta').classList.remove('hidden');
+    }
+    function fecharForm() { document.getElementById('modal-form-conta').classList.add('hidden'); contaEditandoId = null; }
+
+    function preencherServidor() {
+      const cfg = IMAP_SERVIDORES[document.getElementById('fc-provider').value];
+      if (cfg && cfg.server) {
+        document.getElementById('fc-server').value = cfg.server;
+        document.getElementById('fc-port').value   = cfg.port;
+      }
+    }
+
+    function toggleSenha() {
+      const inp = document.getElementById('fc-password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      document.getElementById('fc-eye').textContent = inp.type === 'password' ? '👁' : '🙈';
+    }
+
+    async function salvarConta() {
+      const nome     = document.getElementById('fc-nome').value.trim();
+      const provider = document.getElementById('fc-provider').value;
+      const email    = document.getElementById('fc-email').value.trim();
+      const password = document.getElementById('fc-password').value.trim();
+      const server   = document.getElementById('fc-server').value.trim();
+      const port     = parseInt(document.getElementById('fc-port').value);
+      const erroEl   = document.getElementById('fc-erro');
+
+      if (!nome || !email || !server || !port) { erroEl.textContent = 'Preencha todos os campos.'; erroEl.style.display = 'block'; return; }
+      if (!contaEditandoId && !password) { erroEl.textContent = 'Informe a senha / App Password.'; erroEl.style.display = 'block'; return; }
+
+      const body = { nome, provider, email, imap_server: server, imap_port: port, password: password || '___unchanged___' };
+      const url    = contaEditandoId ? `${API}/contas/${contaEditandoId}` : `${API}/contas`;
+      const method = contaEditandoId ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, { method, headers: hdrs(), body: JSON.stringify(body) });
+        if (!res.ok) { const e = await res.json(); erroEl.textContent = e.detail || 'Erro.'; erroEl.style.display = 'block'; return; }
+        fecharForm();
+        await carregarContas();
+        toast(contaEditandoId ? 'Conta atualizada!' : 'Conta adicionada!', 'ok');
+      } catch (_) { erroEl.textContent = 'Erro de conexão.'; erroEl.style.display = 'block'; }
+    }
+
+    async function testarConta(id, btn) {
+      const orig = btn.textContent;
+      btn.textContent = '↻'; btn.disabled = true;
+      try {
+        const res  = await fetch(`${API}/contas/${id}/testar`, { method: 'POST', headers: hdrsPlain() });
+        const data = await res.json();
+        toast(data.msg, data.ok ? 'ok' : 'erro');
+        btn.textContent = data.ok ? '✓' : '✕';
+        btn.style.color = data.ok ? 'var(--green-primary)' : '#E24B4A';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 3000);
+      } catch (_) { toast('Erro ao testar conexão.', 'erro'); btn.textContent = orig; btn.disabled = false; }
+    }
+
+    async function toggleAtivo(id) {
+      try {
+        await fetch(`${API}/contas/${id}/ativo`, { method: 'PATCH', headers: hdrsPlain() });
+        await carregarContas();
+      } catch (_) {}
+    }
+
+    async function removerConta(id) {
+      if (!confirm('Remover esta conta? Os e-mails já importados não serão apagados.')) return;
+      try {
+        await fetch(`${API}/contas/${id}`, { method: 'DELETE', headers: hdrsPlain() });
+        await carregarContas();
+        toast('Conta removida.', 'ok');
+      } catch (_) {}
+    }
+
+    function renderContas() {
+      const el = document.getElementById('lista-contas');
+      if (!todasContas.length) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:32px;margin-bottom:12px">@</div>
+            <strong style="color:var(--gray-light)">Nenhuma conta configurada</strong>
+            <p>Adicione uma conta IMAP para começar a extrair e-mails.</p>
+          </div>`;
+        return;
+      }
+      el.innerHTML = todasContas.map(c => `
+        <div class="conta-card">
+          <div class="conta-icon">${c.provider === 'gmail' ? '📧' : c.provider === 'outlook' ? '📨' : '@'}</div>
+          <div class="conta-info">
+            <strong>${c.nome}</strong>
+            <div class="conta-email">${c.email}</div>
+            <div class="conta-meta">
+              ${c.imap_server}:${c.imap_port} &nbsp;·&nbsp;
+              <span class="conta-badge ${c.ativo ? 'badge-ativo' : 'badge-inativo'}">${c.ativo ? 'Ativo' : 'Inativo'}</span>
+            </div>
+          </div>
+          <div class="conta-actions">
+            <button class="btn-icon" data-action="testar" data-id="${c.id}" title="Testar conexão">⚡ Testar</button>
+            <button class="btn-icon" data-action="toggle" data-id="${c.id}" title="${c.ativo ? 'Desativar' : 'Ativar'}">${c.ativo ? 'Desativar' : 'Ativar'}</button>
+            <button class="btn-icon" data-action="editar" data-id="${c.id}" title="Editar">✎ Editar</button>
+            <button class="btn-icon danger" data-action="remover" data-id="${c.id}" title="Remover">✕</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function carregarContas() {
+      try {
+        const res = await fetch(`${API}/contas`, { headers: hdrsPlain() });
+        if (!res.ok) return;
+        todasContas = await res.json();
+        renderContas();
+      } catch (_) {}
+    }
+
+    (async () => {
+      const t = token();
+      if (!t) { location.href = '/email/'; return; }
+      try {
+        const res = await fetch(`${AUTH}/me`, { headers: hdrsPlain() });
+        if (!res.ok) { location.href = '/email/'; return; }
+        const u = await res.json();
+        document.getElementById('sidebar-usuario-email').textContent = u.email || u.nome;
+        try {
+          const at = localStorage.getItem('admin_token');
+          if (at) {
+            const p = JSON.parse(atob(at.split('.')[1]));
+            if (p.perfil === 'admin' || (p.sistemas || []).length > 1)
+              document.getElementById('portal-link').style.display = '';
+          }
+        } catch (_) {}
+      } catch (_) { location.href = '/email/'; return; }
+
+      await carregarContas();
+
+      document.getElementById('btn-nova-conta').addEventListener('click', () => abrirForm());
+      document.getElementById('btn-fechar-form').addEventListener('click', fecharForm);
+      document.getElementById('btn-cancelar-form').addEventListener('click', fecharForm);
+      document.getElementById('btn-salvar-conta').addEventListener('click', salvarConta);
+      document.getElementById('btn-toggle-senha').addEventListener('click', toggleSenha);
+      document.getElementById('fc-provider').addEventListener('change', preencherServidor);
+      document.getElementById('btn-logout').addEventListener('click', () => {
+        localStorage.removeItem('email_token'); localStorage.removeItem('email_nome'); location.href = '/email/';
+      });
+
+      document.getElementById('lista-contas').addEventListener('click', e => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.id);
+        if (btn.dataset.action === 'testar')  testarConta(id, btn);
+        if (btn.dataset.action === 'toggle')  toggleAtivo(id);
+        if (btn.dataset.action === 'editar')  abrirForm(todasContas.find(c => c.id === id));
+        if (btn.dataset.action === 'remover') removerConta(id);
+      });
+
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharForm(); });
+    })();
+  </script>
+</body>
+</html>

@@ -4,19 +4,12 @@ let totalPaginas = 1;
 let emailDetalheId = null;
 let todasSubcategorias = [];
 let todasContas = [];
-let contaEditandoId = null;
 
 const SUBCATS_POR_CAT = {
   "VT": ["Compra de VT – Admissão","Compra de VT – Extra","Vínculo de carga ao cartão",
          "Gestão de saldo","2ª via de cartão VT","Comunicados da operadora VT","Emails gerenciais – VT"],
   "VR": ["Compra de VR","2ª via de cartão VR"],
   "Outros": ["Recebimento de boleto","Recebimento de NF","Não classificado"],
-};
-
-const IMAP_SERVIDORES = {
-  gmail:   { server: "imap.gmail.com",           port: 993 },
-  outlook: { server: "outlook.office365.com",     port: 993 },
-  other:   { server: "",                          port: 993 },
 };
 
 // ── Auth ───────────────────────────────────────────────────────────────────
@@ -278,148 +271,18 @@ async function executarTreinamento() {
   finally { btn.disabled=false; btn.innerHTML='◈ Iniciar Treinamento'; }
 }
 
-// ── Contas IMAP ────────────────────────────────────────────────────────────
+// ── Contas (apenas filtro da tabela) ──────────────────────────────────────
 async function carregarContas() {
   try {
     const res = await fetch(`${API}/contas`, { headers: headers() });
     if (!res.ok) return;
     todasContas = await res.json();
-
-    // Atualiza aviso sem conta
-    const aviso = document.getElementById('aviso-sem-conta');
-    todasContas.filter(c=>c.ativo).length === 0 ? aviso.classList.add('show') : aviso.classList.remove('show');
-
-    // Atualiza filtro de contas
     const sel = document.getElementById('filtro-conta');
     sel.innerHTML = '<option value="">Todas as contas</option>';
     todasContas.forEach(c => {
-      const o=document.createElement('option'); o.value=c.id; o.textContent=c.nome; sel.appendChild(o);
+      const o = document.createElement('option'); o.value = c.id; o.textContent = c.nome; sel.appendChild(o);
     });
   } catch (_) {}
-}
-
-function abrirModalContas() {
-  renderizarListaContas();
-  document.getElementById('modal-contas').classList.remove('hidden');
-}
-function fecharModalContas() { document.getElementById('modal-contas').classList.add('hidden'); }
-
-function renderizarListaContas() {
-  const el = document.getElementById('lista-contas');
-  if (!todasContas.length) {
-    el.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Nenhuma conta cadastrada.</p>';
-    return;
-  }
-  el.innerHTML = todasContas.map(c => `
-    <div class="conta-card">
-      <div class="conta-info">
-        <strong>${c.nome}</strong>
-        <small>${c.email} · ${c.imap_server}:${c.imap_port} ${c.ativo ? '' : '· <span style="color:var(--gray-moss)">inativo</span>'}</small>
-      </div>
-      <div class="conta-actions">
-        <button class="btn-icon" data-action="testar" data-id="${c.id}" title="Testar">⚡</button>
-        <button class="btn-icon" data-action="toggle" data-id="${c.id}" title="${c.ativo?'Desativar':'Ativar'}" style="color:${c.ativo?'var(--green-primary)':'var(--gray-moss)'}">●</button>
-        <button class="btn-icon" data-action="editar" data-id="${c.id}" title="Editar">✎</button>
-        <button class="btn-icon danger" data-action="remover" data-id="${c.id}" title="Remover">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-function abrirFormConta(conta = null) {
-  contaEditandoId = conta ? conta.id : null;
-  document.getElementById('form-conta-titulo').textContent = conta ? 'Editar Conta IMAP' : 'Nova Conta IMAP';
-  document.getElementById('fc-nome').value     = conta ? conta.nome : '';
-  document.getElementById('fc-provider').value = conta ? conta.provider : 'gmail';
-  document.getElementById('fc-email').value    = conta ? conta.email : '';
-  document.getElementById('fc-password').value = '';
-  document.getElementById('fc-server').value   = conta ? conta.imap_server : 'imap.gmail.com';
-  document.getElementById('fc-port').value     = conta ? conta.imap_port : 993;
-  document.getElementById('fc-erro').classList.add('hidden');
-  document.getElementById('modal-form-conta').classList.remove('hidden');
-}
-function fecharFormConta() { document.getElementById('modal-form-conta').classList.add('hidden'); contaEditandoId=null; }
-
-function preencherServidorPadrao() {
-  const prov = document.getElementById('fc-provider').value;
-  const cfg = IMAP_SERVIDORES[prov];
-  if (cfg && cfg.server) {
-    document.getElementById('fc-server').value = cfg.server;
-    document.getElementById('fc-port').value   = cfg.port;
-  }
-}
-function toggleSenhaForm() {
-  const inp = document.getElementById('fc-password');
-  const ico = document.getElementById('fc-eye');
-  inp.type = inp.type==='password' ? 'text' : 'password';
-  ico.className = inp.type==='password' ? 'fa-solid fa-eye text-sm' : 'fa-solid fa-eye-slash text-sm';
-}
-
-async function salvarConta() {
-  const nome     = document.getElementById('fc-nome').value.trim();
-  const provider = document.getElementById('fc-provider').value;
-  const email    = document.getElementById('fc-email').value.trim();
-  const password = document.getElementById('fc-password').value.trim();
-  const server   = document.getElementById('fc-server').value.trim();
-  const port     = parseInt(document.getElementById('fc-port').value);
-  const erroEl   = document.getElementById('fc-erro');
-
-  if (!nome || !email || !server || !port) { erroEl.textContent='Preencha todos os campos.'; erroEl.classList.remove('hidden'); return; }
-  if (!contaEditandoId && !password) { erroEl.textContent='Informe a senha/App Password.'; erroEl.classList.remove('hidden'); return; }
-
-  const body = { nome, provider, email, imap_server:server, imap_port:port, password: password || '___unchanged___' };
-  const url  = contaEditandoId ? `${API}/contas/${contaEditandoId}` : `${API}/contas`;
-  const method = contaEditandoId ? 'PUT' : 'POST';
-
-  try {
-    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-    if (!res.ok) { const e=await res.json(); erroEl.textContent=e.detail||'Erro.'; erroEl.classList.remove('hidden'); return; }
-    fecharFormConta();
-    await carregarContas();
-    renderizarListaContas();
-    toast(contaEditandoId ? 'Conta atualizada!' : 'Conta adicionada!', 'ok');
-  } catch (_) { erroEl.textContent='Erro de conexão.'; erroEl.classList.remove('hidden'); }
-}
-
-function editarConta(id) {
-  const conta = todasContas.find(c=>c.id===id);
-  if (conta) abrirFormConta(conta);
-}
-
-async function toggleAtivoConta(id) {
-  try {
-    const res = await fetch(`${API}/contas/${id}/ativo`, { method:'PATCH', headers: headers() });
-    if (!res.ok) return;
-    await carregarContas();
-    renderizarListaContas();
-  } catch (_) {}
-}
-
-async function removerConta(id) {
-  if (!confirm('Remover esta conta? Os e-mails já importados não serão apagados.')) return;
-  try {
-    await fetch(`${API}/contas/${id}`, { method:'DELETE', headers: headers() });
-    await carregarContas();
-    renderizarListaContas();
-    toast('Conta removida.', 'ok');
-  } catch (_) {}
-}
-
-async function testarConta(id, btn) {
-  const orig = btn.textContent;
-  btn.textContent = '↻';
-  btn.disabled = true;
-  try {
-    const res = await fetch(`${API}/contas/${id}/testar`, { method: 'POST', headers: headers() });
-    const data = await res.json();
-    toast(data.msg, data.ok ? 'ok' : 'erro');
-    btn.textContent = data.ok ? '✓' : '✕';
-    btn.style.color = data.ok ? 'var(--green-primary)' : '#E24B4A';
-    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 3000);
-  } catch (_) {
-    toast('Erro ao testar conexão.', 'erro');
-    btn.textContent = orig;
-    btn.disabled = false;
-  }
 }
 
 // ── Filtros / Paginação ────────────────────────────────────────────────────
@@ -544,13 +407,12 @@ async function salvarClassificacao() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key==='Escape') { fecharDetalhe(); fecharModalContas(); fecharFormConta(); fecharModalTreinar(); fecharModalProgresso(); }
+  if (e.key === 'Escape') { fecharDetalhe(); fecharModalTreinar(); fecharModalProgresso(); }
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async () => {
   // Nav sidebar
-  document.getElementById('nav-contas').addEventListener('click', abrirModalContas);
   document.getElementById('nav-treinar').addEventListener('click', abrirModalTreinar);
   document.getElementById('nav-exportar').addEventListener('click', exportarDataset);
 
@@ -578,17 +440,6 @@ document.addEventListener('keydown', e => {
   document.getElementById('btn-fechar-progresso').addEventListener('click', fecharModalProgresso);
   document.getElementById('btn-fechar-progresso-rodape').addEventListener('click', fecharModalProgresso);
 
-  // Modal Contas
-  document.getElementById('btn-fechar-contas').addEventListener('click', fecharModalContas);
-  document.getElementById('btn-adicionar-conta').addEventListener('click', () => abrirFormConta());
-
-  // Modal Form Conta
-  document.getElementById('btn-fechar-form-conta').addEventListener('click', fecharFormConta);
-  document.getElementById('btn-cancelar-form-conta').addEventListener('click', fecharFormConta);
-  document.getElementById('btn-salvar-conta').addEventListener('click', salvarConta);
-  document.getElementById('btn-toggle-senha').addEventListener('click', toggleSenhaForm);
-  document.getElementById('fc-provider').addEventListener('change', preencherServidorPadrao);
-
   // Modal Treinar
   document.getElementById('btn-fechar-treinar').addEventListener('click', fecharModalTreinar);
   document.getElementById('btn-fechar-treinar-rodape').addEventListener('click', fecharModalTreinar);
@@ -600,18 +451,7 @@ document.addEventListener('keydown', e => {
   document.getElementById('btn-salvar-classificacao').addEventListener('click', salvarClassificacao);
   document.getElementById('det-categoria').addEventListener('change', atualizarSubcategoriasModal);
 
-  // Event delegation — conteúdo dinâmico (conta cards e tabela de e-mails)
-  document.getElementById('lista-contas').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-    const id = parseInt(btn.dataset.id);
-    const action = btn.dataset.action;
-    if (action === 'testar')   testarConta(id, btn);
-    if (action === 'toggle')   toggleAtivoConta(id);
-    if (action === 'editar')   editarConta(id);
-    if (action === 'remover')  removerConta(id);
-  });
-
+  // Event delegation — tabela de e-mails
   document.getElementById('tabela-body').addEventListener('click', e => {
     const btn = e.target.closest('button[data-email-id]');
     const row = e.target.closest('tr[data-email-id]');

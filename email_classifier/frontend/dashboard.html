@@ -461,9 +461,9 @@
       <a href="/email/dashboard.html" class="active">
         <span class="nav-icon">✉</span> Caixa de E-mails
       </a>
-      <button id="nav-contas">
-        <span class="nav-icon">@</span> Contas IMAP
-      </button>
+      <a href="/email/contas.html">
+        <span class="nav-icon">@</span> Configuração de E-mails
+      </a>
       <button id="nav-treinar">
         <span class="nav-icon">◈</span> Treinar IA
       </button>
@@ -492,16 +492,6 @@
     </header>
 
     <div class="content">
-      <!-- Alerta sem contas -->
-      <div id="aviso-sem-conta" class="alert-warn">
-        <span style="color:#E6B432;font-size:16px;">⚠</span>
-        <div>
-          <strong>Nenhuma conta IMAP configurada</strong><br>
-          <span>Adicione uma conta para começar a extrair e-mails.</span>
-        </div>
-        <button class="btn-alert" onclick="abrirModalContas()">Configurar agora</button>
-      </div>
-
       <!-- Toolbar -->
       <div class="toolbar">
         <button id="btn-extrair" class="btn btn-primary">↓ Extrair E-mails</button>
@@ -592,78 +582,6 @@
       <div id="progresso-rodape" class="modal-footer" style="display:none">
         <div class="modal-actions">
           <button id="btn-fechar-progresso-rodape" class="btn btn-primary">✓ Fechar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL CONTAS IMAP -->
-  <div id="modal-contas" class="modal-overlay hidden">
-    <div class="modal" style="max-width:480px">
-      <div class="modal-header">
-        <span>@</span>
-        <h3>Contas IMAP</h3>
-        <button id="btn-fechar-contas" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body" id="lista-contas">
-        <p style="color:var(--gray-moss);font-size:13px">Carregando…</p>
-      </div>
-      <div class="modal-footer">
-        <button id="btn-adicionar-conta" class="btn btn-primary" style="width:100%;justify-content:center">+ Adicionar Conta</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL FORM CONTA -->
-  <div id="modal-form-conta" class="modal-overlay hidden">
-    <div class="modal" style="max-width:440px">
-      <div class="modal-header">
-        <h3 id="form-conta-titulo">Nova Conta IMAP</h3>
-        <button id="btn-fechar-form-conta" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-field">
-          <label>Nome / Apelido</label>
-          <input id="fc-nome" type="text" placeholder="Ex: Gmail RH, Outlook Benefícios" />
-        </div>
-        <div class="form-field">
-          <label>Provedor</label>
-          <select id="fc-provider">
-            <option value="gmail">Gmail</option>
-            <option value="outlook">Outlook / Office 365</option>
-            <option value="other">Outro</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label>E-mail</label>
-          <input id="fc-email" type="email" placeholder="seu@email.com" />
-        </div>
-        <div class="form-field">
-          <label>App Password / Senha</label>
-          <div class="pass-wrap">
-            <input id="fc-password" type="password" placeholder="xxxx xxxx xxxx xxxx" />
-            <button type="button" id="btn-toggle-senha" class="pass-toggle">
-              <span id="fc-eye">👁</span>
-            </button>
-          </div>
-          <p class="form-hint">Gmail: use uma <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a>. Outlook: ative IMAP nas configurações da conta.</p>
-        </div>
-        <div class="form-grid-3">
-          <div class="form-field">
-            <label>Servidor IMAP</label>
-            <input id="fc-server" type="text" value="imap.gmail.com" />
-          </div>
-          <div class="form-field">
-            <label>Porta</label>
-            <input id="fc-port" type="number" value="993" />
-          </div>
-        </div>
-        <div class="form-erro" id="fc-erro"></div>
-      </div>
-      <div class="modal-footer">
-        <div class="modal-actions">
-          <button id="btn-cancelar-form-conta" class="btn btn-ghost">Cancelar</button>
-          <button id="btn-salvar-conta" class="btn btn-primary">💾 Salvar</button>
         </div>
       </div>
     </div>
