@@ -34,5 +34,20 @@ def criar_categoria(categoria: schemas.CategoriaCreate, db: Session = Depends(ge
 
 @router.get("/", response_model=List[schemas.CategoriaResponse])
 def listar_categorias(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # Retorna apenas as categorias do usuário logado
     return db.query(models.Categoria).filter(models.Categoria.user_id == current_user.id).all()
+
+
+@router.delete("/{categoria_id}")
+def deletar_categoria(categoria_id: int, db: Session = Depends(get_db),
+                      current_user: models.User = Depends(get_current_user)):
+    categoria = db.query(models.Categoria).filter(
+        models.Categoria.id == categoria_id,
+        models.Categoria.user_id == current_user.id
+    ).first()
+
+    if not categoria:
+        raise HTTPException(status_code=404, detail="Categoria não encontrada")
+
+    db.delete(categoria)
+    db.commit()
+    return {"mensagem": "Categoria excluída com sucesso"}
