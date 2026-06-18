@@ -119,6 +119,57 @@ class TestDeletarSenha:
         assert res.status_code == 401
 
 
+class TestPerfilSenhas:
+    """Testa /me/senhas/perfil/ — gestão de perfis dentro do módulo de senhas."""
+
+    def test_listar_perfis_vazio(self, client, auth_headers):
+        res = client.get("/me/senhas/perfil/", headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json() == []
+
+    def test_listar_perfis_com_dados(self, client, auth_headers, pessoa):
+        res = client.get("/me/senhas/perfil/", headers=auth_headers)
+        assert res.status_code == 200
+        nomes = [p["nome"] for p in res.json()]
+        assert pessoa.nome in nomes
+
+    def test_criar_perfil(self, client, auth_headers):
+        res = client.post("/me/senhas/perfil/", json={"nome": "Trabalho", "principal": False}, headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json()["nome"] == "Trabalho"
+
+    def test_criar_primeiro_perfil_vira_principal(self, client, auth_headers):
+        res = client.post("/me/senhas/perfil/", json={"nome": "Único", "principal": False}, headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json()["principal"] is True
+
+    def test_criar_perfil_sem_auth(self, client):
+        res = client.post("/me/senhas/perfil/", json={"nome": "X", "principal": False})
+        assert res.status_code == 401
+
+    def test_listar_perfis_sem_auth(self, client):
+        res = client.get("/me/senhas/perfil/")
+        assert res.status_code == 401
+
+
+class TestSenhaDescryptInvalida:
+    """Cobre o branch except da descriptografia de senhas com formato inválido."""
+
+    def test_senha_formato_invalido_retorna_mensagem_erro(self, client, auth_headers, pessoa, db):
+        from backend.core.models import Senha
+        db.add(Senha(
+            sistema="Antigo",
+            usuario_sistema="u",
+            senha_criptografada="nao-e-fernet-valido",
+            pessoa_id=pessoa.id,
+        ))
+        db.commit()
+        res = client.get(f"/me/senhas/{pessoa.id}", headers=auth_headers)
+        assert res.status_code == 200
+        creds = res.json()
+        assert any("Erro" in c["senha_criptografada"] for c in creds)
+
+
 class TestPropriedades:
     def test_adicionar_propriedade(self, client, auth_headers, pessoa):
         res = client.post(
@@ -154,3 +205,19 @@ class TestPropriedades:
         db.refresh(dp)
         res = client.delete(f"/me/senhas/dados/{dp.id}", headers=auth_headers)
         assert res.status_code == 403
+
+    def test_adicionar_propriedade_perfil_invalido(self, client, auth_headers, pessoa2):
+        res = client.post(
+            "/me/senhas/dados/",
+            json={"chave": "X", "valor": "Y", "pessoa_id": pessoa2.id},
+            headers=auth_headers,
+        )
+        assert res.status_code == 403
+
+    def test_listar_propriedades_perfil_invalido(self, client, auth_headers, pessoa2):
+        res = client.get(f"/me/senhas/propriedades/{pessoa2.id}", headers=auth_headers)
+        assert res.status_code == 403
+
+    def test_deletar_propriedade_inexistente(self, client, auth_headers):
+        res = client.delete("/me/senhas/dados/99999", headers=auth_headers)
+        assert res.status_code == 404

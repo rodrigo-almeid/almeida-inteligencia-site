@@ -175,12 +175,44 @@ class TestDividas:
         assert res.status_code == 200
         assert len(res.json()) >= 1
 
+    def test_atualizar_divida_success(self, client, auth_headers, db, user):
+        from backend.core.models import DividaTerceiro
+        d = DividaTerceiro(devedor="Carlos", descricao="D", vencimento=date(2025, 9, 1), valor=300.0, status="pendente", user_id=user.id)
+        db.add(d); db.commit(); db.refresh(d)
+        payload = {**self.DIVIDA_BASE, "devedor": "Carlos Atualizado", "valor": 999.0}
+        res = client.put(f"/dividas/{d.id}", json=payload, headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json()["devedor"] == "Carlos Atualizado"
+        assert res.json()["valor"] == 999.0
+
+    def test_atualizar_divida_nao_encontrada(self, client, auth_headers):
+        res = client.put("/dividas/99999", json=self.DIVIDA_BASE, headers=auth_headers)
+        assert res.status_code == 404
+
+    def test_atualizar_divida_outro_usuario(self, client, auth_headers2, db, user):
+        from backend.core.models import DividaTerceiro
+        d = DividaTerceiro(devedor="Pedro", descricao="D", vencimento=date(2025, 9, 1), valor=100.0, status="pendente", user_id=user.id)
+        db.add(d); db.commit(); db.refresh(d)
+        res = client.put(f"/dividas/{d.id}", json=self.DIVIDA_BASE, headers=auth_headers2)
+        assert res.status_code == 404
+
     def test_deletar_divida(self, client, auth_headers, db, user):
         from backend.core.models import DividaTerceiro
         d = DividaTerceiro(devedor="Maria", descricao="Dívida", vencimento=date(2025, 9, 1), valor=100.0, status="pendente", user_id=user.id)
         db.add(d); db.commit(); db.refresh(d)
         res = client.delete(f"/dividas/{d.id}", headers=auth_headers)
         assert res.status_code in (200, 204)
+
+    def test_deletar_divida_nao_encontrada(self, client, auth_headers):
+        res = client.delete("/dividas/99999", headers=auth_headers)
+        assert res.status_code == 404
+
+    def test_deletar_divida_outro_usuario(self, client, auth_headers2, db, user):
+        from backend.core.models import DividaTerceiro
+        d = DividaTerceiro(devedor="Ana", descricao="D", vencimento=date(2025, 10, 1), valor=200.0, status="pendente", user_id=user.id)
+        db.add(d); db.commit(); db.refresh(d)
+        res = client.delete(f"/dividas/{d.id}", headers=auth_headers2)
+        assert res.status_code == 404
 
     def test_isolamento_dividas(self, client, auth_headers2, db, user):
         from backend.core.models import DividaTerceiro
@@ -266,10 +298,57 @@ class TestRelatorios:
         assert res.status_code == 200
         assert "spreadsheet" in res.headers["content-type"]
 
+    def test_exportar_excel_com_filtro_mes(self, client, auth_headers, conta):
+        res = client.get("/relatorios/excel/contas?mes=6&ano=2025", headers=auth_headers)
+        assert res.status_code == 200
+        assert "spreadsheet" in res.headers["content-type"]
+        assert "contas_2025_06.xlsx" in res.headers["content-disposition"]
+
+    def test_exportar_excel_sem_contas(self, client, auth_headers):
+        res = client.get("/relatorios/excel/contas?mes=1&ano=2000", headers=auth_headers)
+        assert res.status_code == 200
+
+    def test_exportar_excel_saldo_negativo(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        db.add(Conta(descricao="Receita", vencimento=date(2025, 3, 1), valor=100.0,
+                     natureza="receita", status="paga", tipo_recorrencia="unica", user_id=user.id))
+        db.add(Conta(descricao="Despesa", vencimento=date(2025, 3, 1), valor=500.0,
+                     natureza="despesa", status="paga", tipo_recorrencia="unica", user_id=user.id))
+        db.commit()
+        res = client.get("/relatorios/excel/contas?mes=3&ano=2025", headers=auth_headers)
+        assert res.status_code == 200
+
     def test_exportar_pdf(self, client, auth_headers, conta):
         res = client.get("/relatorios/pdf/contas", headers=auth_headers)
         assert res.status_code == 200
         assert "pdf" in res.headers["content-type"]
+
+    def test_exportar_pdf_com_filtro_mes(self, client, auth_headers, conta):
+        res = client.get("/relatorios/pdf/contas?mes=6&ano=2025", headers=auth_headers)
+        assert res.status_code == 200
+        assert "pdf" in res.headers["content-type"]
+        assert "contas_2025_06.pdf" in res.headers["content-disposition"]
+
+    def test_exportar_pdf_saldo_negativo(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        db.add(Conta(descricao="Receita", vencimento=date(2025, 4, 1), valor=50.0,
+                     natureza="receita", status="paga", tipo_recorrencia="unica", user_id=user.id))
+        db.add(Conta(descricao="Despesa", vencimento=date(2025, 4, 1), valor=800.0,
+                     natureza="despesa", status="paga", tipo_recorrencia="unica", user_id=user.id))
+        db.commit()
+        res = client.get("/relatorios/pdf/contas?mes=4&ano=2025", headers=auth_headers)
+        assert res.status_code == 200
+
+    def test_exportar_pdf_com_categoria(self, client, auth_headers, db, user):
+        from backend.core.models import Conta, Categoria
+        cat = Categoria(nome="Casa", user_id=user.id)
+        db.add(cat); db.commit(); db.refresh(cat)
+        db.add(Conta(descricao="Aluguel <teste> & co", vencimento=date(2025, 5, 1), valor=1000.0,
+                     natureza="despesa", status="paga", tipo_recorrencia="unica",
+                     categoria_id=cat.id, user_id=user.id))
+        db.commit()
+        res = client.get("/relatorios/pdf/contas?mes=5&ano=2025", headers=auth_headers)
+        assert res.status_code == 200
 
     def test_exportar_sem_auth(self, client):
         assert client.get("/relatorios/excel/contas").status_code == 401
