@@ -111,3 +111,29 @@ class TestSSO:
         token = jwt.encode({"sub": "sem_email"}, self.PORTAL_KEY, algorithm="HS256")
         res = client.post("/auth/sso", json={"portal_token": token})
         assert res.status_code == 401
+
+
+# ─── Security module edge cases ──────────────────────────────────────
+
+class TestSecurityEdges:
+    def test_create_access_token_com_expires_delta(self):
+        """Cobre o branch 'if expires_delta' em create_access_token (security.py:46)."""
+        from datetime import timedelta
+        from backend.core.security import create_access_token
+        token = create_access_token({"sub": "x@x.com"}, expires_delta=timedelta(minutes=5))
+        assert isinstance(token, str) and len(token) > 10
+
+    def test_get_current_user_sem_sub_no_payload(self, client):
+        """Token válido mas sem campo 'sub' → 401 (security.py:73)."""
+        from backend.core.security import SECRET_KEY, ALGORITHM
+        from jose import jwt
+        bad_token = jwt.encode({"foo": "bar"}, SECRET_KEY, algorithm=ALGORITHM)
+        res = client.get("/pessoas/", headers={"Authorization": f"Bearer {bad_token}"})
+        assert res.status_code == 401
+
+    def test_get_current_user_usuario_nao_existe_no_db(self, client, db):
+        """Token válido para email inexistente no banco → 401 (security.py:79)."""
+        from backend.core.security import create_access_token
+        token = create_access_token({"sub": "fantasma@naoexiste.com"})
+        res = client.get("/pessoas/", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 401

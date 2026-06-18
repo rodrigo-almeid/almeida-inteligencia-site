@@ -154,6 +154,17 @@ class TestCategorias:
         res = client.delete(f"/categorias/{c.id}", headers=auth_headers)
         assert res.status_code == 200
 
+    def test_deletar_categoria_nao_encontrada(self, client, auth_headers):
+        res = client.delete("/categorias/99999", headers=auth_headers)
+        assert res.status_code == 404
+
+    def test_deletar_categoria_outro_usuario(self, client, auth_headers2, db, user):
+        from backend.core.models import Categoria
+        c = Categoria(nome="AlheiaTemp", user_id=user.id)
+        db.add(c); db.commit(); db.refresh(c)
+        res = client.delete(f"/categorias/{c.id}", headers=auth_headers2)
+        assert res.status_code == 404
+
 
 class TestDividas:
     DIVIDA_BASE = {
@@ -290,6 +301,23 @@ class TestContasParcelamento:
         res = client.get("/contas/?mes=6&ano=2026", headers=auth_headers)
         descricoes = [c["descricao"] for c in res.json()]
         assert "Competência Julho" not in descricoes
+
+    def test_parcelada_com_competencia_propaga_meses(self, client, auth_headers, db, user):
+        """Cobre contas.py:41-42 — competencia é ajustada mês a mês em cada parcela."""
+        from backend.core.models import Conta
+        payload = {
+            **CONTA_BASE,
+            "tipo_recorrencia": "parcelada",
+            "total_parcelas": 3,
+            "vencimento": "2026-01-10",
+            "competencia": "2026-01",
+        }
+        res = client.post("/contas/", json=payload, headers=auth_headers)
+        assert res.status_code == 201
+        db.expire_all()
+        parcelas = db.query(Conta).filter(Conta.user_id == user.id).order_by(Conta.parcela_atual).all()
+        competencias = [p.competencia for p in parcelas]
+        assert competencias == ["2026-01", "2026-02", "2026-03"]
 
 
 class TestRelatorios:

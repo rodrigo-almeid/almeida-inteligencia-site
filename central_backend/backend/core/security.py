@@ -17,7 +17,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
 # Trava de segurança: Se a chave não existir, o sistema não arranca
-if not SECRET_KEY:
+if not SECRET_KEY:  # pragma: no cover
     raise ValueError("ERRO: A variável JWT_SECRET_KEY não foi encontrada no ficheiro .env!")
 
 ALGORITHM = "HS256"

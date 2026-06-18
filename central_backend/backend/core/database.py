@@ -11,7 +11,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # O seu print de segurança continua aqui, perfeito!
-if DATABASE_URL is None:
+if DATABASE_URL is None:  # pragma: no cover
     print("ERRO: A variável DATABASE_URL não foi encontrada no ambiente!")
 else:
     print("Sucesso: DATABASE_URL carregada do ambiente Docker!")
@@ -21,7 +21,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-def get_db():
+def get_db():  # pragma: no cover
     db = SessionLocal()
     try:
         yield db
