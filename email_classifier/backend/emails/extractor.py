@@ -1,7 +1,7 @@
 """
-Extrator IMAP universal — Gmail e Outlook/Exchange.
-Busca e-mails que NÃO estejam na pasta 'Processado'.
-Após salvar, move cópia para 'Processado' como flag de controle.
+Extrator IMAP — Gmail e Outlook/Exchange.
+Busca apenas e-mails não lidos (UNSEEN) na INBOX.
+Após salvar, marca como lido e copia para 'Processado'.
 """
 import imaplib
 import email
@@ -45,46 +45,22 @@ def _garantir_pasta(conn: imaplib.IMAP4_SSL, pasta: str):
     try:
         conn.create(pasta)
     except Exception:
-        pass  # já existe
-
-
-def _ids_ja_processados(conn: imaplib.IMAP4_SSL, pasta: str) -> set[str]:
-    """Retorna o conjunto de Message-IDs que estão na pasta Processado."""
-    ids = set()
-    try:
-        status, _ = conn.select(f'"{pasta}"', readonly=True)
-        if status != "OK":
-            return ids
-        _, data = conn.uid("SEARCH", None, "ALL")
-        uids = data[0].split() if data[0] else []
-        for uid in uids:
-            _, raw = conn.uid("FETCH", uid, "(BODY[HEADER.FIELDS (MESSAGE-ID)])")
-            if raw and raw[0]:
-                header_bytes = raw[0][1] if isinstance(raw[0], tuple) else b""
-                for line in header_bytes.decode("utf-8", errors="replace").splitlines():
-                    if line.lower().startswith("message-id:"):
-                        ids.add(line.split(":", 1)[1].strip())
-    except Exception:
         pass
-    return ids
 
 
 def extrair_nao_processados(conta: dict) -> list[dict]:
     """
-    Conecta via IMAP, busca e-mails da INBOX que não estejam
-    na pasta 'Processado' (compatível com Gmail e Outlook).
+    Conecta via IMAP, busca apenas e-mails UNSEEN (não lidos) na INBOX.
+    Muito mais rápido que varrer todos os e-mails.
     """
     resultados = []
     conn = imaplib.IMAP4_SSL(conta["imap_server"], int(conta["imap_port"]))
     try:
         conn.login(conta["email"], conta["password"])
         _garantir_pasta(conn, PASTA_PROCESSADO)
-
-        # Carrega IDs já processados para filtrar
-        ja_processados = _ids_ja_processados(conn, PASTA_PROCESSADO)
-
         conn.select("INBOX")
-        _, uid_data = conn.uid("SEARCH", None, "ALL")
+
+        _, uid_data = conn.uid("SEARCH", None, "UNSEEN")
         uids = uid_data[0].split() if uid_data[0] else []
 
         for uid in uids:
@@ -94,10 +70,6 @@ def extrair_nao_processados(conta: dict) -> list[dict]:
                 msg = email.message_from_bytes(raw_bytes)
 
                 message_id = msg.get("Message-ID", f"<sem-id-{uid.decode()}>").strip()
-
-                if message_id in ja_processados:
-                    continue
-
                 remetente = _decodificar_header(msg.get("From", ""))
                 assunto = _decodificar_header(msg.get("Subject", "(sem assunto)"))
                 corpo = _extrair_texto(msg)
@@ -128,7 +100,7 @@ def extrair_nao_processados(conta: dict) -> list[dict]:
 
 
 def marcar_processados(conta: dict, uids: list[bytes]):
-    """Copia os e-mails para a pasta 'Processado' — funciona em Gmail e Outlook."""
+    """Marca como lido e copia para 'Processado'."""
     if not uids:
         return
     try:
@@ -138,6 +110,7 @@ def marcar_processados(conta: dict, uids: list[bytes]):
         conn.select("INBOX")
         for uid in uids:
             try:
+                conn.uid("STORE", uid, "+FLAGS", "\\Seen")
                 conn.uid("COPY", uid, PASTA_PROCESSADO)
             except Exception:
                 pass
