@@ -250,23 +250,24 @@ def status_job(job_id: str, _: User = Depends(get_current_user)):
 def _executar_extracao(job_id: str, contas: list[dict], user_id: int):
     db = SessionLocal()
     try:
-        total_novos = total_dup = 0
+        total_novos = total_dup = total_restantes = 0
 
         for conta_cfg in contas:
             nome_conta = conta_cfg["nome"]
             _log(job_id, "info", f"[{nome_conta}] Conectando ao IMAP ({conta_cfg['imap_server']})…")
             try:
-                mensagens = extrair_nao_processados(conta_cfg)
+                mensagens, restantes = extrair_nao_processados(conta_cfg)
             except Exception as exc:
                 _log(job_id, "erro", f"[{nome_conta}] Falha na conexão: {exc}")
                 continue
 
+            total_restantes += restantes
             total = len(mensagens)
             if total == 0:
                 _log(job_id, "ok", f"[{nome_conta}] Nenhum e-mail novo.")
                 continue
 
-            _log(job_id, "info", f"[{nome_conta}] {total} e-mail(s) encontrado(s).")
+            _log(job_id, "info", f"[{nome_conta}] {total} e-mail(s) neste lote{f' (+{restantes} aguardando)' if restantes else ''}.")
             uids_salvos = []
 
             for idx, m in enumerate(mensagens, 1):
@@ -299,8 +300,11 @@ def _executar_extracao(job_id: str, contas: list[dict], user_id: int):
                 _log(job_id, "info", f"[{nome_conta}] Marcando {len(uids_salvos)} e-mail(s) como Processado…")
                 marcar_processados(conta_cfg, uids_salvos)
 
-        _log(job_id, "ok", f"Extração concluída — {total_novos} importado(s), {total_dup} duplicado(s).")
-        _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "ignorados_duplicados": total_dup}})
+        msg_final = f"Lote concluído — {total_novos} importado(s), {total_dup} duplicado(s)."
+        if total_restantes:
+            msg_final += f" Ainda restam ~{total_restantes} e-mail(s). Clique em Extrair novamente."
+        _log(job_id, "ok", msg_final)
+        _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "ignorados_duplicados": total_dup, "restantes": total_restantes}})
     except Exception as exc:
         db.rollback()
         _log(job_id, "erro", f"Erro: {exc}")

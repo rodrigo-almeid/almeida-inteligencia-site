@@ -48,10 +48,13 @@ def _garantir_pasta(conn: imaplib.IMAP4_SSL, pasta: str):
         pass
 
 
+LOTE_MAXIMO = 50
+
+
 def extrair_nao_processados(conta: dict) -> list[dict]:
     """
     Conecta via IMAP, busca apenas e-mails UNSEEN (não lidos) na INBOX.
-    Muito mais rápido que varrer todos os e-mails.
+    Retorna no máximo LOTE_MAXIMO e-mails por chamada.
     """
     resultados = []
     conn = imaplib.IMAP4_SSL(conta["imap_server"], int(conta["imap_port"]))
@@ -61,7 +64,10 @@ def extrair_nao_processados(conta: dict) -> list[dict]:
         conn.select("INBOX")
 
         _, uid_data = conn.uid("SEARCH", None, "UNSEEN")
-        uids = uid_data[0].split() if uid_data[0] else []
+        todos_uids = uid_data[0].split() if uid_data[0] else []
+        total_unseen = len(todos_uids)
+        uids = todos_uids[:LOTE_MAXIMO]
+        restantes = max(0, total_unseen - LOTE_MAXIMO)
 
         for uid in uids:
             try:
@@ -96,7 +102,7 @@ def extrair_nao_processados(conta: dict) -> list[dict]:
         except Exception:
             pass
 
-    return resultados
+    return resultados, restantes
 
 
 def marcar_processados(conta: dict, uids: list[bytes]):

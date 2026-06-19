@@ -171,7 +171,12 @@ async function executarExtracao() {
     const data = await res.json();
     if (!res.ok) { fecharModalProgresso(); toast(data.detail || 'Erro na extração.', 'erro'); }
     else _iniciarPolling(data.job_id, (r) => {
-      if (r) toast(`${r.extraidos} importado(s)${r.ignorados_duplicados ? ` · ${r.ignorados_duplicados} duplicado(s)` : ''}`, 'ok');
+      if (r) {
+        let msg = `${r.extraidos} importado(s)`;
+        if (r.ignorados_duplicados) msg += ` · ${r.ignorados_duplicados} duplicado(s)`;
+        if (r.restantes) msg += ` · Restam ~${r.restantes} — extraia novamente`;
+        toast(msg, r.restantes ? 'aviso' : 'ok');
+      }
       carregarEmails(); verificarPendentes();
     });
   } catch (err) { fecharModalProgresso(); toast('Erro: ' + err.message, 'erro'); }
