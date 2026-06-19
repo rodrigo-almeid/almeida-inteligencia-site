@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS sistemas (
 """)
 
 cur.execute("""
-CREATE TABLE IF NOT EXISTS perfis (
+CREATE TABLE IF NOT EXISTS portal_perfis (
     id          SERIAL PRIMARY KEY,
     nome        VARCHAR(100) UNIQUE NOT NULL,
     slug        VARCHAR(100) UNIQUE NOT NULL,
@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS perfis (
 """)
 
 cur.execute("""
-CREATE TABLE IF NOT EXISTS perfil_sistemas (
+CREATE TABLE IF NOT EXISTS portal_perfil_sistemas (
     id          SERIAL PRIMARY KEY,
-    perfil_id   INTEGER NOT NULL REFERENCES perfis(id) ON DELETE CASCADE,
+    perfil_id   INTEGER NOT NULL REFERENCES portal_perfis(id) ON DELETE CASCADE,
     sistema_id  INTEGER NOT NULL REFERENCES sistemas(id) ON DELETE CASCADE,
     UNIQUE(perfil_id, sistema_id)
 )
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nome        VARCHAR(150) NOT NULL,
     email       VARCHAR(150) UNIQUE NOT NULL,
     senha_hash  TEXT NOT NULL,
-    perfil_id   INTEGER REFERENCES perfis(id),
+    perfil_id   INTEGER REFERENCES portal_perfis(id),
     ativo       BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em   TIMESTAMP DEFAULT NOW()
 )
@@ -72,13 +72,13 @@ for nome, slug, desc, url, icone in sistemas_seed:
 
 # Perfil admin
 cur.execute("""
-    INSERT INTO perfis (nome, slug, descricao)
+    INSERT INTO portal_perfis (nome, slug, descricao)
     VALUES ('Administrador', 'admin', 'Acesso total ao sistema')
     ON CONFLICT (slug) DO NOTHING
 """)
 conn.commit()
 
-cur.execute("SELECT id FROM perfis WHERE slug = 'admin'")
+cur.execute("SELECT id FROM portal_perfis WHERE slug = 'admin'")
 admin_perfil_id = cur.fetchone()[0]
 
 # Usuário admin

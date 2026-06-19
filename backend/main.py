@@ -73,7 +73,7 @@ def get_user_sistemas(conn, perfil_id) -> list:
     cur = conn.cursor()
     cur.execute("""
         SELECT s.id, s.nome, s.slug, s.descricao, s.url, s.icone
-        FROM perfil_sistemas ps
+        FROM portal_perfil_sistemas ps
         JOIN sistemas s ON s.id = ps.sistema_id
         WHERE ps.perfil_id = %s AND s.ativo = TRUE
         ORDER BY s.nome
@@ -85,7 +85,7 @@ def get_perfil_slug(conn, perfil_id) -> str:
     if not perfil_id:
         return "cliente"
     cur = conn.cursor()
-    cur.execute("SELECT slug FROM perfis WHERE id = %s", (perfil_id,))
+    cur.execute("SELECT slug FROM portal_perfis WHERE id = %s", (perfil_id,))
     row = cur.fetchone()
     return row["slug"] if row else "cliente"
 
@@ -187,7 +187,7 @@ def listar_usuarios(token=Depends(require_admin)):
     cur.execute("""
         SELECT u.id, u.nome, u.email, u.ativo, u.criado_em,
                u.perfil_id, p.nome as perfil_nome, p.slug as perfil_slug
-        FROM usuarios u LEFT JOIN perfis p ON p.id = u.perfil_id ORDER BY u.id
+        FROM usuarios u LEFT JOIN portal_perfis p ON p.id = u.perfil_id ORDER BY u.id
     """)
     users = cur.fetchall()
     conn.close()
@@ -258,12 +258,12 @@ def deletar_usuario(user_id: int, token=Depends(require_admin)):
 def listar_perfis(token=Depends(require_admin)):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM perfis ORDER BY id")
+    cur.execute("SELECT * FROM portal_perfis ORDER BY id")
     perfis = cur.fetchall()
     result = []
     for p in perfis:
         cur.execute("""
-            SELECT s.id, s.nome, s.slug, s.icone FROM perfil_sistemas ps
+            SELECT s.id, s.nome, s.slug, s.icone FROM portal_perfil_sistemas ps
             JOIN sistemas s ON s.id = ps.sistema_id WHERE ps.perfil_id = %s
         """, (p["id"],))
         sistemas = [dict(s) for s in cur.fetchall()]
@@ -281,11 +281,11 @@ def criar_perfil(body: PerfilCreate, token=Depends(require_admin)):
     try:
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute("INSERT INTO perfis (nome, slug, descricao) VALUES (%s,%s,%s) RETURNING id",
+        cur.execute("INSERT INTO portal_perfis (nome, slug, descricao) VALUES (%s,%s,%s) RETURNING id",
                     (body.nome, slug, body.descricao))
         perfil_id = cur.fetchone()["id"]
         for sid in body.sistemas:
-            cur.execute("INSERT INTO perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
+            cur.execute("INSERT INTO portal_perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
         conn.commit()
         return {"id": perfil_id, "mensagem": "Perfil criado"}
     except psycopg2.errors.UniqueViolation:
@@ -299,20 +299,20 @@ def criar_perfil(body: PerfilCreate, token=Depends(require_admin)):
 def atualizar_perfil(perfil_id: int, body: PerfilUpdate, token=Depends(require_admin)):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM perfis WHERE id = %s", (perfil_id,))
+    cur.execute("SELECT * FROM portal_perfis WHERE id = %s", (perfil_id,))
     if not cur.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
     if body.nome is not None:
         slug = body.nome.lower().strip().replace(" ", "_")
-        cur.execute("UPDATE perfis SET nome=%s, slug=%s WHERE id=%s", (body.nome, slug, perfil_id))
+        cur.execute("UPDATE portal_perfis SET nome=%s, slug=%s WHERE id=%s", (body.nome, slug, perfil_id))
     if body.descricao is not None:
-        cur.execute("UPDATE perfis SET descricao=%s WHERE id=%s", (body.descricao, perfil_id))
+        cur.execute("UPDATE portal_perfis SET descricao=%s WHERE id=%s", (body.descricao, perfil_id))
     if body.sistemas is not None:
-        cur.execute("DELETE FROM perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
+        cur.execute("DELETE FROM portal_perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
         for sid in body.sistemas:
-            cur.execute("INSERT INTO perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
+            cur.execute("INSERT INTO portal_perfil_sistemas (perfil_id, sistema_id) VALUES (%s,%s)", (perfil_id, sid))
 
     conn.commit()
     conn.close()
@@ -327,8 +327,8 @@ def deletar_perfil(perfil_id: int, token=Depends(require_admin)):
     if cur.fetchone()["total"] > 0:
         conn.close()
         raise HTTPException(status_code=400, detail="Remova os usuários deste perfil antes de deletá-lo")
-    cur.execute("DELETE FROM perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
-    cur.execute("DELETE FROM perfis WHERE id=%s RETURNING id", (perfil_id,))
+    cur.execute("DELETE FROM portal_perfil_sistemas WHERE perfil_id=%s", (perfil_id,))
+    cur.execute("DELETE FROM portal_perfis WHERE id=%s RETURNING id", (perfil_id,))
     deleted = cur.fetchone()
     conn.commit()
     conn.close()
@@ -394,7 +394,7 @@ def atualizar_sistema(sistema_id: int, body: SistemaUpdate, token=Depends(requir
 def deletar_sistema(sistema_id: int, token=Depends(require_admin)):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("DELETE FROM perfil_sistemas WHERE sistema_id=%s", (sistema_id,))
+    cur.execute("DELETE FROM portal_perfil_sistemas WHERE sistema_id=%s", (sistema_id,))
     cur.execute("DELETE FROM sistemas WHERE id=%s RETURNING id", (sistema_id,))
     deleted = cur.fetchone()
     conn.commit()

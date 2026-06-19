@@ -4,7 +4,7 @@ from backend.core.database import Base
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "email_users"
 
     id         = Column(Integer, primary_key=True, index=True)
     nome       = Column(String, nullable=False)
