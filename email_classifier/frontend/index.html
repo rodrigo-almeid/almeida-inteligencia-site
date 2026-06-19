@@ -128,37 +128,10 @@
   </div>
 
   <script>
-    if (localStorage.getItem('email_token')) window.location.href = '/email/dashboard.html';
-    document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-
-    async function login() {
-      const email = document.getElementById('inp-email').value.trim();
-      const senha = document.getElementById('inp-senha').value;
-      const erroEl = document.getElementById('erro');
-      const btn = document.getElementById('btn-login');
-      erroEl.style.display = 'none';
-
-      if (!email || !senha) { erroEl.textContent = 'Preencha e-mail e senha.'; erroEl.style.display = 'block'; return; }
-
-      btn.disabled = true;
-      btn.textContent = 'Entrando…';
-
-      try {
-        const form = new URLSearchParams();
-        form.append('username', email);
-        form.append('password', senha);
-        const res = await fetch('/email/auth/login', { method: 'POST', body: form });
-        const data = await res.json();
-        if (!res.ok) { erroEl.textContent = data.detail || 'Credenciais inválidas.'; erroEl.style.display = 'block'; return; }
-        localStorage.setItem('email_token', data.access_token);
-        localStorage.setItem('email_nome', data.nome);
-        window.location.href = '/email/dashboard.html';
-      } catch (_) {
-        erroEl.textContent = 'Erro de conexão.'; erroEl.style.display = 'block';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
-      }
+    if (localStorage.getItem('email_token')) {
+      window.location.href = '/email/dashboard.html';
+    } else {
+      window.location.href = '/';
     }
   </script>
 </body>
