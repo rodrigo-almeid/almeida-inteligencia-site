@@ -250,69 +250,69 @@ def status_job(job_id: str, _: User = Depends(get_current_user)):
 def _executar_extracao(job_id: str, contas: list[dict], user_id: int):
     import math
     db = SessionLocal()
-    try:
-        # ── Fase 1: Contagem ──
-        _log(job_id, "info", "Verificando contas de e-mail…")
-        _jobs[job_id]["progresso_pct"] = 0
-        contagens = {}
-        total_geral = 0
 
-        for conta_cfg in contas:
-            nome_conta = conta_cfg["nome"]
+    # ── Fase 1: Contagem ──
+    _log(job_id, "info", "Verificando contas de e-mail…")
+    _jobs[job_id]["progresso_pct"] = 0
+    contagens = {}
+    total_geral = 0
+
+    for conta_cfg in contas:
+        nome_conta = conta_cfg["nome"]
+        try:
+            qtd = contar_unseen(conta_cfg)
+            contagens[nome_conta] = qtd
+            total_geral += qtd
+            _log(job_id, "info", f"📧 {nome_conta}: {qtd} e-mail(s) não lido(s)")
+        except Exception as exc:
+            _log(job_id, "erro", f"✕ {nome_conta}: falha na conexão — {exc}")
+            contagens[nome_conta] = -1
+
+    if total_geral == 0:
+        _log(job_id, "ok", "✓ Nenhum e-mail novo para extrair.")
+        _jobs[job_id].update({"status": "concluido", "progresso_pct": 100, "resultado": {"extraidos": 0, "duplicados": 0, "total": 0, "erros": 0}})
+        db.close()
+        return
+
+    total_lotes = math.ceil(total_geral / LOTE_MAXIMO)
+    _log(job_id, "info", f"Total: {total_geral} e-mail(s) → {total_lotes} lote(s) de até {LOTE_MAXIMO}")
+
+    # ── Fase 2: Extração por lotes ──
+    total_novos = total_dup = total_erros = 0
+    lote_atual = 0
+
+    for conta_cfg in contas:
+        nome_conta = conta_cfg["nome"]
+        if contagens.get(nome_conta, 0) <= 0:
+            continue
+
+        while True:
+            lote_atual += 1
+            pct_lote = min(99, int((lote_atual / total_lotes) * 100))
+            _jobs[job_id]["progresso_pct"] = pct_lote
+            _log(job_id, "info", f"━━ Lote {lote_atual}/{total_lotes} ({pct_lote}%) — {nome_conta} ━━")
+
             try:
-                qtd = contar_unseen(conta_cfg)
-                contagens[nome_conta] = qtd
-                total_geral += qtd
-                _log(job_id, "info", f"📧 {nome_conta}: {qtd} e-mail(s) não lido(s)")
+                mensagens, _, restantes = extrair_lote(conta_cfg)
             except Exception as exc:
-                _log(job_id, "erro", f"✕ {nome_conta}: falha na conexão — {exc}")
-                contagens[nome_conta] = -1
+                total_erros += 1
+                _log(job_id, "erro", f"✕ Falha ao baixar lote {lote_atual}: {exc}")
+                _log(job_id, "info", f"Pulando para o próximo… ({total_novos} salvo(s) até agora)")
+                break
 
-        if total_geral == 0:
-            _log(job_id, "ok", "✓ Nenhum e-mail novo para extrair.")
-            _jobs[job_id].update({"status": "concluido", "progresso_pct": 100, "resultado": {"extraidos": 0, "duplicados": 0, "total": 0}})
-            return
+            if not mensagens:
+                break
 
-        total_lotes = math.ceil(total_geral / LOTE_MAXIMO)
-        _log(job_id, "info", f"Total: {total_geral} e-mail(s) → {total_lotes} lote(s) de até {LOTE_MAXIMO}")
-
-        # ── Fase 2: Extração por lotes ──
-        total_novos = total_dup = 0
-        processados_global = 0
-        lote_atual = 0
-
-        for conta_cfg in contas:
-            nome_conta = conta_cfg["nome"]
-            if contagens.get(nome_conta, 0) <= 0:
-                continue
-
-            while True:
-                lote_atual += 1
-                _log(job_id, "info", f"━━ Lote {lote_atual}/{total_lotes} — {nome_conta} ━━")
+            uids_salvos = []
+            for idx, m in enumerate(mensagens, 1):
+                assunto_curto = (m["assunto"] or "(sem assunto)")[:50]
 
                 try:
-                    mensagens, _, restantes = extrair_lote(conta_cfg)
-                except Exception as exc:
-                    _log(job_id, "erro", f"✕ Falha no lote {lote_atual}: {exc}")
-                    break
-
-                if not mensagens:
-                    break
-
-                uids_salvos = []
-                for idx, m in enumerate(mensagens, 1):
-                    processados_global += 1
-                    pct = min(99, int((processados_global / total_geral) * 100))
-                    _jobs[job_id]["progresso_pct"] = pct
-
-                    assunto_curto = (m["assunto"] or "(sem assunto)")[:50]
                     existe = db.query(EmailExtraido).filter(EmailExtraido.message_id == m["message_id"]).first()
                     if existe:
                         total_dup += 1
-                        _log(job_id, "aviso", f"⚠ [{processados_global}/{total_geral}] Duplicado: {assunto_curto}")
                         continue
 
-                    _log(job_id, "import", f"↓ [{processados_global}/{total_geral}] {assunto_curto}")
                     dt = m.get("data_recebimento")
                     registro = EmailExtraido(
                         message_id=m["message_id"],
@@ -328,24 +328,49 @@ def _executar_extracao(job_id: str, contas: list[dict], user_id: int):
                     total_novos += 1
                     if m.get("_uid"):
                         uids_salvos.append(m["_uid"])
+                except Exception as exc:
+                    total_erros += 1
+                    _log(job_id, "erro", f"✕ Erro ao salvar [{idx}]: {assunto_curto} — {exc}")
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
+                    continue
 
+                _log(job_id, "import", f"↓ [{idx}/{len(mensagens)}] {assunto_curto}")
+
+            # Commit por lote — dados salvos mesmo se próximo lote falhar
+            try:
                 db.commit()
-                if uids_salvos:
-                    _log(job_id, "info", f"✓ Lote {lote_atual}: {len(uids_salvos)} salvo(s), marcando como processado…")
+            except Exception as exc:
+                total_erros += 1
+                _log(job_id, "erro", f"✕ Erro ao gravar lote {lote_atual}: {exc}")
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                continue
+
+            if uids_salvos:
+                _log(job_id, "info", f"✓ Lote {lote_atual}: {len(uids_salvos)} salvo(s), marcando como processado…")
+                try:
                     marcar_processados(conta_cfg, uids_salvos)
+                except Exception as exc:
+                    _log(job_id, "aviso", f"⚠ Erro ao marcar processados: {exc}")
 
-                if restantes == 0:
-                    break
+            _jobs[job_id]["progresso_pct"] = min(99, int((lote_atual / total_lotes) * 100))
 
-        _jobs[job_id]["progresso_pct"] = 100
+            if restantes == 0:
+                break
+
+    # ── Resultado final ──
+    _jobs[job_id]["progresso_pct"] = 100
+    if total_erros:
+        _log(job_id, "aviso", f"⚠ Extração parcial — {total_novos} importado(s), {total_dup} duplicado(s), {total_erros} erro(s).")
+    else:
         _log(job_id, "ok", f"✓ Extração concluída — {total_novos} importado(s), {total_dup} duplicado(s).")
-        _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "duplicados": total_dup, "total": total_geral}})
-    except Exception as exc:
-        db.rollback()
-        _log(job_id, "erro", f"✕ Erro: {exc}")
-        _jobs[job_id].update({"status": "erro", "erro": str(exc)})
-    finally:
-        db.close()
+    _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "duplicados": total_dup, "total": total_geral, "erros": total_erros}})
+    db.close()
 
 
 @router.post("/extrair")
