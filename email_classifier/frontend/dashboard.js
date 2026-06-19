@@ -98,21 +98,24 @@ function atualizarSubcategoriasModal() {
 }
 
 // ── Modal de progresso ─────────────────────────────────────────────────────
-const ICONE_TIPO = {
-  info:   { icon:'fa-circle-info',          cor:'text-blue-400'   },
-  import: { icon:'fa-envelope-open',        cor:'text-indigo-400' },
-  ia:     { icon:'fa-brain',                cor:'text-purple-400' },
-  aviso:  { icon:'fa-triangle-exclamation', cor:'text-yellow-400' },
-  ok:     { icon:'fa-circle-check',         cor:'text-green-400'  },
-  erro:   { icon:'fa-circle-xmark',         cor:'text-red-400'    },
+const COR_TIPO = {
+  info:   'var(--gray-light)',
+  import: 'var(--green-primary)',
+  ia:     '#A78BFA',
+  aviso:  '#E6B432',
+  ok:     'var(--green-primary)',
+  erro:   '#E24B4A',
 };
 
-function abrirModalProgresso(titulo, icone, corBtn) {
+function abrirModalProgresso(titulo, icone) {
   document.getElementById('progresso-log').innerHTML = '';
   document.getElementById('progresso-rodape').style.display = 'none';
   document.getElementById('progresso-titulo').textContent = titulo;
   document.getElementById('progresso-icone').textContent = icone === 'fa-brain' ? '◈' : '↓';
   document.getElementById('progresso-pill').textContent = 'em andamento…';
+  document.getElementById('progresso-bar').style.width = '0%';
+  document.getElementById('progresso-pct-text').textContent = '0%';
+  document.getElementById('progresso-label').textContent = 'Preparando…';
   document.getElementById('modal-progresso').classList.remove('hidden');
 }
 function fecharModalProgresso() { document.getElementById('modal-progresso').classList.add('hidden'); }
@@ -120,10 +123,13 @@ function fecharModalProgresso() { document.getElementById('modal-progresso').cla
 function _iniciarPolling(jobId, onConcluido) {
   const logEl = document.getElementById('progresso-log');
   const pill  = document.getElementById('progresso-pill');
+  const bar   = document.getElementById('progresso-bar');
+  const pctEl = document.getElementById('progresso-pct-text');
+  const labelEl = document.getElementById('progresso-label');
   let visto = 0, tentativas = 0;
 
   const poll = setInterval(async () => {
-    if (++tentativas > 240) {
+    if (++tentativas > 600) {
       clearInterval(poll);
       pill.textContent = 'tempo esgotado';
       document.getElementById('progresso-rodape').style.display = 'block';
@@ -133,10 +139,17 @@ function _iniciarPolling(jobId, onConcluido) {
       const res = await fetch(`${API}/job/${jobId}`, { headers: headers() });
       const job = await res.json();
 
+      const pct = job.progresso_pct || 0;
+      bar.style.width = pct + '%';
+      pctEl.textContent = pct + '%';
+      if (pct > 0 && pct < 100) labelEl.textContent = 'Extraindo e-mails…';
+      else if (pct >= 100) labelEl.textContent = 'Concluído';
+
       const novas = (job.progresso || []).slice(visto);
       novas.forEach(p => {
         const div = document.createElement('div');
-        div.style.cssText = 'padding:3px 0;border-bottom:0.5px solid rgba(255,255,255,0.05)';
+        const cor = COR_TIPO[p.tipo] || 'var(--gray-light)';
+        div.style.cssText = `padding:3px 0;border-bottom:0.5px solid rgba(255,255,255,0.04);color:${cor}`;
         div.textContent = p.msg;
         logEl.appendChild(div);
       });
@@ -146,12 +159,18 @@ function _iniciarPolling(jobId, onConcluido) {
       if (job.status === 'concluido') {
         clearInterval(poll);
         pill.textContent = 'concluído';
-        pill.classList.remove('animate-pulse');
+        pill.style.color = 'var(--green-primary)';
+        bar.style.width = '100%';
+        pctEl.textContent = '100%';
+        labelEl.textContent = 'Concluído';
         document.getElementById('progresso-rodape').style.display = 'block';
         onConcluido(job.resultado);
       } else if (job.status === 'erro') {
         clearInterval(poll);
         pill.textContent = 'erro';
+        pill.style.color = '#E24B4A';
+        bar.style.background = '#E24B4A';
+        labelEl.textContent = 'Erro na extração';
         document.getElementById('progresso-rodape').style.display = 'block';
         toast('Erro: ' + (job.erro || 'desconhecido'), 'erro');
       }
@@ -164,7 +183,7 @@ async function executarExtracao() {
   const btn = document.getElementById('btn-extrair');
   btn.disabled = true;
   btn.innerHTML = '↻ Extraindo…';
-  abrirModalProgresso('Extraindo E-mails', 'fa-download', 'text-indigo-400');
+  abrirModalProgresso('Extraindo E-mails', 'fa-download');
 
   try {
     const res = await fetch(`${API}/extrair`, { method: 'POST', headers: headers() });
@@ -173,9 +192,8 @@ async function executarExtracao() {
     else _iniciarPolling(data.job_id, (r) => {
       if (r) {
         let msg = `${r.extraidos} importado(s)`;
-        if (r.ignorados_duplicados) msg += ` · ${r.ignorados_duplicados} duplicado(s)`;
-        if (r.restantes) msg += ` · Restam ~${r.restantes} — extraia novamente`;
-        toast(msg, r.restantes ? 'aviso' : 'ok');
+        if (r.duplicados) msg += ` · ${r.duplicados} duplicado(s)`;
+        toast(msg, 'ok');
       }
       carregarEmails(); verificarPendentes();
     });
@@ -188,7 +206,7 @@ async function executarClassificacao() {
   const btn = document.getElementById('btn-classificar');
   btn.disabled = true;
   btn.innerHTML = '↻ Classificando…';
-  abrirModalProgresso('Classificando com IA', 'fa-brain', 'text-purple-400');
+  abrirModalProgresso('Classificando com IA', 'fa-brain');
 
   try {
     const res = await fetch(`${API}/classificar`, { method: 'POST', headers: headers() });

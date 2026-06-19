@@ -569,7 +569,7 @@
 
   <!-- MODAL PROGRESSO -->
   <div id="modal-progresso" class="modal-overlay hidden">
-    <div class="modal" style="max-width:520px">
+    <div class="modal" style="max-width:560px">
       <div class="modal-header">
         <span id="progresso-icone">↓</span>
         <h3 id="progresso-titulo"></h3>
@@ -577,6 +577,15 @@
         <button id="btn-fechar-progresso" class="modal-close">✕</button>
       </div>
       <div class="modal-body" style="padding:16px 20px">
+        <div id="progresso-bar-wrap" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-moss);margin-bottom:6px">
+            <span id="progresso-label">Preparando…</span>
+            <span id="progresso-pct-text">0%</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:8px;overflow:hidden">
+            <div id="progresso-bar" style="height:100%;width:0%;background:var(--green-primary);border-radius:6px;transition:width 0.4s ease"></div>
+          </div>
+        </div>
         <div id="progresso-log" class="log-terminal"></div>
       </div>
       <div id="progresso-rodape" class="modal-footer" style="display:none">

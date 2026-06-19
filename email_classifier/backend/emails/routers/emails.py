@@ -15,7 +15,7 @@ from backend.core.database import get_db, SessionLocal
 from backend.core.security import get_current_user
 from backend.core.models import User
 from backend.emails.models import ContaEmail, EmailExtraido
-from backend.emails.extractor import extrair_nao_processados, marcar_processados
+from backend.emails.extractor import contar_unseen, extrair_lote, marcar_processados, LOTE_MAXIMO
 from backend.emails.trainer import treinar, classificar_ml, modelo_existe
 
 router = APIRouter(prefix="/api", tags=["Emails"])
@@ -248,66 +248,101 @@ def status_job(job_id: str, _: User = Depends(get_current_user)):
 # ── Extração ──────────────────────────────────────────────────────────────────
 
 def _executar_extracao(job_id: str, contas: list[dict], user_id: int):
+    import math
     db = SessionLocal()
     try:
-        total_novos = total_dup = total_restantes = 0
+        # ── Fase 1: Contagem ──
+        _log(job_id, "info", "Verificando contas de e-mail…")
+        _jobs[job_id]["progresso_pct"] = 0
+        contagens = {}
+        total_geral = 0
 
         for conta_cfg in contas:
             nome_conta = conta_cfg["nome"]
-            _log(job_id, "info", f"[{nome_conta}] Conectando ao IMAP ({conta_cfg['imap_server']})…")
             try:
-                mensagens, restantes = extrair_nao_processados(conta_cfg)
+                qtd = contar_unseen(conta_cfg)
+                contagens[nome_conta] = qtd
+                total_geral += qtd
+                _log(job_id, "info", f"📧 {nome_conta}: {qtd} e-mail(s) não lido(s)")
             except Exception as exc:
-                _log(job_id, "erro", f"[{nome_conta}] Falha na conexão: {exc}")
+                _log(job_id, "erro", f"✕ {nome_conta}: falha na conexão — {exc}")
+                contagens[nome_conta] = -1
+
+        if total_geral == 0:
+            _log(job_id, "ok", "✓ Nenhum e-mail novo para extrair.")
+            _jobs[job_id].update({"status": "concluido", "progresso_pct": 100, "resultado": {"extraidos": 0, "duplicados": 0, "total": 0}})
+            return
+
+        total_lotes = math.ceil(total_geral / LOTE_MAXIMO)
+        _log(job_id, "info", f"Total: {total_geral} e-mail(s) → {total_lotes} lote(s) de até {LOTE_MAXIMO}")
+
+        # ── Fase 2: Extração por lotes ──
+        total_novos = total_dup = 0
+        processados_global = 0
+        lote_atual = 0
+
+        for conta_cfg in contas:
+            nome_conta = conta_cfg["nome"]
+            if contagens.get(nome_conta, 0) <= 0:
                 continue
 
-            total_restantes += restantes
-            total = len(mensagens)
-            if total == 0:
-                _log(job_id, "ok", f"[{nome_conta}] Nenhum e-mail novo.")
-                continue
+            while True:
+                lote_atual += 1
+                _log(job_id, "info", f"━━ Lote {lote_atual}/{total_lotes} — {nome_conta} ━━")
 
-            _log(job_id, "info", f"[{nome_conta}] {total} e-mail(s) neste lote{f' (+{restantes} aguardando)' if restantes else ''}.")
-            uids_salvos = []
+                try:
+                    mensagens, _, restantes = extrair_lote(conta_cfg)
+                except Exception as exc:
+                    _log(job_id, "erro", f"✕ Falha no lote {lote_atual}: {exc}")
+                    break
 
-            for idx, m in enumerate(mensagens, 1):
-                assunto_curto = (m["assunto"] or "(sem assunto)")[:55]
-                existe = db.query(EmailExtraido).filter(EmailExtraido.message_id == m["message_id"]).first()
-                if existe:
-                    total_dup += 1
-                    _log(job_id, "aviso", f"[{nome_conta}] [{idx}/{total}] Duplicado: {assunto_curto}")
-                    continue
+                if not mensagens:
+                    break
 
-                _log(job_id, "import", f"[{nome_conta}] [{idx}/{total}] Importando: {assunto_curto}")
-                dt = m.get("data_recebimento")
-                registro = EmailExtraido(
-                    message_id=m["message_id"],
-                    conta_id=conta_cfg.get("conta_id"),
-                    user_id=user_id,
-                    remetente=m["remetente"],
-                    assunto=m["assunto"],
-                    corpo=m["corpo"],
-                    data_recebimento=dt.replace(tzinfo=None) if dt else None,
-                    status="novo",
-                )
-                db.add(registro)
-                total_novos += 1
-                if m.get("_uid"):
-                    uids_salvos.append(m["_uid"])
+                uids_salvos = []
+                for idx, m in enumerate(mensagens, 1):
+                    processados_global += 1
+                    pct = min(99, int((processados_global / total_geral) * 100))
+                    _jobs[job_id]["progresso_pct"] = pct
 
-            db.commit()
-            if uids_salvos:
-                _log(job_id, "info", f"[{nome_conta}] Marcando {len(uids_salvos)} e-mail(s) como Processado…")
-                marcar_processados(conta_cfg, uids_salvos)
+                    assunto_curto = (m["assunto"] or "(sem assunto)")[:50]
+                    existe = db.query(EmailExtraido).filter(EmailExtraido.message_id == m["message_id"]).first()
+                    if existe:
+                        total_dup += 1
+                        _log(job_id, "aviso", f"⚠ [{processados_global}/{total_geral}] Duplicado: {assunto_curto}")
+                        continue
 
-        msg_final = f"Lote concluído — {total_novos} importado(s), {total_dup} duplicado(s)."
-        if total_restantes:
-            msg_final += f" Ainda restam ~{total_restantes} e-mail(s). Clique em Extrair novamente."
-        _log(job_id, "ok", msg_final)
-        _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "ignorados_duplicados": total_dup, "restantes": total_restantes}})
+                    _log(job_id, "import", f"↓ [{processados_global}/{total_geral}] {assunto_curto}")
+                    dt = m.get("data_recebimento")
+                    registro = EmailExtraido(
+                        message_id=m["message_id"],
+                        conta_id=conta_cfg.get("conta_id"),
+                        user_id=user_id,
+                        remetente=m["remetente"],
+                        assunto=m["assunto"],
+                        corpo=m["corpo"],
+                        data_recebimento=dt.replace(tzinfo=None) if dt else None,
+                        status="novo",
+                    )
+                    db.add(registro)
+                    total_novos += 1
+                    if m.get("_uid"):
+                        uids_salvos.append(m["_uid"])
+
+                db.commit()
+                if uids_salvos:
+                    _log(job_id, "info", f"✓ Lote {lote_atual}: {len(uids_salvos)} salvo(s), marcando como processado…")
+                    marcar_processados(conta_cfg, uids_salvos)
+
+                if restantes == 0:
+                    break
+
+        _jobs[job_id]["progresso_pct"] = 100
+        _log(job_id, "ok", f"✓ Extração concluída — {total_novos} importado(s), {total_dup} duplicado(s).")
+        _jobs[job_id].update({"status": "concluido", "resultado": {"extraidos": total_novos, "duplicados": total_dup, "total": total_geral}})
     except Exception as exc:
         db.rollback()
-        _log(job_id, "erro", f"Erro: {exc}")
+        _log(job_id, "erro", f"✕ Erro: {exc}")
         _jobs[job_id].update({"status": "erro", "erro": str(exc)})
     finally:
         db.close()

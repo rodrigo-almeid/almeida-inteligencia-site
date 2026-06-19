@@ -10,6 +10,7 @@ import email.utils
 import re
 
 PASTA_PROCESSADO = "Processado"
+LOTE_MAXIMO = 50
 
 
 def _decodificar_header(raw: str) -> str:
@@ -48,13 +49,25 @@ def _garantir_pasta(conn: imaplib.IMAP4_SSL, pasta: str):
         pass
 
 
-LOTE_MAXIMO = 50
+def contar_unseen(conta: dict) -> int:
+    conn = imaplib.IMAP4_SSL(conta["imap_server"], int(conta["imap_port"]))
+    try:
+        conn.login(conta["email"], conta["password"])
+        conn.select("INBOX", readonly=True)
+        _, uid_data = conn.uid("SEARCH", None, "UNSEEN")
+        uids = uid_data[0].split() if uid_data[0] else []
+        return len(uids)
+    finally:
+        try:
+            conn.logout()
+        except Exception:
+            pass
 
 
-def extrair_nao_processados(conta: dict) -> list[dict]:
+def extrair_lote(conta: dict, offset: int = 0) -> tuple[list[dict], int, int]:
     """
-    Conecta via IMAP, busca apenas e-mails UNSEEN (não lidos) na INBOX.
-    Retorna no máximo LOTE_MAXIMO e-mails por chamada.
+    Busca UNSEEN na INBOX, pula `offset` e retorna até LOTE_MAXIMO.
+    Returns: (mensagens, total_unseen, restantes_apos_lote)
     """
     resultados = []
     conn = imaplib.IMAP4_SSL(conta["imap_server"], int(conta["imap_port"]))
@@ -102,7 +115,7 @@ def extrair_nao_processados(conta: dict) -> list[dict]:
         except Exception:
             pass
 
-    return resultados, restantes
+    return resultados, total_unseen, restantes
 
 
 def marcar_processados(conta: dict, uids: list[bytes]):
