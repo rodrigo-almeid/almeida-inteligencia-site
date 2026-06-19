@@ -362,10 +362,10 @@
 
     (async () => {
       const t = token();
-      if (!t) { location.href = '/email/'; return; }
+      if (!t) { location.href = '/'; return; }
       try {
         const res = await fetch(`${AUTH}/me`, { headers: hdrsPlain() });
-        if (!res.ok) { location.href = '/email/'; return; }
+        if (!res.ok) { location.href = '/'; return; }
         const u = await res.json();
         document.getElementById('sidebar-usuario-email').textContent = u.email || u.nome;
         try {
@@ -376,7 +376,7 @@
               document.getElementById('portal-link').style.display = '';
           }
         } catch (_) {}
-      } catch (_) { location.href = '/email/'; return; }
+      } catch (_) { location.href = '/'; return; }
 
       await carregarContas();
 
@@ -387,7 +387,7 @@
       document.getElementById('btn-toggle-senha').addEventListener('click', toggleSenha);
       document.getElementById('fc-provider').addEventListener('change', preencherServidor);
       document.getElementById('btn-logout').addEventListener('click', () => {
-        localStorage.removeItem('email_token'); localStorage.removeItem('email_nome'); location.href = '/email/';
+        localStorage.removeItem('email_token'); localStorage.removeItem('email_nome'); location.href = '/';
       });
 
       document.getElementById('lista-contas').addEventListener('click', e => {

@@ -19,11 +19,11 @@ function headers(json = true) {
   if (json) h['Content-Type'] = 'application/json';
   return h;
 }
-function fazerLogout() { localStorage.removeItem('email_token'); localStorage.removeItem('email_nome'); window.location.href = '/email/'; }
+function fazerLogout() { localStorage.removeItem('email_token'); localStorage.removeItem('email_nome'); window.location.href = '/'; }
 
 async function checarAuth() {
   const t = token();
-  if (!t) { window.location.href = '/email/'; return; }
+  if (!t) { window.location.href = '/'; return; }
   try {
     const res = await fetch(`${API.replace('/api','/auth')}/me`, { headers: headers() });
     if (!res.ok) { fazerLogout(); return; }
