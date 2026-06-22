@@ -33,7 +33,9 @@
     .form-group{margin-bottom:16px;}
     .form-group label{display:block;font-size:12px;color:var(--gray-l);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
     .form-group input{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;}
-    .form-group input:focus{border-color:rgba(61,219,130,.4);}
+    .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:rgba(61,219,130,.4);}
+    .form-group textarea,.form-group select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;resize:vertical;}
+    .form-group select option{background:var(--bg2);color:#fff;}
     .form-group .hint{font-size:11px;color:var(--gray);margin-top:4px;}
 
     .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
@@ -164,6 +166,37 @@
     </div>
   </div>
 
+  <!-- Personalidade -->
+  <div class="card">
+    <h2>🐉 Personalidade do Assistente</h2>
+    <div class="form-group">
+      <label>Nome do Assistente</label>
+      <input type="text" id="nome_assistente" placeholder="Goku" value="Goku">
+      <div class="hint">Como o assistente vai se apresentar nas conversas</div>
+    </div>
+    <div class="form-group">
+      <label>Tom de Voz</label>
+      <div class="select-wrap">
+        <select id="tom_voz">
+          <option value="casual">Casual — amigável e descontraído</option>
+          <option value="formal">Formal — profissional e educado</option>
+          <option value="tecnico">Técnico — preciso e detalhado</option>
+          <option value="humoristico">Humorístico — divertido e leve</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Personalidade</label>
+      <textarea id="personalidade" rows="3" placeholder="Ex: Seja direto e objetivo. Use emojis com moderação. Sempre que possível, dê dicas de economia."></textarea>
+      <div class="hint">Descreva como o assistente deve se comportar nas conversas</div>
+    </div>
+    <div class="form-group">
+      <label>Instruções Extras</label>
+      <textarea id="instrucoes_extras" rows="3" placeholder="Ex: Quando eu perguntar sobre mercado, sempre pergunte a forma de pagamento. Classifique meus gastos de fast food como 'lazer'."></textarea>
+      <div class="hint">Regras específicas que o assistente deve seguir</div>
+    </div>
+  </div>
+
   <!-- Segurança -->
   <div class="card">
     <h2>Segurança</h2>
@@ -217,6 +250,10 @@ async function carregarConfig() {
     document.getElementById('whatsapp_phone_id').value = data.whatsapp_phone_id || '';
     document.getElementById('whatsapp_verify_token').value = data.whatsapp_verify_token || '';
     document.getElementById('numero_autorizado').value = data.numero_autorizado || '';
+    document.getElementById('nome_assistente').value = data.nome_assistente || 'Goku';
+    document.getElementById('tom_voz').value = data.tom_voz || 'casual';
+    document.getElementById('personalidade').value = data.personalidade || '';
+    document.getElementById('instrucoes_extras').value = data.instrucoes_extras || '';
     document.getElementById('ativo').checked = data.ativo;
     atualizarStatus(data.ativo);
     atualizarWebhookUrl();
@@ -247,6 +284,10 @@ async function salvar() {
     whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
     gemini_api_key: document.getElementById('gemini_api_key').value || null,
     numero_autorizado: document.getElementById('numero_autorizado').value || null,
+    nome_assistente: document.getElementById('nome_assistente').value || 'Goku',
+    personalidade: document.getElementById('personalidade').value || null,
+    tom_voz: document.getElementById('tom_voz').value || 'casual',
+    instrucoes_extras: document.getElementById('instrucoes_extras').value || null,
     ativo: document.getElementById('ativo').checked,
   };
 

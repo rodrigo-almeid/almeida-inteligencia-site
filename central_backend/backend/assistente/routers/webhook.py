@@ -105,7 +105,7 @@ async def processar_mensagem(msg, config, user, db):
         salvar_conta(dados, user, db)
         return f"✅ Registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}"
 
-    return await chat(config.gemini_api_key, msg.get("from"), texto)
+    return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
 
 def consultar_financeiro(user, db):

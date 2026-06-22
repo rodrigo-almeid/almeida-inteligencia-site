@@ -28,7 +28,7 @@ _TEST_ENGINE = create_engine(
 _TestSession = sessionmaker(autocommit=False, autoflush=False, bind=_TEST_ENGINE)
 
 # Imports do backend (só aqui, depois dos env vars)
-from backend.core.models import Base, User, Pessoa, Conta, Senha
+from backend.core.models import Base, User, Pessoa, Conta, Senha, AssistenteConfig
 from backend.core.database import get_db
 from backend.core.security import get_password_hash
 from backend.main import app

@@ -210,4 +210,9 @@ class AssistenteConfig(Base):
     numero_autorizado = Column(String, nullable=True)
     ativo = Column(Boolean, default=False)
 
+    nome_assistente = Column(String, nullable=True, default="Goku")
+    personalidade = Column(String, nullable=True)
+    tom_voz = Column(String, nullable=True, default="casual")
+    instrucoes_extras = Column(String, nullable=True)
+
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)

@@ -197,6 +197,10 @@ class AssistenteConfigCreate(BaseModel):
     gemini_api_key: Optional[str] = None
     numero_autorizado: Optional[str] = None
     ativo: bool = False
+    nome_assistente: Optional[str] = "Goku"
+    personalidade: Optional[str] = None
+    tom_voz: Optional[str] = "casual"
+    instrucoes_extras: Optional[str] = None
 
 class AssistenteConfigResponse(ORMBase):
     id: int
@@ -204,4 +208,8 @@ class AssistenteConfigResponse(ORMBase):
     whatsapp_verify_token: Optional[str]
     numero_autorizado: Optional[str]
     ativo: bool
+    nome_assistente: Optional[str]
+    personalidade: Optional[str]
+    tom_voz: Optional[str]
+    instrucoes_extras: Optional[str]
     user_id: int

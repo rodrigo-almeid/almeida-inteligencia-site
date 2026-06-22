@@ -19,13 +19,45 @@ async def _gerar(api_key: str, contents: list):
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
-async def chat(api_key: str, user_id: str, mensagem: str) -> str:
-    system = (
-        "Você é Goku, um assistente pessoal inteligente e direto. "
+def montar_system_prompt(config=None) -> str:
+    nome = "Goku"
+    tom = "casual"
+    personalidade = ""
+    instrucoes = ""
+
+    if config:
+        nome = config.nome_assistente or "Goku"
+        tom = config.tom_voz or "casual"
+        personalidade = config.personalidade or ""
+        instrucoes = config.instrucoes_extras or ""
+
+    tons = {
+        "formal": "Responda de forma profissional, educada e formal.",
+        "casual": "Responda de forma amigável, descontraída e direta.",
+        "tecnico": "Responda de forma técnica e precisa, com termos específicos quando necessário.",
+        "humoristico": "Responda com bom humor, use analogias divertidas, mas sem perder a utilidade.",
+    }
+    tom_texto = tons.get(tom, tons["casual"])
+
+    prompt = (
+        f"Você é {nome}, um assistente pessoal inteligente. "
+        f"{tom_texto} "
         "Você ajuda com: conversas gerais, finanças pessoais e agenda. "
         "Está integrado ao sistema Almeida Inteligência. "
-        "Responda sempre em português brasileiro, de forma clara e objetiva."
+        "Responda sempre em português brasileiro."
     )
+
+    if personalidade:
+        prompt += f"\n\nSua personalidade: {personalidade}"
+    if instrucoes:
+        prompt += f"\n\nInstruções adicionais: {instrucoes}"
+
+    return prompt
+
+
+async def chat(api_key: str, user_id: str, mensagem: str, config=None) -> str:
+    system = montar_system_prompt(config)
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
 
     if user_id not in historico:
         historico[user_id] = []
@@ -33,7 +65,7 @@ async def chat(api_key: str, user_id: str, mensagem: str) -> str:
 
     contents = [
         {"role": "user", "parts": [{"text": system}]},
-        {"role": "model", "parts": [{"text": "Entendido! Sou o Goku. Como posso ajudar?"}]},
+        {"role": "model", "parts": [{"text": f"Entendido! Sou o {nome}. Como posso ajudar?"}]},
         *hist[-10:],
         {"role": "user", "parts": [{"text": mensagem}]},
     ]
