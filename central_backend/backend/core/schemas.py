@@ -195,6 +195,7 @@ class AssistenteConfigCreate(BaseModel):
     whatsapp_phone_id: Optional[str] = None
     whatsapp_verify_token: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
     numero_autorizado: Optional[str] = None
     ativo: bool = False
     nome_assistente: Optional[str] = "Goku"

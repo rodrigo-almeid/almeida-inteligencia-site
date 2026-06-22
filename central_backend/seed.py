@@ -47,6 +47,7 @@ migrations = [
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS personalidade VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS tom_voz VARCHAR DEFAULT 'casual'",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS instrucoes_extras VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS groq_api_key VARCHAR",
 ]
 for sql in migrations:
     try:

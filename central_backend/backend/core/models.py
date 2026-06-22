@@ -207,6 +207,7 @@ class AssistenteConfig(Base):
     whatsapp_phone_id = Column(String, nullable=True)
     whatsapp_verify_token = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
+    groq_api_key = Column(String, nullable=True)
     numero_autorizado = Column(String, nullable=True)
     ativo = Column(Boolean, default=False)
 

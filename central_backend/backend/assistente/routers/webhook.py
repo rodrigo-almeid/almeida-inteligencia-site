@@ -93,7 +93,7 @@ async def processar_mensagem(msg, config, user, db):
         media_id = msg.get("image", {}).get("id")
         mime = msg.get("image", {}).get("mime_type", "image/jpeg")
         buffer = await baixar_midia(config.whatsapp_token, media_id)
-        dados = await extrair_dados_nota(config.gemini_api_key, buffer, mime)
+        dados = await extrair_dados_nota(config.gemini_api_key, buffer, mime, config)
 
         if not dados or not dados.get("valor_total"):
             return "Não consegui identificar uma nota fiscal nessa imagem. Tente uma foto mais nítida."
@@ -104,13 +104,13 @@ async def processar_mensagem(msg, config, user, db):
     if not texto:
         return None
 
-    intencao = await detectar_intencao(config.gemini_api_key, texto)
+    intencao = await detectar_intencao(config.gemini_api_key, texto, config)
 
     if intencao == "financeiro_consulta":
         return consultar_financeiro(user, db)
 
     if intencao == "financeiro_registro":
-        dados = await extrair_dados_gasto(config.gemini_api_key, texto)
+        dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
         if not dados or not dados.get("valor") or dados["valor"] <= 0:
             return 'Não entendi o gasto. Tente: "gastei 50 reais no mercado"'
         salvar_conta(dados, user, db)
