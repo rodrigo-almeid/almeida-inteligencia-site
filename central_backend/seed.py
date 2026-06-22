@@ -41,5 +41,19 @@ for p in todos_perfis:
         user.perfis.append(p)
 db.commit()
 
+# Migrations manuais — adiciona colunas que podem não existir
+migrations = [
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS nome_assistente VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS personalidade VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS tom_voz VARCHAR DEFAULT 'casual'",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS instrucoes_extras VARCHAR",
+]
+for sql in migrations:
+    try:
+        db.execute(text(sql))
+    except Exception:
+        pass
+db.commit()
+
 db.close()
 print(f"Banco inicializado. Admin: {admin_email}")
