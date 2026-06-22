@@ -34,7 +34,7 @@ async def validar_configuracoes(
         try:
             async with httpx.AsyncClient(timeout=10) as client:
                 res = await client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={payload.gemini_api_key}",
+                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={payload.gemini_api_key}",
                     json={"contents": [{"role": "user", "parts": [{"text": "responda apenas: ok"}]}]},
                 )
                 if res.status_code == 200:
