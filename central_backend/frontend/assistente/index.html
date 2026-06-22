@@ -216,7 +216,7 @@
 
 <script>
 const API = window.location.origin;
-let token = localStorage.getItem('token');
+let token = localStorage.getItem('token') || localStorage.getItem('central_token');
 let configExiste = false;
 
 function toast(msg) {
