@@ -267,6 +267,23 @@
       return;
     }
 
+    // Módulo assistente virtual
+    if (url.includes('/assistente')) {
+      try {
+        const res = await fetch('/central/auth/sso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ portal_token: token })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('token', data.access_token);
+        }
+      } catch(e) {}
+      window.location.href = url;
+      return;
+    }
+
     window.location.href = url;
   }
 
