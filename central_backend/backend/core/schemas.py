@@ -184,3 +184,24 @@ class CompraResponse(ORMBase):
     bandeira_vale: Optional[str]
     valor_total: float
     itens: List[ItemCompraResponse]
+
+
+# =====================================================================
+# BLOCO 5: ASSISTENTE VIRTUAL (GOKU)
+# =====================================================================
+
+class AssistenteConfigCreate(BaseModel):
+    whatsapp_token: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+    whatsapp_verify_token: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    numero_autorizado: Optional[str] = None
+    ativo: bool = False
+
+class AssistenteConfigResponse(ORMBase):
+    id: int
+    whatsapp_phone_id: Optional[str]
+    whatsapp_verify_token: Optional[str]
+    numero_autorizado: Optional[str]
+    ativo: bool
+    user_id: int

@@ -193,3 +193,21 @@ class ItemCompra(Base):
 
     compra_id = Column(Integer, ForeignKey("compras_supermercado.id", ondelete="CASCADE"), nullable=False)
     compra = relationship("CompraSupermercado", back_populates="itens")
+
+
+# =====================================================================
+# BLOCO 5: ASSISTENTE VIRTUAL (GOKU)
+# =====================================================================
+
+class AssistenteConfig(Base):
+    __tablename__ = "assistente_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    whatsapp_token = Column(String, nullable=True)
+    whatsapp_phone_id = Column(String, nullable=True)
+    whatsapp_verify_token = Column(String, nullable=True)
+    gemini_api_key = Column(String, nullable=True)
+    numero_autorizado = Column(String, nullable=True)
+    ativo = Column(Boolean, default=False)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)

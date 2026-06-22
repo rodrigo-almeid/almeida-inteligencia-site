@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistente Virtual — Goku</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    .sidebar{width:220px;height:100vh;position:sticky;top:0;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;overflow-y:auto;}
+    .sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+    .sidebar .logo .name{font-size:13px;font-weight:600;} .sidebar .logo .name span{color:var(--green);}
+    .sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+    .nav-item:hover,.nav-item.active{background:rgba(61,219,130,.08);color:var(--green);}
+    .sidebar-spacer{flex:1;}
+    .user-chip{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+    .user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{background:rgba(226,75,74,.08);}
+
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{margin-bottom:28px;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+
+    .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+    .card h2{font-size:15px;font-weight:600;margin-bottom:16px;}
+
+    .form-group{margin-bottom:16px;}
+    .form-group label{display:block;font-size:12px;color:var(--gray-l);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+    .form-group input{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;}
+    .form-group input:focus{border-color:rgba(61,219,130,.4);}
+    .form-group .hint{font-size:11px;color:var(--gray);margin-top:4px;}
+
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
+    .toggle-row .tlabel{font-size:13px;}
+    .toggle-row .tstatus{font-size:12px;color:var(--gray);}
+    .toggle{position:relative;width:44px;height:24px;cursor:pointer;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .toggle .slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:24px;transition:.3s;}
+    .toggle .slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+    .toggle input:checked+.slider{background:var(--green);}
+    .toggle input:checked+.slider:before{transform:translateX(20px);}
+
+    .btn{background:var(--green);color:var(--black);border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn:hover{opacity:.9;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-row{display:flex;gap:8px;margin-top:8px;}
+
+    .status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;}
+    .status-badge.online{background:rgba(61,219,130,.12);color:var(--green);}
+    .status-badge.offline{background:rgba(226,75,74,.12);color:var(--red);}
+    .status-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
+    .toast.show{opacity:1;}
+
+    .webhook-url{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--gray-l);font-family:monospace;word-break:break-all;margin-top:8px;}
+
+    @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}}
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="26" height="26">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligência</span></div>
+      <div class="tag">Assistente</div>
+    </div>
+  </div>
+
+  <a href="/financeiro/dashboard.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Financeiro
+  </a>
+  <a href="/financeiro/mercado.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    Mercado
+  </a>
+  <a href="/assistente-painel/" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Assistente
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="user-chip">
+    <div>Conta</div>
+    <div class="email" id="user-email">—</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <h1>🐉 Goku — Assistente Virtual</h1>
+    <p>Configure a integração com o WhatsApp via Meta Cloud API</p>
+  </div>
+
+  <!-- Status -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <h2>Status</h2>
+      <span class="status-badge offline" id="status-badge">
+        <span class="dot"></span>
+        <span id="status-text">Desconectado</span>
+      </span>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <div class="tlabel">Ativar assistente</div>
+        <div class="tstatus">Quando ativo, o Goku responde mensagens no WhatsApp</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="ativo">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Meta WhatsApp -->
+  <div class="card">
+    <h2>Meta WhatsApp Cloud API</h2>
+    <div class="form-group">
+      <label>Token de Acesso Permanente</label>
+      <input type="password" id="whatsapp_token" placeholder="EAAxxxxxxx...">
+      <div class="hint">Meta for Developers → Seu App → WhatsApp → Token</div>
+    </div>
+    <div class="form-group">
+      <label>Phone Number ID</label>
+      <input type="text" id="whatsapp_phone_id" placeholder="1234567890">
+      <div class="hint">ID do número de telefone registrado na Meta</div>
+    </div>
+    <div class="form-group">
+      <label>Verify Token</label>
+      <input type="text" id="whatsapp_verify_token" placeholder="goku_verify_2024">
+      <div class="hint">Token que você define para verificação do webhook</div>
+    </div>
+    <div class="form-group">
+      <label>URL do Webhook (para colar na Meta)</label>
+      <div class="webhook-url" id="webhook-url">Configure o domínio do servidor para gerar a URL</div>
+    </div>
+  </div>
+
+  <!-- Gemini -->
+  <div class="card">
+    <h2>Google Gemini API</h2>
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" id="gemini_api_key" placeholder="AIzaSy...">
+      <div class="hint">Chave obtida em aistudio.google.com</div>
+    </div>
+  </div>
+
+  <!-- Segurança -->
+  <div class="card">
+    <h2>Segurança</h2>
+    <div class="form-group">
+      <label>Número Autorizado</label>
+      <input type="text" id="numero_autorizado" placeholder="5543999211099">
+      <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número)</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="salvar()">Salvar Configurações</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('token');
+let configExiste = false;
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function logout() {
+  localStorage.removeItem('token');
+  window.location.href = '/financeiro/';
+}
+
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API}${path}`, opts);
+  if (res.status === 401) { logout(); return null; }
+  return res;
+}
+
+async function carregarConfig() {
+  const res = await api('GET', '/assistente/config');
+  if (res.ok) {
+    configExiste = true;
+    const data = await res.json();
+    document.getElementById('whatsapp_phone_id').value = data.whatsapp_phone_id || '';
+    document.getElementById('whatsapp_verify_token').value = data.whatsapp_verify_token || '';
+    document.getElementById('numero_autorizado').value = data.numero_autorizado || '';
+    document.getElementById('ativo').checked = data.ativo;
+    atualizarStatus(data.ativo);
+    atualizarWebhookUrl();
+  }
+}
+
+function atualizarStatus(ativo) {
+  const badge = document.getElementById('status-badge');
+  const text = document.getElementById('status-text');
+  if (ativo) {
+    badge.className = 'status-badge online';
+    text.textContent = 'Ativo';
+  } else {
+    badge.className = 'status-badge offline';
+    text.textContent = 'Desconectado';
+  }
+}
+
+function atualizarWebhookUrl() {
+  const el = document.getElementById('webhook-url');
+  el.textContent = `${API}/assistente/webhook`;
+}
+
+async function salvar() {
+  const payload = {
+    whatsapp_token: document.getElementById('whatsapp_token').value || null,
+    whatsapp_phone_id: document.getElementById('whatsapp_phone_id').value || null,
+    whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
+    gemini_api_key: document.getElementById('gemini_api_key').value || null,
+    numero_autorizado: document.getElementById('numero_autorizado').value || null,
+    ativo: document.getElementById('ativo').checked,
+  };
+
+  const method = configExiste ? 'PUT' : 'POST';
+  const res = await api(method, '/assistente/config', payload);
+
+  if (res && res.ok) {
+    configExiste = true;
+    atualizarStatus(payload.ativo);
+    toast('✅ Configurações salvas!');
+  } else {
+    toast('❌ Erro ao salvar');
+  }
+}
+
+// Mostrar email do usuário
+try {
+  const payload = JSON.parse(atob(token.split('.')[1]));
+  document.getElementById('user-email').textContent = payload.sub || '—';
+} catch {}
+
+if (!token) {
+  window.location.href = '/financeiro/';
+} else {
+  atualizarWebhookUrl();
+  carregarConfig();
+}
+</script>
+</body>
+</html>

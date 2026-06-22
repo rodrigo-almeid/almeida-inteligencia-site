@@ -13,6 +13,7 @@ from backend.credenciais.routers import senhas, pessoas, csv as csv_router
 from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios
 from backend.combustivel.routers import abastecimentos
 from backend.mercado.routers import compras as mercado_compras
+from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -47,6 +48,11 @@ app.include_router(abastecimentos.router)
 # Mercado
 app.include_router(mercado_compras.router)
 
+# Assistente Virtual (Goku)
+app.include_router(assistente_config.router)
+app.include_router(assistente_webhook.router)
+
 # Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
+app.mount("/assistente-painel", StaticFiles(directory="frontend/assistente", html=True), name="assistente-painel")
