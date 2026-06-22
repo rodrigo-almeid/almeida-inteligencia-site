@@ -61,6 +61,28 @@
     .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
     .toast.show{opacity:1;}
 
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;}
+    .overlay.active{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:32px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:18px;font-weight:600;margin-bottom:20px;}
+    .modal h3 span{color:var(--green);}
+    .check-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border:0.5px solid var(--border);border-radius:10px;margin-bottom:8px;transition:border-color .3s;}
+    .check-item.ok{border-color:rgba(61,219,130,0.4);}
+    .check-item.fail{border-color:rgba(226,75,74,0.4);}
+    .check-item.loading{border-color:rgba(245,166,35,0.3);}
+    .check-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .check-item.ok .check-icon{background:rgba(61,219,130,0.15);color:var(--green);}
+    .check-item.fail .check-icon{background:rgba(226,75,74,0.15);color:var(--red);}
+    .check-item.loading .check-icon{background:rgba(245,166,35,0.15);color:var(--yellow);}
+    .check-name{font-size:14px;font-weight:500;}
+    .check-msg{font-size:12px;color:var(--gray);margin-top:2px;}
+    .modal-actions{display:flex;gap:10px;margin-top:20px;}
+    .modal-actions .btn{flex:1;}
+    .btn-cancel{flex:1;background:transparent;color:var(--gray);border:0.5px solid var(--border);border-radius:10px;padding:11px 24px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-cancel:hover{border-color:rgba(255,255,255,0.2);color:#fff;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--yellow);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
+
     .webhook-url{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--gray-l);font-family:monospace;word-break:break-all;margin-top:8px;}
 
     @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}}
@@ -204,6 +226,22 @@
   </div>
 </div>
 
+<div class="overlay" id="overlayValidacao">
+  <div class="modal">
+    <h3>Validando <span>Configurações</span></h3>
+    <div id="checkList">
+      <div class="check-item loading">
+        <div class="check-icon"><div class="spinner"></div></div>
+        <div><div class="check-name">Verificando...</div><div class="check-msg">Testando conexões</div></div>
+      </div>
+    </div>
+    <div class="modal-actions" id="modalActions" style="display:none;">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn" id="btnConfirmarSalvar" onclick="confirmarSalvar()">Salvar mesmo assim</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -269,8 +307,10 @@ function atualizarWebhookUrl() {
   el.textContent = `${API}/assistente/webhook`;
 }
 
-async function salvar() {
-  const payload = {
+let payloadPendente = null;
+
+function getPayload() {
+  return {
     whatsapp_token: document.getElementById('whatsapp_token').value || null,
     whatsapp_phone_id: document.getElementById('whatsapp_phone_id').value || null,
     whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
@@ -282,18 +322,91 @@ async function salvar() {
     instrucoes_extras: document.getElementById('instrucoes_extras').value || null,
     ativo: document.getElementById('ativo').checked,
   };
+}
+
+async function salvar() {
+  payloadPendente = getPayload();
+
+  document.getElementById('overlayValidacao').classList.add('active');
+  document.getElementById('modalActions').style.display = 'none';
+  document.getElementById('checkList').innerHTML = `
+    <div class="check-item loading">
+      <div class="check-icon"><div class="spinner"></div></div>
+      <div><div class="check-name">Google Gemini</div><div class="check-msg">Testando API Key...</div></div>
+    </div>
+    <div class="check-item loading">
+      <div class="check-icon"><div class="spinner"></div></div>
+      <div><div class="check-name">WhatsApp (Meta)</div><div class="check-msg">Testando Token e Phone ID...</div></div>
+    </div>
+  `;
+
+  const res = await api('POST', '/assistente/validar', {
+    gemini_api_key: payloadPendente.gemini_api_key,
+    whatsapp_token: payloadPendente.whatsapp_token,
+    whatsapp_phone_id: payloadPendente.whatsapp_phone_id,
+  });
+
+  if (!res || !res.ok) {
+    document.getElementById('checkList').innerHTML = `
+      <div class="check-item fail">
+        <div class="check-icon">✗</div>
+        <div><div class="check-name">Erro</div><div class="check-msg">Não foi possível validar. Verifique sua conexão.</div></div>
+      </div>`;
+    document.getElementById('modalActions').style.display = 'flex';
+    document.getElementById('btnConfirmarSalvar').textContent = 'Salvar mesmo assim';
+    return;
+  }
+
+  const data = await res.json();
+
+  document.getElementById('checkList').innerHTML = data.resultados.map(r => `
+    <div class="check-item ${r.ok ? 'ok' : 'fail'}">
+      <div class="check-icon">${r.ok ? '✓' : '✗'}</div>
+      <div>
+        <div class="check-name">${r.nome}</div>
+        <div class="check-msg">${r.mensagem}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('modalActions').style.display = 'flex';
+
+  if (data.todos_ok) {
+    document.getElementById('btnConfirmarSalvar').textContent = 'Salvar configurações';
+    document.getElementById('btnConfirmarSalvar').style.opacity = '1';
+  } else {
+    document.getElementById('btnConfirmarSalvar').textContent = 'Salvar mesmo assim';
+    document.getElementById('btnConfirmarSalvar').style.opacity = '0.7';
+  }
+}
+
+async function confirmarSalvar() {
+  if (!payloadPendente) return;
 
   const method = configExiste ? 'PUT' : 'POST';
-  const res = await api(method, '/assistente/config', payload);
+  const res = await api(method, '/assistente/config', payloadPendente);
+
+  fecharModal();
 
   if (res && res.ok) {
     configExiste = true;
-    atualizarStatus(payload.ativo);
+    atualizarStatus(payloadPendente.ativo);
     toast('✅ Configurações salvas!');
   } else {
     toast('❌ Erro ao salvar');
   }
+  payloadPendente = null;
 }
+
+function fecharModal() {
+  document.getElementById('overlayValidacao').classList.remove('active');
+  payloadPendente = null;
+}
+
+document.getElementById('overlayValidacao').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
 
 // Mostrar email do usuário
 try {
