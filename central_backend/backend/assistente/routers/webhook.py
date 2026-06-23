@@ -135,13 +135,7 @@ async def processar_mensagem(msg, config, user, db):
             )
 
         salvar_conta(dados, user, db)
-        status = dados.get("status", "paga")
-        pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
-        pgto_txt = pgto_map.get(forma, forma)
-        if status == "pendente":
-            venc = dados.get("vencimento", dados.get("data", ""))
-            return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• 💳 {pgto_txt}\n• Status: pendente\n• 🏷️ via Goku"
-        return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• 💳 {pgto_txt}\n• Status: pago\n• 🏷️ via Goku"
+        return _formatar_resposta_registro(dados, forma)
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
@@ -173,14 +167,35 @@ def _resolver_pagamento_pendente(user_key, texto, user, db):
             del hist[i]
 
             salvar_conta(dados, user, db)
-            pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
-            pgto_txt = pgto_map.get(forma, forma)
-            status = dados.get("status", "paga")
-            if status == "pendente":
-                venc = dados.get("vencimento", dados.get("data", ""))
-                return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• 💳 {pgto_txt}\n• Status: pendente\n• 🏷️ via Goku"
-            return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• 💳 {pgto_txt}\n• Status: pago\n• 🏷️ via Goku"
+            return _formatar_resposta_registro(dados, forma)
     return None
+
+
+def _formatar_resposta_registro(dados, forma=None):
+    pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
+    pgto_txt = pgto_map.get(forma or dados.get("forma_pagamento", ""), "")
+    pgto_linha = f"\n• 💳 {pgto_txt}" if pgto_txt else ""
+    natureza = dados.get("natureza", "despesa")
+    status = dados.get("status", "paga")
+
+    if natureza == "receita":
+        icon = "💰"
+        label = "Receita registrada!"
+    elif status == "pendente":
+        icon = "📋"
+        label = "Conta registrada!"
+    else:
+        icon = "✅"
+        label = "Gasto registrado!"
+
+    linha_data = ""
+    if status == "pendente":
+        venc = dados.get("vencimento", dados.get("data", ""))
+        linha_data = f"\n• Vencimento: {venc}\n• Status: pendente"
+    else:
+        linha_data = f"\n• Data: {dados.get('data', 'hoje')}\n• Status: paga"
+
+    return f"{icon} {label}\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Tipo: {natureza}{linha_data}{pgto_linha}\n• 🏷️ via Goku"
 
 
 def consultar_financeiro(user, db):
@@ -241,7 +256,7 @@ def salvar_conta(dados, user, db):
         descricao=dados["descricao"],
         vencimento=date.fromisoformat(venc_str),
         valor=dados["valor"],
-        natureza="despesa",
+        natureza=dados.get("natureza", "despesa"),
         status=status,
         tipo_recorrencia="unica",
         origem="goku",

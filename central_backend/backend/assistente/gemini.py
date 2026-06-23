@@ -166,10 +166,11 @@ async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
 
     prompt = (
         f"Classifique a mensagem em UMA das intenções: {', '.join(intencoes)}.\n\n"
-        "- financeiro_registro: o usuário RELATA um gasto, compra, conta ou boleto que aconteceu ou vai acontecer. "
-        "Palavras-chave: gastei, paguei, comprei, almocei, conta de, boleto, parcela, vence, fatura, pila, conto, mango, real, reais.\n"
+        "- financeiro_registro: o usuário RELATA um gasto, compra, conta, boleto OU uma receita/entrada que aconteceu ou vai acontecer. "
+        "Palavras-chave: gastei, paguei, comprei, almocei, conta de, boleto, parcela, vence, fatura, pila, conto, mango, real, reais, "
+        "recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso.\n"
         "  Exemplos: 'gastei 50 no mercado', 'paguei 30 de uber', 'conta de luz 180', 'eita gastei uns 30 pila', "
-        "'comprei um tênis por 250', 'almocei por 28 reais'\n\n"
+        "'comprei um tênis por 250', 'almocei por 28 reais', 'recebi 5000 de salário', 'me pagaram 500 do freelance'\n\n"
         "- financeiro_consulta: o usuário PERGUNTA sobre seus gastos ou quer um resumo. "
         "Palavras-chave: quanto, total, resumo, extrato, saldo, como estão, minhas contas.\n"
         "  Exemplos: 'quanto gastei esse mês?', 'como estão minhas contas?', 'qual meu saldo?'\n\n"
@@ -236,15 +237,19 @@ def _get_gemini_key(config) -> str | None:
 async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | None:
     hoje = date.today().isoformat()
     prompt = (
-        "Extraia do texto abaixo as informações de gasto em JSON:\n"
+        "Extraia do texto abaixo as informações financeiras em JSON:\n"
         '{"descricao":"o que foi","valor":0.00,'
-        '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|outros",'
+        '"natureza":"despesa|receita",'
+        '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|salario|freelance|outros",'
         f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})",'
         '"status":"paga|pendente",'
         '"vencimento":"YYYY-MM-DD ou null se já pago",'
         '"forma_pagamento":"debito|credito|pix|dinheiro|vale_alimentacao|null"}\n'
-        "Regras: se o usuário diz 'gastei', 'paguei', 'comprei' = status 'paga'. "
-        "Se diz 'conta de', 'vence', 'parcela', 'boleto' = status 'pendente' e preencha vencimento.\n"
+        "Regras de natureza:\n"
+        "- despesa: gastei, paguei, comprei, conta de, boleto, parcela, fatura\n"
+        "- receita: recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso\n"
+        "Regras de status: se o usuário diz 'gastei', 'paguei', 'comprei', 'recebi' = status 'paga'. "
+        "Se diz 'conta de', 'vence', 'parcela', 'boleto', 'vou receber' = status 'pendente' e preencha vencimento.\n"
         "Regras forma_pagamento: se o usuário mencionar explicitamente (pix, cartão, débito, crédito, dinheiro, vale), preencha. "
         "Se não mencionar, use null.\n"
         f'Texto: "{texto}"\nResponda APENAS com o JSON.'
