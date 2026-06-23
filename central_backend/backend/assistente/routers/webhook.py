@@ -98,8 +98,7 @@ async def processar_mensagem(msg, config, user, db):
         if not dados or not dados.get("valor_total"):
             return "Não consegui identificar uma nota fiscal nessa imagem. Tente uma foto mais nítida."
 
-        salvar_compra_mercado(dados, user, db)
-        return formatar_nota(dados)
+        return processar_nota_fiscal(dados, user, db)
 
     if not texto:
         return None
@@ -112,9 +111,13 @@ async def processar_mensagem(msg, config, user, db):
     if intencao == "financeiro_registro":
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
         if not dados or not dados.get("valor") or dados["valor"] <= 0:
-            return 'Não entendi o gasto. Tente: "gastei 50 reais no mercado"'
+            return 'Não entendi o gasto. Tente: "gastei 50 reais no mercado" ou "conta de luz 150 vence dia 10"'
         salvar_conta(dados, user, db)
-        return f"✅ Registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}"
+        status = dados.get("status", "pago")
+        if status == "pendente":
+            venc = dados.get("vencimento", dados.get("data", ""))
+            return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• Status: pendente"
+        return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• Status: pago"
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
@@ -146,15 +149,55 @@ def consultar_financeiro(user, db):
     return f"💰 *Resumo de {mes}/{ano}:*\n\n{linhas}\n\n*Total: R$ {total:.2f}*"
 
 
+def processar_nota_fiscal(dados, user, db):
+    tipo_estab = dados.get("tipo_estabelecimento", "outro")
+    forma_pgto = dados.get("forma_pagamento", "debito")
+    eh_mercado = tipo_estab == "mercado"
+
+    destinos = []
+
+    if eh_mercado:
+        salvar_compra_mercado(dados, user, db)
+        destinos.append("Mercado")
+
+        if forma_pgto == "debito":
+            salvar_conta_from_nota(dados, user, db)
+            destinos.append("Contas")
+    else:
+        salvar_conta_from_nota(dados, user, db)
+        destinos.append("Contas")
+
+    return formatar_nota(dados, destinos, forma_pgto)
+
+
 def salvar_conta(dados, user, db):
     from datetime import date
     hoje = date.today()
-    venc_str = dados.get("data", hoje.isoformat())
+    status = dados.get("status", "pago")
+    venc_str = dados.get("vencimento") or dados.get("data") or hoje.isoformat()
 
     nova = models.Conta(
         descricao=dados["descricao"],
         vencimento=date.fromisoformat(venc_str),
         valor=dados["valor"],
+        natureza="despesa",
+        status=status,
+        tipo_recorrencia="unica",
+        user_id=user.id,
+    )
+    db.add(nova)
+    db.commit()
+
+
+def salvar_conta_from_nota(dados, user, db):
+    from datetime import date
+    hoje = date.today()
+    venc_str = dados.get("data") or hoje.isoformat()
+
+    nova = models.Conta(
+        descricao=f"{dados.get('estabelecimento', 'Compra')}",
+        vencimento=date.fromisoformat(venc_str),
+        valor=dados["valor_total"],
         natureza="despesa",
         status="pago",
         tipo_recorrencia="unica",
@@ -166,10 +209,14 @@ def salvar_conta(dados, user, db):
 
 def salvar_compra_mercado(dados, user, db):
     from datetime import date
+    forma_pgto = dados.get("forma_pagamento", "debito")
+    bandeira = dados.get("bandeira_vale") if forma_pgto == "vale_alimentacao" else None
+
     compra = models.CompraSupermercado(
         data=dados.get("data", date.today().isoformat()),
         loja=dados.get("estabelecimento"),
-        forma_pagamento="debito",
+        forma_pagamento=forma_pgto,
+        bandeira_vale=bandeira,
         valor_total=dados["valor_total"],
         user_id=user.id,
     )
@@ -187,18 +234,25 @@ def salvar_compra_mercado(dados, user, db):
     db.commit()
 
 
-def formatar_nota(dados):
+def formatar_nota(dados, destinos, forma_pgto):
     itens = dados.get("itens", [])
     itens_txt = ""
     if itens:
         itens_txt = "\n\n*Itens:*\n" + "\n".join(
             f"• {i.get('descricao') or i.get('nome')}: R$ {i.get('valor', 0):.2f}" for i in itens
         )
+
+    destinos_txt = " + ".join(destinos)
+    pgto_map = {"debito": "Débito", "credito": "Crédito", "vale_alimentacao": "Vale Alimentação", "pix": "Pix", "dinheiro": "Dinheiro"}
+    pgto_txt = pgto_map.get(forma_pgto, forma_pgto)
+
     return (
         f"✅ *Nota registrada!*\n\n"
         f"🏪 {dados.get('estabelecimento', 'N/I')}\n"
         f"📅 {dados.get('data', 'N/I')}\n"
         f"💰 Total: R$ {dados['valor_total']:.2f}\n"
-        f"🏷️ Categoria: {dados.get('categoria', 'outros')}"
+        f"💳 Pagamento: {pgto_txt}\n"
+        f"🏷️ Categoria: {dados.get('categoria', 'outros')}\n"
+        f"📂 Salvo em: {destinos_txt}"
         f"{itens_txt}"
     )

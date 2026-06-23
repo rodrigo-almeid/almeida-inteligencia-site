@@ -147,7 +147,12 @@ async def extrair_dados_nota(api_key: str, image_bytes: bytes, mime_type: str = 
         "Analise esta imagem de nota fiscal e extraia em JSON:\n"
         '{"estabelecimento":"nome","data":"YYYY-MM-DD","valor_total":0.00,'
         '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|outros",'
+        '"tipo_estabelecimento":"mercado|restaurante|farmacia|posto|loja|outro",'
+        '"forma_pagamento":"debito|credito|vale_alimentacao|pix|dinheiro|outro",'
+        '"bandeira_vale":"ticket|alelo|caju|sodexo|null",'
         '"itens":[{"descricao":"nome","valor":0.00}]}\n'
+        "Regras para tipo_estabelecimento: se for supermercado, hipermercado, atacadão, mercearia = 'mercado'.\n"
+        "Regras para forma_pagamento: identifique pela nota se possível. Se não conseguir, use 'debito'.\n"
         "Responda APENAS com o JSON."
     )
 
@@ -179,7 +184,11 @@ async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | N
         "Extraia do texto abaixo as informações de gasto em JSON:\n"
         '{"descricao":"o que foi","valor":0.00,'
         '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|outros",'
-        f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})"}}\n'
+        f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})",'
+        '"status":"pago|pendente",'
+        '"vencimento":"YYYY-MM-DD ou null se já pago"}\n'
+        "Regras: se o usuário diz 'gastei', 'paguei', 'comprei' = status 'pago'. "
+        "Se diz 'conta de', 'vence', 'parcela', 'boleto' = status 'pendente' e preencha vencimento.\n"
         f'Texto: "{texto}"\nResponda APENAS com o JSON.'
     )
 
