@@ -13,6 +13,7 @@ os.environ.setdefault("FERNET_SECRET_KEY", _FERNET_KEY)
 os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key-para-testes-unitarios!")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./central_test.db")
 os.environ.setdefault("PORTAL_SECRET_KEY", "test-portal-secret-key")
+os.environ["TESTING"] = "1"
 # ─────────────────────────────────────────────────────────────────────
 
 import pytest
@@ -28,7 +29,11 @@ _TEST_ENGINE = create_engine(
 _TestSession = sessionmaker(autocommit=False, autoflush=False, bind=_TEST_ENGINE)
 
 # Imports do backend (só aqui, depois dos env vars)
-from backend.core.models import Base, User, Pessoa, Conta, Senha, AssistenteConfig
+from backend.core.models import (
+    Base, User, Pessoa, Conta, Senha, AssistenteConfig,
+    AgendamentoConfig, HorarioFuncionamento, Service, Client, Appointment,
+    ConversationMessage, LlmLog,
+)
 from backend.core.database import get_db
 from backend.core.security import get_password_hash
 from backend.main import app
@@ -147,3 +152,97 @@ def conta(db, user):
     db.commit()
     db.refresh(c)
     return c
+
+
+# ─── Fixtures do Agendamento ─────────────────────────────────────────
+
+@pytest.fixture
+def agendamento_config(db, user):
+    """Config de agendamento do usuário principal."""
+    from backend.agendamento.crypto import encrypt_key
+    cfg = AgendamentoConfig(
+        user_id=user.id,
+        whatsapp_token=encrypt_key("test-wa-token"),
+        whatsapp_phone_id="123456789",
+        whatsapp_verify_token="verify-test",
+        gemini_api_key=encrypt_key("test-gemini-key"),
+        groq_api_key=encrypt_key("test-groq-key"),
+        ollama_url="http://localhost:11434",
+        ollama_model="llama3",
+        prioridade_llms='["gemini","groq","ollama"]',
+        gemini_ativo=True,
+        groq_ativo=True,
+        ollama_ativo=False,
+        catalogo_prompt="Somos o Salão Teste. Corte R$40.",
+        mensagem_midia_bloqueada="Só texto, por favor.",
+        mensagem_contingencia="Estamos indisponíveis.",
+        ativo=True,
+    )
+    db.add(cfg)
+    db.commit()
+    db.refresh(cfg)
+    return cfg
+
+
+@pytest.fixture
+def agendamento_servico(db, agendamento_config):
+    """Serviço de teste."""
+    s = Service(
+        nome="Corte Masculino",
+        descricao="Corte simples",
+        duracao_minutos=30,
+        preco=40.0,
+        ativo=True,
+        config_id=agendamento_config.id,
+    )
+    db.add(s)
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+@pytest.fixture
+def agendamento_horarios(db, agendamento_config):
+    """Horários de seg a sáb, 09h-18h."""
+    horarios = []
+    for dia in range(6):
+        h = HorarioFuncionamento(
+            dia_semana=dia, hora_inicio="09:00", hora_fim="18:00",
+            ativo=True, config_id=agendamento_config.id,
+        )
+        db.add(h)
+        horarios.append(h)
+    db.commit()
+    for h in horarios:
+        db.refresh(h)
+    return horarios
+
+
+@pytest.fixture
+def agendamento_client(db, agendamento_config):
+    """Cliente de teste do WhatsApp."""
+    c = Client(
+        telefone="5543999999999", nome="João Teste",
+        config_id=agendamento_config.id,
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+@pytest.fixture
+def agendamento_appointment(db, agendamento_config, agendamento_client, agendamento_servico):
+    """Agendamento confirmado de teste."""
+    from datetime import datetime, timedelta
+    amanha = datetime.utcnow().replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    a = Appointment(
+        data_hora=amanha, status="confirmado",
+        config_id=agendamento_config.id,
+        client_id=agendamento_client.id,
+        service_id=agendamento_servico.id,
+    )
+    db.add(a)
+    db.commit()
+    db.refresh(a)
+    return a

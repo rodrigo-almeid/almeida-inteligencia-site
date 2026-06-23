@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Boolean, UniqueConstraint, Table, Text, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Boolean, UniqueConstraint, Table, Text, DateTime, func
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
@@ -290,7 +290,7 @@ class Client(Base):
     id = Column(Integer, primary_key=True, index=True)
     telefone = Column(String, nullable=False, index=True)
     nome = Column(String, nullable=True)
-    criado_em = Column(DateTime, server_default="now()")
+    criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)
     config = relationship("AgendamentoConfig", back_populates="clients")
@@ -306,7 +306,7 @@ class Appointment(Base):
     status = Column(String, nullable=False, default="pre_reservado")
     expires_at = Column(DateTime, nullable=True)
     lembrete_enviado = Column(Boolean, default=False)
-    criado_em = Column(DateTime, server_default="now()")
+    criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)
     client_id = Column(Integer, ForeignKey("agendamento_clients.id", ondelete="CASCADE"), nullable=False)
@@ -324,7 +324,7 @@ class ConversationMessage(Base):
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     llm_provider = Column(String, nullable=True)
-    criado_em = Column(DateTime, server_default="now()")
+    criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)
     client_id = Column(Integer, ForeignKey("agendamento_clients.id", ondelete="CASCADE"), nullable=False)
@@ -344,7 +344,7 @@ class LlmLog(Base):
     tokens_out = Column(Integer, nullable=True)
     latency_ms = Column(Integer, nullable=True)
     erro = Column(Text, nullable=True)
-    criado_em = Column(DateTime, server_default="now()")
+    criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)
     config = relationship("AgendamentoConfig", back_populates="llm_logs")

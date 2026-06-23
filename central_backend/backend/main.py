@@ -31,6 +31,9 @@ app = FastAPI(title="Almeida — Módulos Centrais", docs_url=None, redoc_url=No
 
 @app.on_event("startup")
 def start_scheduler():
+    import os
+    if os.getenv("TESTING"):
+        return
     from apscheduler.schedulers.background import BackgroundScheduler
     from backend.agendamento.cron import limpar_pre_reservas_expiradas, enviar_lembretes
     scheduler = BackgroundScheduler()
