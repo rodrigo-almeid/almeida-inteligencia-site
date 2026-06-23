@@ -135,7 +135,7 @@ async def processar_mensagem(msg, config, user, db):
             )
 
         salvar_conta(dados, user, db)
-        status = dados.get("status", "pago")
+        status = dados.get("status", "paga")
         pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
         pgto_txt = pgto_map.get(forma, forma)
         if status == "pendente":
@@ -175,7 +175,7 @@ def _resolver_pagamento_pendente(user_key, texto, user, db):
             salvar_conta(dados, user, db)
             pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
             pgto_txt = pgto_map.get(forma, forma)
-            status = dados.get("status", "pago")
+            status = dados.get("status", "paga")
             if status == "pendente":
                 venc = dados.get("vencimento", dados.get("data", ""))
                 return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• 💳 {pgto_txt}\n• Status: pendente\n• 🏷️ via Goku"
@@ -234,7 +234,7 @@ def processar_nota_fiscal(dados, user, db):
 def salvar_conta(dados, user, db):
     from datetime import date
     hoje = date.today()
-    status = dados.get("status", "pago")
+    status = dados.get("status", "paga")
     venc_str = dados.get("vencimento") or dados.get("data") or hoje.isoformat()
 
     nova = models.Conta(
@@ -261,7 +261,7 @@ def salvar_conta_from_nota(dados, user, db):
         vencimento=date.fromisoformat(venc_str),
         valor=dados["valor_total"],
         natureza="despesa",
-        status="pago",
+        status="paga",
         tipo_recorrencia="unica",
         origem="goku",
         user_id=user.id,
