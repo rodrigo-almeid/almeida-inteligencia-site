@@ -169,7 +169,8 @@ function scrollBottom() {
 }
 
 function addMsg(tipo, texto, meta) {
-  document.getElementById('welcome').style.display = 'none';
+  const wel = document.getElementById('welcome');
+  if (wel) wel.style.display = 'none';
   const div = document.createElement('div');
   div.className = `msg ${tipo}`;
   div.textContent = texto;
@@ -246,14 +247,8 @@ async function enviar() {
 }
 
 async function limparConversa() {
-  document.getElementById('messages').innerHTML = '';
-  document.getElementById('welcome').style.display = '';
-  document.getElementById('messages').appendChild(document.getElementById('welcome') || createWelcome());
-
   try { await apiCall('DELETE', '/assistente/simulador/historico'); } catch {}
-
-  const welcome = document.querySelector('.welcome');
-  if (!welcome) location.reload();
+  location.reload();
 }
 
 try {
