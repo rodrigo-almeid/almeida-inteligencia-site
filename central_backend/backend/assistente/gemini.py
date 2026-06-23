@@ -166,12 +166,19 @@ async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
 
     prompt = (
         f"Classifique a mensagem em UMA das intenções: {', '.join(intencoes)}.\n\n"
-        "- financeiro_consulta: perguntas sobre gastos, quanto gastou, resumo financeiro\n"
-        "- financeiro_registro: registrar gasto (ex: 'gastei 50 no mercado')\n"
-        "- agenda: criar, listar ou editar eventos\n"
-        "- chat: qualquer outra coisa\n\n"
+        "- financeiro_registro: o usuário RELATA um gasto, compra, conta ou boleto que aconteceu ou vai acontecer. "
+        "Palavras-chave: gastei, paguei, comprei, almocei, conta de, boleto, parcela, vence, fatura, pila, conto, mango, real, reais.\n"
+        "  Exemplos: 'gastei 50 no mercado', 'paguei 30 de uber', 'conta de luz 180', 'eita gastei uns 30 pila', "
+        "'comprei um tênis por 250', 'almocei por 28 reais'\n\n"
+        "- financeiro_consulta: o usuário PERGUNTA sobre seus gastos ou quer um resumo. "
+        "Palavras-chave: quanto, total, resumo, extrato, saldo, como estão, minhas contas.\n"
+        "  Exemplos: 'quanto gastei esse mês?', 'como estão minhas contas?', 'qual meu saldo?'\n\n"
+        "- agenda: criar, listar ou editar eventos, reuniões, compromissos\n"
+        "- chat: qualquer outra coisa (saudações, perguntas gerais, conversa)\n\n"
+        "IMPORTANTE: se a mensagem contém um VALOR em dinheiro e um VERBO de gasto (gastei, paguei, comprei), "
+        "é SEMPRE financeiro_registro, mesmo que tenha gírias ou tom informal.\n\n"
         f'Mensagem: "{texto}"\n\n'
-        "Responda APENAS com a intenção."
+        "Responda APENAS com a intenção, uma única palavra."
     )
 
     messages_groq = [{"role": "user", "content": prompt}]
