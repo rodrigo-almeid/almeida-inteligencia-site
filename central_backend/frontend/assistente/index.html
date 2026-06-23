@@ -85,6 +85,29 @@
 
     .webhook-url{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--gray-l);font-family:monospace;word-break:break-all;margin-top:8px;}
 
+    .prov-card{background:rgba(255,255,255,.03);border:0.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;position:relative;cursor:grab;transition:border-color .2s;}
+    .prov-card:hover{border-color:rgba(61,219,130,.3);}
+    .prov-card.dragging{opacity:.5;border-color:var(--green);}
+    .prov-card .prov-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .prov-card .prov-header .prov-badge{display:flex;align-items:center;gap:8px;}
+    .prov-card .prov-header .prov-badge .prov-num{background:rgba(61,219,130,.15);color:var(--green);width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
+    .prov-card .prov-header .prov-badge .prov-tipo{font-size:14px;font-weight:500;}
+    .prov-card .prov-actions{display:flex;gap:6px;}
+    .prov-card .prov-actions button{background:none;border:none;color:var(--gray);cursor:pointer;padding:4px;font-size:14px;transition:color .2s;}
+    .prov-card .prov-actions button:hover{color:#fff;}
+    .prov-card .prov-actions .btn-remove:hover{color:var(--red);}
+    .prov-card .prov-fields{display:grid;gap:10px;}
+    .prov-card .prov-toggle{display:flex;align-items:center;gap:8px;margin-top:4px;}
+    .prov-card .prov-toggle span{font-size:12px;color:var(--gray-l);}
+    .drag-over{border-color:var(--green) !important;background:rgba(61,219,130,.04) !important;}
+
+    .overlay-provedor .modal{width:400px;}
+    .tipo-option{display:flex;align-items:center;gap:12px;padding:14px 16px;border:0.5px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .2s;}
+    .tipo-option:hover{border-color:rgba(61,219,130,.4);background:rgba(61,219,130,.04);}
+    .tipo-option .tipo-icon{font-size:20px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border-radius:8px;}
+    .tipo-option .tipo-info .tipo-name{font-size:14px;font-weight:500;}
+    .tipo-option .tipo-info .tipo-desc{font-size:11px;color:var(--gray);margin-top:2px;}
+
     @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}}
   </style>
 </head>
@@ -107,8 +130,12 @@
   </div>
 
   <a href="/assistente-painel/" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    Configuração
+  </a>
+  <a href="/assistente-painel/console.html" class="nav-item">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    Assistente
+    Console
   </a>
 
   <div class="sidebar-spacer"></div>
@@ -170,13 +197,16 @@
     </div>
   </div>
 
-  <!-- Gemini -->
+  <!-- Provedores LLM -->
   <div class="card">
-    <h2>Google Gemini API</h2>
-    <div class="form-group">
-      <label>API Key</label>
-      <input type="password" id="gemini_api_key" placeholder="AIzaSy...">
-      <div class="hint">Chave obtida em aistudio.google.com</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin-bottom:0;">Provedores de IA</h2>
+      <button class="btn" style="padding:8px 16px;font-size:12px;" onclick="adicionarProvedor()">+ Adicionar</button>
+    </div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">Arraste para reordenar a prioridade. O sistema tenta o primeiro da lista e faz fallback para os seguintes.</p>
+    <div id="provedores-list"></div>
+    <div id="no-provedores" style="text-align:center;padding:20px;color:var(--gray);font-size:13px;display:none;">
+      Nenhum provedor configurado. Clique em "+ Adicionar" para começar.
     </div>
   </div>
 
@@ -242,12 +272,57 @@
   </div>
 </div>
 
+<div class="overlay overlay-provedor" id="overlayProvedor">
+  <div class="modal">
+    <h3>Adicionar <span>Provedor</span></h3>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:16px;">Escolha o provedor de IA para adicionar:</p>
+    <div class="tipo-option" onclick="criarProvedor('gemini')">
+      <div class="tipo-icon">✦</div>
+      <div class="tipo-info">
+        <div class="tipo-name">Google Gemini</div>
+        <div class="tipo-desc">API na nuvem — suporta texto e visão (OCR de notas)</div>
+      </div>
+    </div>
+    <div class="tipo-option" onclick="criarProvedor('groq')">
+      <div class="tipo-icon">⚡</div>
+      <div class="tipo-info">
+        <div class="tipo-name">Groq</div>
+        <div class="tipo-desc">API na nuvem — LLaMA 3.3 70B, ultra rápido</div>
+      </div>
+    </div>
+    <div class="tipo-option" onclick="criarProvedor('ollama')">
+      <div class="tipo-icon">🖥️</div>
+      <div class="tipo-info">
+        <div class="tipo-name">Ollama (Local)</div>
+        <div class="tipo-desc">Modelo local — sem custo, requer Ollama rodando na máquina</div>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-cancel" onclick="fecharModalProvedor()" style="width:100%;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const API = window.location.origin;
 let token = localStorage.getItem('token') || localStorage.getItem('central_token');
 let configExiste = false;
+let provedores = [];
+
+const TIPOS_LLM = {
+  gemini: { nome: 'Google Gemini', icon: '✦', campos: [
+    { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'AIzaSy...', hint: 'Chave obtida em aistudio.google.com' }
+  ]},
+  groq: { nome: 'Groq', icon: '⚡', campos: [
+    { key: 'api_key', label: 'API Key', type: 'password', placeholder: 'gsk_...', hint: 'Chave obtida em console.groq.com' }
+  ]},
+  ollama: { nome: 'Ollama (Local)', icon: '🖥️', campos: [
+    { key: 'url', label: 'URL do Servidor', type: 'text', placeholder: 'http://localhost:11434', hint: 'Endereço onde o Ollama está rodando' },
+    { key: 'modelo', label: 'Modelo', type: 'text', placeholder: 'glm4:latest', hint: 'Nome do modelo (ex: llama3, mistral, glm4:latest)' }
+  ]},
+};
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -261,7 +336,7 @@ function logout() {
   window.location.href = '/financeiro/';
 }
 
-async function api(method, path, body) {
+async function apiCall(method, path, body) {
   const opts = {
     method,
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -272,9 +347,115 @@ async function api(method, path, body) {
   return res;
 }
 
+// ── Provedores ──
+
+function renderProvedores() {
+  const container = document.getElementById('provedores-list');
+  const empty = document.getElementById('no-provedores');
+
+  if (!provedores.length) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  container.innerHTML = provedores.map((p, i) => {
+    const info = TIPOS_LLM[p.tipo];
+    if (!info) return '';
+    const campos = info.campos.map(c => `
+      <div class="form-group" style="margin-bottom:8px;">
+        <label>${c.label}</label>
+        <input type="${c.type}" value="${p[c.key] || ''}" placeholder="${c.placeholder}"
+               onchange="provedores[${i}]['${c.key}']=this.value">
+        <div class="hint">${c.hint}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="prov-card" draggable="true" data-idx="${i}"
+           ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)"
+           ondragenter="this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')">
+        <div class="prov-header">
+          <div class="prov-badge">
+            <div class="prov-num">${i + 1}</div>
+            <div class="prov-tipo">${info.icon} ${info.nome}</div>
+          </div>
+          <div class="prov-actions">
+            <label class="toggle" style="margin:0;">
+              <input type="checkbox" ${p.ativo !== false ? 'checked' : ''} onchange="provedores[${i}].ativo=this.checked;renderProvedores()">
+              <span class="slider"></span>
+            </label>
+            <button class="btn-remove" onclick="removerProvedor(${i})" title="Remover">✕</button>
+          </div>
+        </div>
+        <div class="prov-fields">${campos}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function adicionarProvedor() {
+  document.getElementById('overlayProvedor').classList.add('active');
+}
+
+function fecharModalProvedor() {
+  document.getElementById('overlayProvedor').classList.remove('active');
+}
+
+function criarProvedor(tipo) {
+  const novo = { tipo, ativo: true };
+  TIPOS_LLM[tipo].campos.forEach(c => { novo[c.key] = ''; });
+  provedores.push(novo);
+  fecharModalProvedor();
+  renderProvedores();
+}
+
+function removerProvedor(idx) {
+  provedores.splice(idx, 1);
+  renderProvedores();
+}
+
+// ── Drag & Drop ──
+
+let dragIdx = null;
+
+function dragStart(e) {
+  dragIdx = +e.currentTarget.dataset.idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function drop(e) {
+  e.preventDefault();
+  const targetIdx = +e.currentTarget.dataset.idx;
+  e.currentTarget.classList.remove('drag-over');
+  if (dragIdx === null || dragIdx === targetIdx) return;
+  const [moved] = provedores.splice(dragIdx, 1);
+  provedores.splice(targetIdx, 0, moved);
+  renderProvedores();
+}
+
+function dragEnd(e) {
+  dragIdx = null;
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.prov-card').forEach(c => c.classList.remove('drag-over'));
+}
+
+document.getElementById('overlayProvedor').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModalProvedor();
+});
+
+// ── Config ──
+
 async function carregarConfig() {
-  const res = await api('GET', '/assistente/config');
-  if (res.ok) {
+  const res = await apiCall('GET', '/assistente/config');
+  if (res && res.ok) {
     configExiste = true;
     const data = await res.json();
     document.getElementById('whatsapp_phone_id').value = data.whatsapp_phone_id || '';
@@ -287,6 +468,16 @@ async function carregarConfig() {
     document.getElementById('ativo').checked = data.ativo;
     atualizarStatus(data.ativo);
     atualizarWebhookUrl();
+
+    if (data.provedores_llm && data.provedores_llm.length) {
+      provedores = data.provedores_llm;
+    } else {
+      provedores = [];
+      if (data.gemini_api_key) provedores.push({ tipo: 'gemini', api_key: '', ativo: true });
+      if (data.groq_api_key) provedores.push({ tipo: 'groq', api_key: '', ativo: true });
+      if (data.ollama_url) provedores.push({ tipo: 'ollama', url: data.ollama_url, modelo: data.ollama_model || '', ativo: true });
+    }
+    renderProvedores();
   }
 }
 
@@ -303,18 +494,25 @@ function atualizarStatus(ativo) {
 }
 
 function atualizarWebhookUrl() {
-  const el = document.getElementById('webhook-url');
-  el.textContent = `${API}/assistente/webhook`;
+  document.getElementById('webhook-url').textContent = `${API}/assistente/webhook`;
 }
 
 let payloadPendente = null;
 
 function getPayload() {
+  const gemini = provedores.find(p => p.tipo === 'gemini' && p.ativo !== false);
+  const groq = provedores.find(p => p.tipo === 'groq' && p.ativo !== false);
+  const ollama = provedores.find(p => p.tipo === 'ollama' && p.ativo !== false);
+
   return {
     whatsapp_token: document.getElementById('whatsapp_token').value || null,
     whatsapp_phone_id: document.getElementById('whatsapp_phone_id').value || null,
     whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
-    gemini_api_key: document.getElementById('gemini_api_key').value || null,
+    gemini_api_key: gemini ? gemini.api_key : null,
+    groq_api_key: groq ? groq.api_key : null,
+    ollama_url: ollama ? ollama.url : null,
+    ollama_model: ollama ? ollama.modelo : null,
+    provedores_llm: provedores,
     numero_autorizado: document.getElementById('numero_autorizado').value || null,
     nome_assistente: document.getElementById('nome_assistente').value || 'Goku',
     personalidade: document.getElementById('personalidade').value || null,
@@ -329,29 +527,28 @@ async function salvar() {
 
   document.getElementById('overlayValidacao').classList.add('active');
   document.getElementById('modalActions').style.display = 'none';
-  document.getElementById('checkList').innerHTML = `
-    <div class="check-item loading">
-      <div class="check-icon"><div class="spinner"></div></div>
-      <div><div class="check-name">Google Gemini</div><div class="check-msg">Testando API Key...</div></div>
-    </div>
-    <div class="check-item loading">
-      <div class="check-icon"><div class="spinner"></div></div>
-      <div><div class="check-name">WhatsApp (Meta)</div><div class="check-msg">Testando Token e Phone ID...</div></div>
-    </div>
-  `;
 
-  const res = await api('POST', '/assistente/validar', {
-    gemini_api_key: payloadPendente.gemini_api_key,
-    whatsapp_token: payloadPendente.whatsapp_token,
-    whatsapp_phone_id: payloadPendente.whatsapp_phone_id,
+  const loadingItems = [];
+  const validarPayload = { whatsapp_token: payloadPendente.whatsapp_token, whatsapp_phone_id: payloadPendente.whatsapp_phone_id };
+
+  provedores.filter(p => p.ativo !== false).forEach(p => {
+    const info = TIPOS_LLM[p.tipo];
+    loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">${info.nome}</div><div class="check-msg">Testando...</div></div></div>`);
+    if (p.tipo === 'gemini') validarPayload.gemini_api_key = p.api_key;
+    if (p.tipo === 'groq') validarPayload.groq_api_key = p.api_key;
+    if (p.tipo === 'ollama') { validarPayload.ollama_url = p.url; validarPayload.ollama_model = p.modelo; }
   });
+
+  loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">WhatsApp (Meta)</div><div class="check-msg">Testando Token e Phone ID...</div></div></div>`);
+
+  document.getElementById('checkList').innerHTML = loadingItems.join('');
+
+  const res = await apiCall('POST', '/assistente/validar', validarPayload);
 
   if (!res || !res.ok) {
     document.getElementById('checkList').innerHTML = `
-      <div class="check-item fail">
-        <div class="check-icon">✗</div>
-        <div><div class="check-name">Erro</div><div class="check-msg">Não foi possível validar. Verifique sua conexão.</div></div>
-      </div>`;
+      <div class="check-item fail"><div class="check-icon">✗</div>
+      <div><div class="check-name">Erro</div><div class="check-msg">Não foi possível validar. Verifique sua conexão.</div></div></div>`;
     document.getElementById('modalActions').style.display = 'flex';
     document.getElementById('btnConfirmarSalvar').textContent = 'Salvar mesmo assim';
     return;
@@ -362,15 +559,11 @@ async function salvar() {
   document.getElementById('checkList').innerHTML = data.resultados.map(r => `
     <div class="check-item ${r.ok ? 'ok' : 'fail'}">
       <div class="check-icon">${r.ok ? '✓' : '✗'}</div>
-      <div>
-        <div class="check-name">${r.nome}</div>
-        <div class="check-msg">${r.mensagem}</div>
-      </div>
+      <div><div class="check-name">${r.nome}</div><div class="check-msg">${r.mensagem}</div></div>
     </div>
   `).join('');
 
   document.getElementById('modalActions').style.display = 'flex';
-
   if (data.todos_ok) {
     document.getElementById('btnConfirmarSalvar').textContent = 'Salvar configurações';
     document.getElementById('btnConfirmarSalvar').style.opacity = '1';
@@ -382,18 +575,15 @@ async function salvar() {
 
 async function confirmarSalvar() {
   if (!payloadPendente) return;
-
   const method = configExiste ? 'PUT' : 'POST';
-  const res = await api(method, '/assistente/config', payloadPendente);
-
+  const res = await apiCall(method, '/assistente/config', payloadPendente);
   fecharModal();
-
   if (res && res.ok) {
     configExiste = true;
     atualizarStatus(payloadPendente.ativo);
-    toast('✅ Configurações salvas!');
+    toast('Configurações salvas!');
   } else {
-    toast('❌ Erro ao salvar');
+    toast('Erro ao salvar');
   }
   payloadPendente = null;
 }
@@ -406,9 +596,10 @@ function fecharModal() {
 document.getElementById('overlayValidacao').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModal();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); }
+});
 
-// Mostrar email do usuário
 try {
   const payload = JSON.parse(atob(token.split('.')[1]));
   document.getElementById('user-email').textContent = payload.sub || '—';

@@ -13,7 +13,7 @@ from backend.credenciais.routers import senhas, pessoas, csv as csv_router
 from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios
 from backend.combustivel.routers import abastecimentos
 from backend.mercado.routers import compras as mercado_compras
-from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook
+from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook, simulador as assistente_simulador
 from backend.agendamento.routers import (
     config as agendamento_config,
     horarios as agendamento_horarios,
@@ -76,6 +76,7 @@ app.include_router(mercado_compras.router)
 # Assistente Virtual (Goku)
 app.include_router(assistente_config.router)
 app.include_router(assistente_webhook.router)
+app.include_router(assistente_simulador.router)
 
 # Agendamento Inteligente
 app.include_router(agendamento_config.router)

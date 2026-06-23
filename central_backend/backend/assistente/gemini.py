@@ -34,25 +34,64 @@ async def _gerar_gemini(api_key: str, contents: list) -> str:
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def _get_keys(config):
-    groq_key = config.groq_api_key if config and hasattr(config, 'groq_api_key') else None
-    gemini_key = config.gemini_api_key if config else None
-    return groq_key, gemini_key
+async def _gerar_ollama(url: str, model: str, messages: list) -> str:
+    async with httpx.AsyncClient(timeout=60) as client:
+        res = await client.post(
+            f"{url.rstrip('/')}/api/chat",
+            json={"model": model, "messages": messages, "stream": False},
+        )
+        res.raise_for_status()
+        return res.json()["message"]["content"]
+
+
+def _get_provedores(config) -> list[dict]:
+    if config and hasattr(config, 'provedores_llm') and config.provedores_llm:
+        raw = config.provedores_llm
+        if isinstance(raw, str):
+            try:
+                raw = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                raw = []
+        if isinstance(raw, list):
+            return [p for p in raw if (p.get("ativo", True) if isinstance(p, dict) else getattr(p, "ativo", True))]
+    return _provedores_legado(config)
+
+
+def _provedores_legado(config) -> list[dict]:
+    result = []
+    if config:
+        if getattr(config, 'gemini_api_key', None):
+            result.append({"tipo": "gemini", "api_key": config.gemini_api_key})
+        if getattr(config, 'groq_api_key', None):
+            result.append({"tipo": "groq", "api_key": config.groq_api_key})
+        if getattr(config, 'ollama_url', None) and getattr(config, 'ollama_model', None):
+            result.append({"tipo": "ollama", "url": config.ollama_url, "modelo": config.ollama_model})
+    return result
+
+
+def _get(p, key):
+    return p.get(key) if isinstance(p, dict) else getattr(p, key, None)
 
 
 async def _gerar(config, messages_groq: list, contents_gemini: list) -> str:
-    groq_key, gemini_key = _get_keys(config)
+    provedores = _get_provedores(config)
+    last_error = None
 
-    if groq_key:
+    for p in provedores:
+        tipo = _get(p, "tipo")
         try:
-            return await _gerar_groq(groq_key, messages_groq)
-        except Exception:
-            pass
+            if tipo == "gemini" and _get(p, "api_key"):
+                return await _gerar_gemini(_get(p, "api_key"), contents_gemini)
+            elif tipo == "groq" and _get(p, "api_key"):
+                return await _gerar_groq(_get(p, "api_key"), messages_groq)
+            elif tipo == "ollama" and _get(p, "url"):
+                modelo = _get(p, "modelo") or "llama3"
+                return await _gerar_ollama(_get(p, "url"), modelo, messages_groq)
+        except Exception as e:
+            last_error = e
+            continue
 
-    if gemini_key:
-        return await _gerar_gemini(gemini_key, contents_gemini)
-
-    raise Exception("Nenhuma API key configurada (Groq ou Gemini)")
+    raise Exception(f"Nenhum provedor de IA disponível. Último erro: {last_error}")
 
 
 def montar_system_prompt(config=None) -> str:
@@ -156,8 +195,7 @@ async def extrair_dados_nota(api_key: str, image_bytes: bytes, mime_type: str = 
         "Responda APENAS com o JSON."
     )
 
-    # Visão só funciona com Gemini
-    groq_key, gemini_key = _get_keys(config)
+    gemini_key = _get_gemini_key(config)
     if gemini_key:
         contents = [{
             "role": "user",
@@ -176,6 +214,16 @@ async def extrair_dados_nota(api_key: str, image_bytes: bytes, mime_type: str = 
         return json.loads(texto)
     except json.JSONDecodeError:
         return None
+
+
+def _get_gemini_key(config) -> str | None:
+    provedores = _get_provedores(config)
+    for p in provedores:
+        if _get(p, "tipo") == "gemini" and _get(p, "api_key"):
+            return _get(p, "api_key")
+    if config and getattr(config, 'gemini_api_key', None):
+        return config.gemini_api_key
+    return None
 
 
 async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | None:

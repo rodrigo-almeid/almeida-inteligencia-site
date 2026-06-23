@@ -190,12 +190,22 @@ class CompraResponse(ORMBase):
 # BLOCO 5: ASSISTENTE VIRTUAL (GOKU)
 # =====================================================================
 
+class AssistenteProvedorLLM(BaseModel):
+    tipo: str  # "gemini", "groq", "ollama"
+    api_key: Optional[str] = None
+    url: Optional[str] = None
+    modelo: Optional[str] = None
+    ativo: bool = True
+
 class AssistenteConfigCreate(BaseModel):
     whatsapp_token: Optional[str] = None
     whatsapp_phone_id: Optional[str] = None
     whatsapp_verify_token: Optional[str] = None
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
+    ollama_url: Optional[str] = None
+    ollama_model: Optional[str] = None
+    provedores_llm: Optional[List[AssistenteProvedorLLM]] = None
     numero_autorizado: Optional[str] = None
     ativo: bool = False
     nome_assistente: Optional[str] = "Goku"
@@ -207,6 +217,9 @@ class AssistenteConfigResponse(ORMBase):
     id: int
     whatsapp_phone_id: Optional[str]
     whatsapp_verify_token: Optional[str]
+    ollama_url: Optional[str] = None
+    ollama_model: Optional[str] = None
+    provedores_llm: Optional[List[AssistenteProvedorLLM]] = None
     numero_autorizado: Optional[str]
     ativo: bool
     nome_assistente: Optional[str]
