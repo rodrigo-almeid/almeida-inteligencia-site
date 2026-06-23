@@ -1,11 +1,12 @@
+import asyncio
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List, Optional
 
 from backend.core import models, schemas
-from backend.core.database import get_db
+from backend.core.database import get_db, SessionLocal
 from backend.core.security import get_current_user
 
 router = APIRouter(prefix="/agendamento", tags=["Agendamento - Appointments"])
@@ -46,12 +47,14 @@ def listar_appointments(
 
 
 @router.put("/appointments/{appointment_id}/status")
-def alterar_status(
+async def alterar_status(
     appointment_id: int,
     novo_status: str = Query(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google
+
     config = _get_config(current_user.id, db)
     appt = db.query(models.Appointment).filter(
         models.Appointment.id == appointment_id,
@@ -65,6 +68,12 @@ def alterar_status(
         appt.expires_at = None
     db.commit()
     db.refresh(appt)
+
+    if novo_status == "confirmado":
+        await criar_evento_google(config, appt, db)
+    elif novo_status == "cancelado":
+        await cancelar_evento_google(config, appt, db)
+
     return {"ok": True, "status": appt.status}
 
 

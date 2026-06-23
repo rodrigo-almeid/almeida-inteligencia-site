@@ -22,6 +22,7 @@ from backend.agendamento.routers import (
     appointments as agendamento_appointments,
     dashboard_stats as agendamento_stats,
     webhook as agendamento_webhook,
+    google_calendar as agendamento_google,
 )
 
 models.Base.metadata.create_all(bind=engine)
@@ -35,10 +36,12 @@ def start_scheduler():
     if os.getenv("TESTING"):
         return
     from apscheduler.schedulers.background import BackgroundScheduler
-    from backend.agendamento.cron import limpar_pre_reservas_expiradas, enviar_lembretes
+    from backend.agendamento.cron import limpar_pre_reservas_expiradas, enviar_lembretes, sync_google_calendars, renovar_google_channels
     scheduler = BackgroundScheduler()
     scheduler.add_job(limpar_pre_reservas_expiradas, "interval", minutes=1)
     scheduler.add_job(enviar_lembretes, "interval", minutes=30)
+    scheduler.add_job(sync_google_calendars, "interval", minutes=15)
+    scheduler.add_job(renovar_google_channels, "interval", hours=12)
     scheduler.start()
 
 app.add_middleware(
@@ -82,6 +85,7 @@ app.include_router(agendamento_clients.router)
 app.include_router(agendamento_appointments.router)
 app.include_router(agendamento_stats.router)
 app.include_router(agendamento_webhook.router)
+app.include_router(agendamento_google.router)
 
 # Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")

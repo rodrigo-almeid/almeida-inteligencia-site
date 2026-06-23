@@ -244,6 +244,13 @@ class AgendamentoConfig(Base):
     mensagem_contingencia = Column(String, nullable=True, default="Olá! No momento estamos com instabilidade no atendimento automático. Tente novamente em alguns minutos.")
     ativo = Column(Boolean, default=False)
 
+    google_calendar_token = Column(Text, nullable=True)
+    google_calendar_id = Column(String, nullable=True)
+    google_calendar_channel_id = Column(String, nullable=True)
+    google_calendar_channel_expiry = Column(DateTime, nullable=True)
+    google_calendar_sync_token = Column(String, nullable=True)
+    google_calendar_ativo = Column(Boolean, default=False)
+
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
 
     user = relationship("User", back_populates="agendamento_config")
@@ -306,6 +313,7 @@ class Appointment(Base):
     status = Column(String, nullable=False, default="pre_reservado")
     expires_at = Column(DateTime, nullable=True)
     lembrete_enviado = Column(Boolean, default=False)
+    google_event_id = Column(String, nullable=True)
     criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)

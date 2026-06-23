@@ -60,6 +60,9 @@ services:
       PORTAL_SECRET_KEY: "almeida-super-secret-2025"
       JWT_ALGORITHM: "HS256"
       JWT_EXPIRE_MINUTES: "480"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      APP_BASE_URL: "${APP_BASE_URL:-http://localhost:8080}"
     depends_on:
       db:
         condition: service_healthy

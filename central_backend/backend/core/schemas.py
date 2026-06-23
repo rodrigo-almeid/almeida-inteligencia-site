@@ -238,6 +238,7 @@ class AgendamentoConfigCreate(BaseModel):
     mensagem_midia_bloqueada: Optional[str] = None
     mensagem_contingencia: Optional[str] = None
     ativo: bool = False
+    google_calendar_ativo: Optional[bool] = None
 
 class AgendamentoConfigResponse(ORMBase):
     id: int
@@ -255,6 +256,9 @@ class AgendamentoConfigResponse(ORMBase):
     mensagem_midia_bloqueada: Optional[str]
     mensagem_contingencia: Optional[str]
     ativo: bool
+    google_calendar_ativo: bool = False
+    google_calendar_id: Optional[str] = None
+    google_calendar_conectado: bool = False
     user_id: int
 
 class HorarioFuncionamentoCreate(BaseModel):
@@ -300,6 +304,7 @@ class AppointmentResponse(ORMBase):
     status: str
     expires_at: Optional[datetime]
     lembrete_enviado: bool
+    google_event_id: Optional[str] = None
     criado_em: Optional[datetime]
     config_id: int
     client_id: int

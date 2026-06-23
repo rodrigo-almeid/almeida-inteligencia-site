@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from backend.core import models
 from backend.core.database import SessionLocal
 from backend.agendamento.whatsapp import enviar_mensagem
+from backend.agendamento.google_sync import sync_from_google, setup_watch_channel
 
 
 def limpar_pre_reservas_expiradas():
@@ -81,5 +82,56 @@ def enviar_lembretes():
         if pendentes:
             db.commit()
             print(f"[cron] {len(pendentes)} lembrete(s) enviado(s)")
+    finally:
+        db.close()
+
+
+def sync_google_calendars():
+    db = SessionLocal()
+    try:
+        configs = db.query(models.AgendamentoConfig).filter(
+            models.AgendamentoConfig.google_calendar_ativo == True,
+            models.AgendamentoConfig.google_calendar_token != None,
+        ).all()
+
+        for config in configs:
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(sync_from_google(config, db))
+                loop.close()
+            except Exception as e:
+                print(f"[cron] Erro sync Google config #{config.id}: {e}")
+
+        if configs:
+            print(f"[cron] Google Calendar sync: {len(configs)} tenant(s)")
+    finally:
+        db.close()
+
+
+def renovar_google_channels():
+    import os
+    db = SessionLocal()
+    try:
+        agora = datetime.utcnow()
+        limite = agora + timedelta(hours=24)
+
+        configs = db.query(models.AgendamentoConfig).filter(
+            models.AgendamentoConfig.google_calendar_ativo == True,
+            models.AgendamentoConfig.google_calendar_token != None,
+            models.AgendamentoConfig.google_calendar_channel_expiry != None,
+            models.AgendamentoConfig.google_calendar_channel_expiry < limite,
+        ).all()
+
+        base_url = os.getenv("APP_BASE_URL", "")
+        for config in configs:
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(setup_watch_channel(config, db, base_url))
+                loop.close()
+            except Exception as e:
+                print(f"[cron] Erro renovar channel config #{config.id}: {e}")
+
+        if configs:
+            print(f"[cron] Renovados {len(configs)} Google Calendar channel(s)")
     finally:
         db.close()

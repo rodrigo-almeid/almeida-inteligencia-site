@@ -7,6 +7,7 @@ from backend.core import models
 from backend.agendamento.crypto import decrypt_key
 from backend.agendamento.slots import calcular_slots_livres
 from backend.agendamento.adapters import gemini_adapter, groq_adapter, ollama_adapter
+from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google
 from backend.agendamento.adapters.base import LlmResponse
 
 WINDOW_SIZE = 6
@@ -213,6 +214,7 @@ async def _execute_tool_calls(tool_calls, config, client, db) -> str:
                 appt.status = "confirmado"
                 appt.expires_at = None
                 db.commit()
+                await criar_evento_google(config, appt, db)
                 results.append(f"Agendamento #{appt.id} confirmado com sucesso para {appt.data_hora.strftime('%d/%m/%Y às %H:%M')}!")
 
         elif name == "cancelar_agendamento":
@@ -225,6 +227,7 @@ async def _execute_tool_calls(tool_calls, config, client, db) -> str:
             if not appt:
                 results.append("Nenhum agendamento ativo encontrado para este cliente.")
             else:
+                await cancelar_evento_google(config, appt, db)
                 appt.status = "cancelado"
                 db.commit()
                 results.append(f"Agendamento de {appt.data_hora.strftime('%d/%m/%Y às %H:%M')} cancelado com sucesso.")
@@ -242,6 +245,7 @@ async def _execute_tool_calls(tool_calls, config, client, db) -> str:
                 if not appt:
                     results.append("Nenhum agendamento ativo encontrado para reagendar.")
                 else:
+                    await cancelar_evento_google(config, appt, db)
                     appt.status = "cancelado"
                     novo = models.Appointment(
                         config_id=config.id, client_id=client.id, service_id=appt.service_id,
