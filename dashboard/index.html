@@ -230,8 +230,8 @@
 
     const token = localStorage.getItem('admin_token');
 
-    // Módulos centrais (credenciais / financeiro)
-    if (url.includes('/credenciais') || url.includes('/financeiro')) {
+    // Módulos centrais (credenciais / financeiro / agendamento)
+    if (url.includes('/credenciais') || url.includes('/financeiro') || url.includes('/agendamento')) {
       try {
         const res = await fetch('/central/auth/sso', {
           method: 'POST',

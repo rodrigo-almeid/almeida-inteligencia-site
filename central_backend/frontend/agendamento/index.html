@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendamento — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--blue:#7EB8FF;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    .sidebar{width:220px;height:100vh;position:sticky;top:0;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;overflow-y:auto;}
+    .sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+    .sidebar .logo .name{font-size:13px;font-weight:600;} .sidebar .logo .name span{color:var(--green);}
+    .sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+    .nav-item:hover,.nav-item.active{background:rgba(61,219,130,.08);color:var(--green);}
+    .sidebar-spacer{flex:1;}
+    .user-chip{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+    .user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{background:rgba(226,75,74,.08);}
+
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px;}
+    .kpi{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;}
+    .kpi .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+    .kpi .valor{font-size:22px;font-weight:600;}
+    .kpi .valor.green{color:var(--green);}
+    .kpi .valor.blue{color:var(--blue);}
+    .kpi .valor.yellow{color:var(--yellow);}
+    .kpi .sub{font-size:11px;color:var(--gray);margin-top:4px;}
+
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+    .section-title{font-size:15px;font-weight:600;}
+
+    .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+    .ftab{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--gray-l);transition:all .2s;font-family:'Inter',sans-serif;}
+    .ftab.active{background:rgba(61,219,130,.12);color:var(--green);border-color:rgba(61,219,130,.3);}
+
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:0.5px solid var(--border);}
+    td{padding:12px 12px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);vertical-align:middle;}
+    tr:hover td{background:rgba(255,255,255,.02);}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+    .badge.confirmado{background:rgba(61,219,130,.15);color:var(--green);}
+    .badge.pre_reservado{background:rgba(245,166,35,.15);color:var(--yellow);}
+    .badge.cancelado{background:rgba(226,75,74,.15);color:var(--red);}
+    .badge.concluido{background:rgba(126,184,255,.15);color:var(--blue);}
+    .badge.expirado{background:rgba(92,107,94,.15);color:var(--gray);}
+    .icon-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--gray-l);transition:all .2s;font-size:12px;}
+    .icon-btn:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .icon-btn.del:hover{border-color:rgba(226,75,74,.4);color:var(--red);}
+    .empty{text-align:center;padding:48px 0;color:var(--gray);font-size:13px;}
+
+    .date-nav{display:flex;align-items:center;gap:8px;}
+    .date-nav button{background:none;border:0.5px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--gray-l);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;transition:all .2s;}
+    .date-nav button:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .date-nav .date-label{font-size:14px;font-weight:600;min-width:140px;text-align:center;}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .3s;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{border-color:rgba(61,219,130,.4);color:var(--green);}
+    .toast.err{border-color:rgba(226,75,74,.4);color:var(--red);}
+
+    @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 56 56" width="26" height="26">
+      <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
+      <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
+      <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/>
+      <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+      <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="name">Almeida <span>Inteligencia</span></div>
+      <div class="tag">Agendamento</div>
+    </div>
+  </div>
+
+  <a href="/agendamento-painel/" class="nav-item active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Dashboard
+  </a>
+  <a href="/agendamento-painel/config.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Configuracoes
+  </a>
+  <a href="/agendamento-painel/servicos.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    Servicos
+  </a>
+  <a href="/agendamento-painel/horarios.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Horarios
+  </a>
+  <a href="/agendamento-painel/clientes.html" class="nav-item">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Clientes
+  </a>
+  <a href="/dashboard/" class="nav-item" id="portal-link" style="display:none">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Portal
+  </a>
+
+  <div class="sidebar-spacer"></div>
+  <div class="user-chip">
+    <div>Conta</div>
+    <div class="email" id="user-email">—</div>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <div>
+      <h1>Agendamento Inteligente</h1>
+      <p>Dashboard de agendamentos e controle de LLMs</p>
+    </div>
+    <div class="date-nav">
+      <button onclick="mudarDia(-1)">&lsaquo;</button>
+      <span class="date-label" id="date-label">—</span>
+      <button onclick="mudarDia(1)">&rsaquo;</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Conversas Hoje</div><div class="valor green" id="kpi-conversas">0</div><div class="sub">sessoes ativas</div></div>
+    <div class="kpi"><div class="label">Agendamentos Hoje</div><div class="valor blue" id="kpi-agendamentos">0</div><div class="sub">confirmados</div></div>
+    <div class="kpi"><div class="label">Total no Mes</div><div class="valor" id="kpi-mes">0</div><div class="sub">confirmados + concluidos</div></div>
+    <div class="kpi"><div class="label">LLM Ativa</div><div class="valor yellow" id="kpi-llm">—</div><div class="sub">ultimo provider usado</div></div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Agendamentos do Dia</span>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="ftab active" onclick="filtrarStatus(this,'')">Todos</button>
+    <button class="ftab" onclick="filtrarStatus(this,'confirmado')">Confirmados</button>
+    <button class="ftab" onclick="filtrarStatus(this,'pre_reservado')">Pre-reservados</button>
+    <button class="ftab" onclick="filtrarStatus(this,'cancelado')">Cancelados</button>
+    <button class="ftab" onclick="filtrarStatus(this,'concluido')">Concluidos</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Horario</th>
+          <th>Cliente</th>
+          <th>Servico</th>
+          <th>Status</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-body"></tbody>
+    </table>
+    <div class="empty" id="empty-msg" style="display:none">Nenhum agendamento para esta data.</div>
+  </div>
+
+  <div class="section-header" style="margin-top:32px;">
+    <span class="section-title">Proximos Agendamentos</span>
+  </div>
+  <div id="proximos-list" style="font-size:13px;color:var(--gray-l);"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/central/agendamento';
+const TOKEN = localStorage.getItem('central_token');
+const EMAIL = localStorage.getItem('central_email');
+const HEADERS = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+
+let dataAtual = new Date();
+let statusFiltro = '';
+let appointments = [];
+let clients = {};
+let servicos = {};
+
+document.getElementById('user-email').textContent = EMAIL || '—';
+if (localStorage.getItem('admin_token')) document.getElementById('portal-link').style.display = '';
+
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function mudarDia(delta) {
+  dataAtual.setDate(dataAtual.getDate() + delta);
+  carregarTudo();
+}
+
+function filtrarStatus(el, s) {
+  statusFiltro = s;
+  document.querySelectorAll('.ftab').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  renderTabela();
+}
+
+async function carregarTudo() {
+  const meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('date-label').textContent = `${dataAtual.getDate()} ${meses[dataAtual.getMonth()]} ${dataAtual.getFullYear()}`;
+
+  try {
+    const [statsRes, apptsRes, clientsRes, servicosRes] = await Promise.all([
+      fetch(`${API}/stats`, { headers: HEADERS }),
+      fetch(`${API}/appointments?data=${formatDate(dataAtual)}`, { headers: HEADERS }),
+      fetch(`${API}/clients`, { headers: HEADERS }),
+      fetch(`${API}/servicos`, { headers: HEADERS }),
+    ]);
+
+    if (statsRes.ok) {
+      const stats = await statsRes.json();
+      document.getElementById('kpi-conversas').textContent = stats.conversas_hoje;
+      document.getElementById('kpi-agendamentos').textContent = stats.agendamentos_confirmados_hoje;
+      document.getElementById('kpi-mes').textContent = stats.total_agendamentos_mes;
+      document.getElementById('kpi-llm').textContent = stats.ultima_llm_usada || '—';
+
+      const prox = stats.proximos_agendamentos || [];
+      document.getElementById('proximos-list').innerHTML = prox.length
+        ? prox.map(a => {
+            const dt = new Date(a.data_hora);
+            const svc = servicos[a.service_id];
+            return `<div style="padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,.04);">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — ${svc ? svc.nome : 'Servico #'+a.service_id}</div>`;
+          }).join('')
+        : '<span style="color:var(--gray)">Nenhum proximo agendamento.</span>';
+    }
+
+    if (servicosRes.ok) {
+      const svcList = await servicosRes.json();
+      servicos = {};
+      svcList.forEach(s => servicos[s.id] = s);
+    }
+
+    if (clientsRes.ok) {
+      const cList = await clientsRes.json();
+      clients = {};
+      cList.forEach(c => clients[c.id] = c);
+    }
+
+    if (apptsRes.ok) {
+      appointments = await apptsRes.json();
+      renderTabela();
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function renderTabela() {
+  let lista = appointments;
+  if (statusFiltro) lista = lista.filter(a => a.status === statusFiltro);
+
+  const body = document.getElementById('tabela-body');
+  const empty = document.getElementById('empty-msg');
+
+  if (!lista.length) {
+    body.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  body.innerHTML = lista.map(a => {
+    const dt = new Date(a.data_hora);
+    const hora = dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    const cli = clients[a.client_id];
+    const svc = servicos[a.service_id];
+    return `<tr>
+      <td>${hora}</td>
+      <td>${cli ? (cli.nome || cli.telefone) : 'Cliente #'+a.client_id}</td>
+      <td>${svc ? svc.nome : '—'}</td>
+      <td><span class="badge ${a.status}">${a.status.replace('_',' ')}</span></td>
+      <td>
+        ${a.status === 'pre_reservado' ? `<button class="icon-btn ok" onclick="alterarStatus(${a.id},'confirmado')" title="Confirmar">✓</button>` : ''}
+        ${a.status === 'confirmado' ? `<button class="icon-btn" onclick="alterarStatus(${a.id},'concluido')" title="Concluir">✓</button>` : ''}
+        ${['confirmado','pre_reservado'].includes(a.status) ? `<button class="icon-btn del" onclick="alterarStatus(${a.id},'cancelado')" title="Cancelar">✕</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function alterarStatus(id, novoStatus) {
+  try {
+    const res = await fetch(`${API}/appointments/${id}/status?novo_status=${novoStatus}`, {
+      method: 'PUT', headers: HEADERS,
+    });
+    if (res.ok) {
+      toast(`Status alterado para ${novoStatus}`, 'ok');
+      carregarTudo();
+    } else {
+      toast('Erro ao alterar status', 'err');
+    }
+  } catch(e) { toast('Erro de conexao', 'err'); }
+}
+
+function toast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${tipo}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function logout() {
+  localStorage.removeItem('central_token');
+  localStorage.removeItem('central_email');
+  window.location.href = '/dashboard/';
+}
+
+carregarTudo();
+</script>
+</body>
+</html>

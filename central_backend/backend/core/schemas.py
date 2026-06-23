@@ -214,3 +214,120 @@ class AssistenteConfigResponse(ORMBase):
     tom_voz: Optional[str]
     instrucoes_extras: Optional[str]
     user_id: int
+
+
+# =====================================================================
+# BLOCO 6: AGENDAMENTO INTELIGENTE + GESTÃO DE LLMs
+# =====================================================================
+
+from datetime import datetime
+
+class AgendamentoConfigCreate(BaseModel):
+    whatsapp_token: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+    whatsapp_verify_token: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    ollama_url: Optional[str] = None
+    ollama_model: Optional[str] = None
+    prioridade_llms: Optional[str] = '["gemini","groq","ollama"]'
+    gemini_ativo: bool = False
+    groq_ativo: bool = False
+    ollama_ativo: bool = False
+    catalogo_prompt: Optional[str] = None
+    mensagem_midia_bloqueada: Optional[str] = None
+    mensagem_contingencia: Optional[str] = None
+    ativo: bool = False
+
+class AgendamentoConfigResponse(ORMBase):
+    id: int
+    whatsapp_phone_id: Optional[str]
+    whatsapp_verify_token: Optional[str]
+    gemini_api_key_masked: Optional[str] = None
+    groq_api_key_masked: Optional[str] = None
+    ollama_url: Optional[str]
+    ollama_model: Optional[str]
+    prioridade_llms: Optional[str]
+    gemini_ativo: bool
+    groq_ativo: bool
+    ollama_ativo: bool
+    catalogo_prompt: Optional[str]
+    mensagem_midia_bloqueada: Optional[str]
+    mensagem_contingencia: Optional[str]
+    ativo: bool
+    user_id: int
+
+class HorarioFuncionamentoCreate(BaseModel):
+    dia_semana: int
+    hora_inicio: str
+    hora_fim: str
+    ativo: bool = True
+
+class HorarioFuncionamentoResponse(ORMBase):
+    id: int
+    dia_semana: int
+    hora_inicio: str
+    hora_fim: str
+    ativo: bool
+    config_id: int
+
+class ServiceCreate(BaseModel):
+    nome: str
+    descricao: Optional[str] = None
+    duracao_minutos: int
+    preco: Optional[float] = None
+    ativo: bool = True
+
+class ServiceResponse(ORMBase):
+    id: int
+    nome: str
+    descricao: Optional[str]
+    duracao_minutos: int
+    preco: Optional[float]
+    ativo: bool
+    config_id: int
+
+class ClientResponse(ORMBase):
+    id: int
+    telefone: str
+    nome: Optional[str]
+    criado_em: Optional[datetime]
+    config_id: int
+
+class AppointmentResponse(ORMBase):
+    id: int
+    data_hora: datetime
+    status: str
+    expires_at: Optional[datetime]
+    lembrete_enviado: bool
+    criado_em: Optional[datetime]
+    config_id: int
+    client_id: int
+    service_id: Optional[int]
+
+class ConversationMessageResponse(ORMBase):
+    id: int
+    role: str
+    content: str
+    llm_provider: Optional[str]
+    criado_em: Optional[datetime]
+    config_id: int
+    client_id: int
+
+class LlmLogResponse(ORMBase):
+    id: int
+    provider: str
+    model: Optional[str]
+    status_code: Optional[int]
+    tokens_in: Optional[int]
+    tokens_out: Optional[int]
+    latency_ms: Optional[int]
+    erro: Optional[str]
+    criado_em: Optional[datetime]
+    config_id: int
+
+class TestarLlmRequest(BaseModel):
+    provider: str
+    api_key: Optional[str] = None
+    ollama_url: Optional[str] = None
+    ollama_model: Optional[str] = None

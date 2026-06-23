@@ -14,10 +14,29 @@ from backend.financeiro.routers import contas, categorias, dividas, recorrencias
 from backend.combustivel.routers import abastecimentos
 from backend.mercado.routers import compras as mercado_compras
 from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook
+from backend.agendamento.routers import (
+    config as agendamento_config,
+    horarios as agendamento_horarios,
+    servicos as agendamento_servicos,
+    clients as agendamento_clients,
+    appointments as agendamento_appointments,
+    dashboard_stats as agendamento_stats,
+    webhook as agendamento_webhook,
+)
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Almeida — Módulos Centrais", docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.on_event("startup")
+def start_scheduler():
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from backend.agendamento.cron import limpar_pre_reservas_expiradas, enviar_lembretes
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(limpar_pre_reservas_expiradas, "interval", minutes=1)
+    scheduler.add_job(enviar_lembretes, "interval", minutes=30)
+    scheduler.start()
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,7 +71,17 @@ app.include_router(mercado_compras.router)
 app.include_router(assistente_config.router)
 app.include_router(assistente_webhook.router)
 
+# Agendamento Inteligente
+app.include_router(agendamento_config.router)
+app.include_router(agendamento_horarios.router)
+app.include_router(agendamento_servicos.router)
+app.include_router(agendamento_clients.router)
+app.include_router(agendamento_appointments.router)
+app.include_router(agendamento_stats.router)
+app.include_router(agendamento_webhook.router)
+
 # Frontends estáticos
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
 app.mount("/assistente-painel", StaticFiles(directory="frontend/assistente", html=True), name="assistente-painel")
+app.mount("/agendamento-painel", StaticFiles(directory="frontend/agendamento", html=True), name="agendamento-painel")

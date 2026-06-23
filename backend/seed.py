@@ -62,6 +62,7 @@ sistemas_seed = [
     ("Classificador de E-mails",    "classificador_emails",   "Triagem automática de e-mails por urgência, categoria e filial.",         "/email/",                        "🤖"),
     ("Conciliação Bancária",        "conciliacao_bancaria",   "Robô RPA que cruza extratos e aponta divergências automaticamente.",      "#",                              "🏦"),
     ("Extração de Documentos",      "extracao_documentos",    "OCR e parsing de PDFs e notas fiscais sem digitação manual.",             "#",                              "📄"),
+    ("Agendamento Inteligente",     "agendamento_inteligente","Agendamento automático via WhatsApp com IA e gestão de LLMs.",           "/agendamento-painel/",           "📅"),
 ]
 
 for nome, slug, desc, url, icone in sistemas_seed:
