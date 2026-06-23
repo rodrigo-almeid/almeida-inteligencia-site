@@ -150,14 +150,15 @@ class TestConfigGoogleFields:
         db.commit()
 
         res = client.get("/agendamento/config", headers=auth_headers)
-        assert res.status_code == 200
+        assert res.status_code == 200, f"Response: {res.text}"
         data = res.json()
-        assert data["google_calendar_conectado"] is True
-        assert data["google_calendar_ativo"] is True
-        assert data["google_calendar_id"] == "user@gmail.com"
+        assert data.get("google_calendar_conectado") is True
+        assert data.get("google_calendar_ativo") is True
+        assert data.get("google_calendar_id") == "user@gmail.com"
 
     def test_config_response_google_desconectado(self, client, auth_headers, agendamento_config):
         res = client.get("/agendamento/config", headers=auth_headers)
+        assert res.status_code == 200, f"Response: {res.text}"
         data = res.json()
-        assert data["google_calendar_conectado"] is False
-        assert data["google_calendar_ativo"] is False
+        assert data.get("google_calendar_conectado") is False
+        assert data.get("google_calendar_ativo") is False

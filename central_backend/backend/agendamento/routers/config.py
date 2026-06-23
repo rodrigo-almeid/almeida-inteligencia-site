@@ -36,6 +36,9 @@ def _config_to_response(config: models.AgendamentoConfig) -> dict:
         "mensagem_midia_bloqueada": config.mensagem_midia_bloqueada,
         "mensagem_contingencia": config.mensagem_contingencia,
         "ativo": config.ativo,
+        "google_calendar_ativo": getattr(config, "google_calendar_ativo", False) or False,
+        "google_calendar_id": getattr(config, "google_calendar_id", None),
+        "google_calendar_conectado": bool(getattr(config, "google_calendar_token", None)),
         "user_id": config.user_id,
     }
 
