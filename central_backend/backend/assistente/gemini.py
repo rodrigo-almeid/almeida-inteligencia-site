@@ -234,9 +234,12 @@ async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | N
         '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|outros",'
         f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})",'
         '"status":"pago|pendente",'
-        '"vencimento":"YYYY-MM-DD ou null se já pago"}\n'
+        '"vencimento":"YYYY-MM-DD ou null se já pago",'
+        '"forma_pagamento":"debito|credito|pix|dinheiro|vale_alimentacao|null"}\n'
         "Regras: se o usuário diz 'gastei', 'paguei', 'comprei' = status 'pago'. "
         "Se diz 'conta de', 'vence', 'parcela', 'boleto' = status 'pendente' e preencha vencimento.\n"
+        "Regras forma_pagamento: se o usuário mencionar explicitamente (pix, cartão, débito, crédito, dinheiro, vale), preencha. "
+        "Se não mencionar, use null.\n"
         f'Texto: "{texto}"\nResponda APENAS com o JSON.'
     )
 

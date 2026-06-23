@@ -1,3 +1,4 @@
+import json
 import httpx
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -103,6 +104,10 @@ async def processar_mensagem(msg, config, user, db):
     if not texto:
         return None
 
+    resposta_pgto = _resolver_pagamento_pendente(msg.get("from"), texto, user, db)
+    if resposta_pgto:
+        return resposta_pgto
+
     intencao = await detectar_intencao(config.gemini_api_key, texto, config)
 
     if intencao == "financeiro_consulta":
@@ -112,14 +117,70 @@ async def processar_mensagem(msg, config, user, db):
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
         if not dados or not dados.get("valor") or dados["valor"] <= 0:
             return 'Não entendi o gasto. Tente: "gastei 50 reais no mercado" ou "conta de luz 150 vence dia 10"'
+
+        forma = dados.get("forma_pagamento")
+        if not forma or forma == "null":
+            from backend.assistente.gemini import historico
+            user_key = msg.get("from")
+            if user_key not in historico:
+                historico[user_key] = []
+            historico[user_key].append({
+                "role": "assistant", "role_gemini": "model",
+                "content": f"__pendente_gasto__:{json.dumps(dados, ensure_ascii=False)}"
+            })
+            return (
+                f"Entendi: *{dados['descricao']}* — R$ {dados['valor']:.2f}\n\n"
+                "Qual foi a forma de pagamento?\n"
+                "1️⃣ Débito\n2️⃣ Crédito\n3️⃣ Pix\n4️⃣ Dinheiro\n5️⃣ Vale Alimentação"
+            )
+
         salvar_conta(dados, user, db)
         status = dados.get("status", "pago")
+        pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
+        pgto_txt = pgto_map.get(forma, forma)
         if status == "pendente":
             venc = dados.get("vencimento", dados.get("data", ""))
-            return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• Status: pendente"
-        return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• Status: pago"
+            return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• 💳 {pgto_txt}\n• Status: pendente\n• 🏷️ via Goku"
+        return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• 💳 {pgto_txt}\n• Status: pago\n• 🏷️ via Goku"
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
+
+
+FORMAS_PAGAMENTO = {
+    "1": "debito", "débito": "debito", "debito": "debito",
+    "2": "credito", "crédito": "credito", "credito": "credito",
+    "3": "pix", "pix": "pix",
+    "4": "dinheiro", "dinheiro": "dinheiro",
+    "5": "vale_alimentacao", "vale": "vale_alimentacao", "va": "vale_alimentacao", "vale alimentação": "vale_alimentacao",
+}
+
+
+def _resolver_pagamento_pendente(user_key, texto, user, db):
+    from backend.assistente.gemini import historico
+    if not user_key or user_key not in historico:
+        return None
+
+    hist = historico[user_key]
+    for i in range(len(hist) - 1, -1, -1):
+        content = hist[i].get("content", "")
+        if content.startswith("__pendente_gasto__:"):
+            forma = FORMAS_PAGAMENTO.get(texto.strip().lower())
+            if not forma:
+                return "Não entendi. Responda com:\n1️⃣ Débito\n2️⃣ Crédito\n3️⃣ Pix\n4️⃣ Dinheiro\n5️⃣ Vale Alimentação"
+
+            dados = json.loads(content.split(":", 1)[1])
+            dados["forma_pagamento"] = forma
+            del hist[i]
+
+            salvar_conta(dados, user, db)
+            pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
+            pgto_txt = pgto_map.get(forma, forma)
+            status = dados.get("status", "pago")
+            if status == "pendente":
+                venc = dados.get("vencimento", dados.get("data", ""))
+                return f"📋 Conta registrada!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Vencimento: {venc}\n• 💳 {pgto_txt}\n• Status: pendente\n• 🏷️ via Goku"
+            return f"✅ Gasto registrado!\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Data: {dados.get('data', 'hoje')}\n• 💳 {pgto_txt}\n• Status: pago\n• 🏷️ via Goku"
+    return None
 
 
 def consultar_financeiro(user, db):
@@ -183,6 +244,7 @@ def salvar_conta(dados, user, db):
         natureza="despesa",
         status=status,
         tipo_recorrencia="unica",
+        origem="goku",
         user_id=user.id,
     )
     db.add(nova)
@@ -201,6 +263,7 @@ def salvar_conta_from_nota(dados, user, db):
         natureza="despesa",
         status="pago",
         tipo_recorrencia="unica",
+        origem="goku",
         user_id=user.id,
     )
     db.add(nova)

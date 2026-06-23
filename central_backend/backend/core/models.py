@@ -116,6 +116,8 @@ class Conta(Base):
     total_parcelas = Column(Integer)
     mes_seguinte_processado = Column(Integer)
 
+    origem = Column(String, nullable=True)
+
     # Chaves Estrangeiras
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=True)
     categoria_id = Column(Integer, ForeignKey('categorias.id', ondelete="SET NULL"), nullable=True)
