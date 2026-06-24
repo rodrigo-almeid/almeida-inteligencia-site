@@ -117,6 +117,7 @@ class Conta(Base):
     mes_seguinte_processado = Column(Integer)
 
     origem = Column(String, nullable=True)
+    forma_pagamento = Column(String, nullable=True)
 
     # Chaves Estrangeiras
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=True)

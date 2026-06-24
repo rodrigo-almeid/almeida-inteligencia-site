@@ -192,6 +192,31 @@ async def humanizar_confirmacao(dados: dict, forma: str = None, config=None) -> 
         return f"✅ *{dados.get('descricao')}* registrada — R$ {dados.get('valor', 0):.2f}"
 
 
+async def humanizar_confirmacao_sem_pgto(dados: dict, config=None) -> str:
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+    natureza = dados.get("natureza", "despesa")
+
+    prompt = (
+        f"Você é o {nome}, assistente pessoal no WhatsApp. "
+        "O usuário registrou um lançamento financeiro mas NÃO disse a forma de pagamento. "
+        "Confirme o registro de forma breve e natural (1-2 frases), e pergunte a forma de pagamento "
+        "de forma casual, como um amigo perguntaria (ex: 'foi no pix, cartão ou dinheiro?'). "
+        "Use emoji com moderação. Não liste opções numeradas.\n\n"
+        f"Dados do registro:\n"
+        f"- Descrição: {dados.get('descricao')}\n"
+        f"- Valor: R$ {dados.get('valor', 0):.2f}\n"
+        f"- Natureza: {natureza}\n"
+    )
+
+    messages_groq = [{"role": "user", "content": prompt}]
+    contents_gemini = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        return await _gerar(config, messages_groq, contents_gemini)
+    except Exception:
+        return f"✅ Registrei *{dados.get('descricao')}* — R$ {dados.get('valor', 0):.2f}\nFoi no pix, cartão ou dinheiro?"
+
+
 async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
     intencoes = ["financeiro_consulta", "financeiro_registro", "agenda", "chat"]
 

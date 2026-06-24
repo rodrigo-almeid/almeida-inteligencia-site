@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.database import get_db
-from backend.assistente.gemini import chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto, humanizar_confirmacao
+from backend.assistente.gemini import chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto, humanizar_confirmacao, humanizar_confirmacao_sem_pgto
 from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
@@ -104,9 +104,9 @@ async def processar_mensagem(msg, config, user, db):
     if not texto:
         return None
 
-    resposta_pgto = await _resolver_pagamento_pendente(msg.get("from"), texto, user, db, config)
-    if resposta_pgto:
-        return resposta_pgto
+    atualizado = _tentar_atualizar_pagamento(texto, user, db)
+    if atualizado:
+        return atualizado
 
     intencao = await detectar_intencao(config.gemini_api_key, texto, config)
 
@@ -116,25 +116,14 @@ async def processar_mensagem(msg, config, user, db):
     if intencao == "financeiro_registro":
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
         if not dados or not dados.get("valor") or dados["valor"] <= 0:
-            return 'Não entendi o gasto. Tente: "gastei 50 reais no mercado" ou "conta de luz 150 vence dia 10"'
+            return await chat(config.gemini_api_key, msg.get("from"), texto, config)
+
+        conta = salvar_conta(dados, user, db)
 
         forma = dados.get("forma_pagamento")
         if not forma or forma == "null":
-            from backend.assistente.gemini import historico
-            user_key = msg.get("from")
-            if user_key not in historico:
-                historico[user_key] = []
-            historico[user_key].append({
-                "role": "assistant", "role_gemini": "model",
-                "content": f"__pendente_gasto__:{json.dumps(dados, ensure_ascii=False)}"
-            })
-            return (
-                f"Entendi: *{dados['descricao']}* — R$ {dados['valor']:.2f}\n\n"
-                "Qual foi a forma de pagamento?\n"
-                "1️⃣ Débito\n2️⃣ Crédito\n3️⃣ Pix\n4️⃣ Dinheiro\n5️⃣ Vale Alimentação"
-            )
+            return await humanizar_confirmacao_sem_pgto(dados, config)
 
-        salvar_conta(dados, user, db)
         return await humanizar_confirmacao(dados, forma, config)
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
@@ -145,30 +134,32 @@ FORMAS_PAGAMENTO = {
     "2": "credito", "crédito": "credito", "credito": "credito",
     "3": "pix", "pix": "pix",
     "4": "dinheiro", "dinheiro": "dinheiro",
-    "5": "vale_alimentacao", "vale": "vale_alimentacao", "va": "vale_alimentacao", "vale alimentação": "vale_alimentacao",
+    "5": "vale_alimentacao", "vale": "vale_alimentacao", "va": "vale_alimentacao",
+    "vale alimentação": "vale_alimentacao", "vale alimentacao": "vale_alimentacao",
 }
 
 
-async def _resolver_pagamento_pendente(user_key, texto, user, db, config=None):
-    from backend.assistente.gemini import historico
-    if not user_key or user_key not in historico:
+def _tentar_atualizar_pagamento(texto, user, db):
+    forma = FORMAS_PAGAMENTO.get(texto.strip().lower())
+    if not forma:
         return None
 
-    hist = historico[user_key]
-    for i in range(len(hist) - 1, -1, -1):
-        content = hist[i].get("content", "")
-        if content.startswith("__pendente_gasto__:"):
-            forma = FORMAS_PAGAMENTO.get(texto.strip().lower())
-            if not forma:
-                return "Não entendi. Responda com:\n1️⃣ Débito\n2️⃣ Crédito\n3️⃣ Pix\n4️⃣ Dinheiro\n5️⃣ Vale Alimentação"
+    ultima = db.query(models.Conta).filter(
+        models.Conta.user_id == user.id,
+        models.Conta.origem == "goku",
+    ).order_by(models.Conta.id.desc()).first()
 
-            dados = json.loads(content.split(":", 1)[1])
-            dados["forma_pagamento"] = forma
-            del hist[i]
+    if not ultima:
+        return None
 
-            salvar_conta(dados, user, db)
-            return await humanizar_confirmacao(dados, forma, config)
-    return None
+    from datetime import datetime, timedelta
+    if ultima.vencimento and (datetime.now().date() - ultima.vencimento).days > 1:
+        return None
+
+    pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
+    ultima.forma_pagamento = forma
+    db.commit()
+    return f"✅ Pagamento atualizado!\n• {ultima.descricao} — R$ {ultima.valor:.2f}\n• 💳 {pgto_map.get(forma, forma)}"
 
 
 def consultar_financeiro(user, db):
@@ -225,6 +216,10 @@ def salvar_conta(dados, user, db):
     status = dados.get("status", "paga")
     venc_str = dados.get("vencimento") or dados.get("data") or hoje.isoformat()
 
+    forma = dados.get("forma_pagamento")
+    if forma == "null":
+        forma = None
+
     nova = models.Conta(
         descricao=dados["descricao"],
         vencimento=date.fromisoformat(venc_str),
@@ -233,10 +228,13 @@ def salvar_conta(dados, user, db):
         status=status,
         tipo_recorrencia="unica",
         origem="goku",
+        forma_pagamento=forma,
         user_id=user.id,
     )
     db.add(nova)
     db.commit()
+    db.refresh(nova)
+    return nova
 
 
 def salvar_conta_from_nota(dados, user, db):
