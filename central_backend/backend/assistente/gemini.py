@@ -161,6 +161,37 @@ async def chat(api_key: str, user_id: str, mensagem: str, config=None) -> str:
     return resposta
 
 
+async def humanizar_confirmacao(dados: dict, forma: str = None, config=None) -> str:
+    pgto_map = {"debito": "débito", "credito": "crédito", "pix": "Pix", "dinheiro": "dinheiro", "vale_alimentacao": "vale alimentação"}
+    pgto = pgto_map.get(forma or dados.get("forma_pagamento", ""), "")
+    natureza = dados.get("natureza", "despesa")
+    status = dados.get("status", "paga")
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+
+    prompt = (
+        f"Você é o {nome}, assistente pessoal no WhatsApp. "
+        "O usuário acabou de registrar um lançamento financeiro e você precisa confirmar de forma breve, "
+        "natural e amigável (1-2 frases curtas, como uma conversa de WhatsApp). "
+        "Use emoji com moderação (1-2 no máximo). Não repita todos os campos, só o essencial.\n\n"
+        f"Dados do registro:\n"
+        f"- Descrição: {dados.get('descricao')}\n"
+        f"- Valor: R$ {dados.get('valor', 0):.2f}\n"
+        f"- Natureza: {natureza}\n"
+        f"- Status: {status}\n"
+        f"- Data: {dados.get('data', dados.get('vencimento', 'hoje'))}\n"
+    )
+    if pgto:
+        prompt += f"- Pagamento: {pgto}\n"
+
+    messages_groq = [{"role": "user", "content": prompt}]
+    contents_gemini = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        return await _gerar(config, messages_groq, contents_gemini)
+    except Exception:
+        return f"✅ *{dados.get('descricao')}* registrada — R$ {dados.get('valor', 0):.2f}"
+
+
 async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
     intencoes = ["financeiro_consulta", "financeiro_registro", "agenda", "chat"]
 

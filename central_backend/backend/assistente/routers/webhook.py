@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.database import get_db
-from backend.assistente.gemini import chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto
+from backend.assistente.gemini import chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto, humanizar_confirmacao
 from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
@@ -104,7 +104,7 @@ async def processar_mensagem(msg, config, user, db):
     if not texto:
         return None
 
-    resposta_pgto = _resolver_pagamento_pendente(msg.get("from"), texto, user, db)
+    resposta_pgto = await _resolver_pagamento_pendente(msg.get("from"), texto, user, db, config)
     if resposta_pgto:
         return resposta_pgto
 
@@ -135,7 +135,7 @@ async def processar_mensagem(msg, config, user, db):
             )
 
         salvar_conta(dados, user, db)
-        return _formatar_resposta_registro(dados, forma)
+        return await humanizar_confirmacao(dados, forma, config)
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
@@ -149,7 +149,7 @@ FORMAS_PAGAMENTO = {
 }
 
 
-def _resolver_pagamento_pendente(user_key, texto, user, db):
+async def _resolver_pagamento_pendente(user_key, texto, user, db, config=None):
     from backend.assistente.gemini import historico
     if not user_key or user_key not in historico:
         return None
@@ -167,35 +167,8 @@ def _resolver_pagamento_pendente(user_key, texto, user, db):
             del hist[i]
 
             salvar_conta(dados, user, db)
-            return _formatar_resposta_registro(dados, forma)
+            return await humanizar_confirmacao(dados, forma, config)
     return None
-
-
-def _formatar_resposta_registro(dados, forma=None):
-    pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
-    pgto_txt = pgto_map.get(forma or dados.get("forma_pagamento", ""), "")
-    pgto_linha = f"\n• 💳 {pgto_txt}" if pgto_txt else ""
-    natureza = dados.get("natureza", "despesa")
-    status = dados.get("status", "paga")
-
-    if natureza == "receita":
-        icon = "💰"
-        label = "Receita registrada!"
-    elif status == "pendente":
-        icon = "📋"
-        label = "Conta registrada!"
-    else:
-        icon = "✅"
-        label = "Gasto registrado!"
-
-    linha_data = ""
-    if status == "pendente":
-        venc = dados.get("vencimento", dados.get("data", ""))
-        linha_data = f"\n• Vencimento: {venc}\n• Status: pendente"
-    else:
-        linha_data = f"\n• Data: {dados.get('data', 'hoje')}\n• Status: paga"
-
-    return f"{icon} {label}\n• {dados['descricao']}\n• R$ {dados['valor']:.2f}\n• Tipo: {natureza}{linha_data}{pgto_linha}\n• 🏷️ via Goku"
 
 
 def consultar_financeiro(user, db):
