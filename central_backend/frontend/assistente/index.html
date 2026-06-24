@@ -108,14 +108,12 @@
     .tipo-option .tipo-info .tipo-name{font-size:14px;font-weight:500;}
     .tipo-option .tipo-info .tipo-desc{font-size:11px;color:var(--gray);margin-top:2px;}
 
-    @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}}
-
     .mobile-hamburger{display:none;position:fixed;top:14px;left:14px;z-index:1001;background:var(--bg2,#1A241C);border:0.5px solid var(--border,rgba(61,219,130,0.12));border-radius:10px;padding:10px;cursor:pointer;color:#fff;}
     .mobile-hamburger svg{display:block;}
     .sidebar-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);}
     .sidebar-overlay.active{display:block;}
     .sidebar.mobile-open{display:flex!important;position:fixed;z-index:1000;height:100vh;width:260px;left:0;top:0;}
-    @media(max-width:640px){.mobile-hamburger{display:block;}.main{padding-top:60px;}}
+    @media(max-width:640px){.sidebar{display:none;}.mobile-hamburger{display:block;}.main{padding:16px;padding-top:60px;}}
   </style>
 </head>
 <body>
