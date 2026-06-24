@@ -168,15 +168,17 @@ async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
         f"Classifique a mensagem em UMA das intenções: {', '.join(intencoes)}.\n\n"
         "- financeiro_registro: o usuário RELATA um gasto, compra, conta, boleto OU uma receita/entrada que aconteceu ou vai acontecer. "
         "Palavras-chave: gastei, paguei, comprei, almocei, conta de, boleto, parcela, vence, fatura, pila, conto, mango, real, reais, "
-        "recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso.\n"
+        "recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso, apostei, perdi, bet, assinei, emprestei, rendeu, resgatei.\n"
         "  Exemplos: 'gastei 50 no mercado', 'paguei 30 de uber', 'conta de luz 180', 'eita gastei uns 30 pila', "
-        "'comprei um tênis por 250', 'almocei por 28 reais', 'recebi 5000 de salário', 'me pagaram 500 do freelance'\n\n"
+        "'comprei um tênis por 250', 'almocei por 28 reais', 'recebi 5000 de salário', 'me pagaram 500 do freelance', "
+        "'apostei 40 e perdi', 'perdi 50 na bet', 'ganhei 200 na aposta', 'assinei netflix 55', 'rendeu 150 do investimento'\n\n"
         "- financeiro_consulta: o usuário PERGUNTA sobre seus gastos ou quer um resumo. "
         "Palavras-chave: quanto, total, resumo, extrato, saldo, como estão, minhas contas.\n"
         "  Exemplos: 'quanto gastei esse mês?', 'como estão minhas contas?', 'qual meu saldo?'\n\n"
         "- agenda: criar, listar ou editar eventos, reuniões, compromissos\n"
         "- chat: qualquer outra coisa (saudações, perguntas gerais, conversa)\n\n"
-        "IMPORTANTE: se a mensagem contém um VALOR em dinheiro e um VERBO de gasto (gastei, paguei, comprei), "
+        "IMPORTANTE: se a mensagem contém um VALOR em dinheiro e um VERBO financeiro "
+        "(gastei, paguei, comprei, recebi, ganhei, perdi, apostei, assinei, emprestei, rendeu), "
         "é SEMPRE financeiro_registro, mesmo que tenha gírias ou tom informal.\n\n"
         f'Mensagem: "{texto}"\n\n'
         "Responda APENAS com a intenção, uma única palavra."
@@ -240,14 +242,14 @@ async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | N
         "Extraia do texto abaixo as informações financeiras em JSON:\n"
         '{"descricao":"o que foi","valor":0.00,'
         '"natureza":"despesa|receita",'
-        '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|salario|freelance|outros",'
+        '"categoria":"alimentacao|transporte|saude|lazer|moradia|educacao|roupas|assinatura|aposta|salario|freelance|investimento|venda|reembolso|outros",'
         f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})",'
         '"status":"paga|pendente",'
         '"vencimento":"YYYY-MM-DD ou null se já pago",'
         '"forma_pagamento":"debito|credito|pix|dinheiro|vale_alimentacao|null"}\n'
         "Regras de natureza:\n"
-        "- despesa: gastei, paguei, comprei, conta de, boleto, parcela, fatura\n"
-        "- receita: recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso\n"
+        "- despesa: gastei, paguei, comprei, conta de, boleto, parcela, fatura, apostei e perdi, perdi na bet, assinei, emprestei\n"
+        "- receita: recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso, ganhei na aposta/bet, rendeu, resgatei\n"
         "Regras de status: se o usuário diz 'gastei', 'paguei', 'comprei', 'recebi' = status 'paga'. "
         "Se diz 'conta de', 'vence', 'parcela', 'boleto', 'vou receber' = status 'pendente' e preencha vencimento.\n"
         "Regras forma_pagamento: se o usuário mencionar explicitamente (pix, cartão, débito, crédito, dinheiro, vale), preencha. "
