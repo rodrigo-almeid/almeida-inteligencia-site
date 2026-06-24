@@ -217,6 +217,72 @@ async def humanizar_confirmacao_sem_pgto(dados: dict, config=None) -> str:
         return f"✅ Registrei *{dados.get('descricao')}* — R$ {dados.get('valor', 0):.2f}\nFoi no pix, cartão ou dinheiro?"
 
 
+NOMES_CAMPOS = {
+    "descricao": "o que foi (descrição)",
+    "valor": "o valor em reais",
+    "forma_pagamento": "a forma de pagamento (pix, cartão, débito, dinheiro, vale)",
+}
+
+
+async def perguntar_campos_faltantes(dados_parciais: dict, campos_faltantes: list[str], config=None) -> str:
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+
+    preenchidos = []
+    for k, v in dados_parciais.items():
+        if v and v != "null":
+            preenchidos.append(f"{k}: {v}")
+
+    faltam_desc = [NOMES_CAMPOS.get(c, c) for c in campos_faltantes]
+
+    prompt = (
+        f"Você é o {nome}, assistente financeiro no WhatsApp. "
+        "O usuário está registrando um lançamento financeiro mas faltam algumas informações.\n\n"
+        f"Dados já informados: {', '.join(preenchidos) if preenchidos else 'nenhum ainda'}\n"
+        f"Campos faltantes: {', '.join(faltam_desc)}\n\n"
+        "Pergunte ao usuário APENAS o que falta, de forma natural e breve (1-2 frases). "
+        "Seja como um amigo perguntando no WhatsApp. Use 1 emoji no máximo. "
+        "Se já tem a descrição, mencione ela na pergunta para contextualizar. "
+        "NÃO liste opções numeradas. Seja conversacional."
+    )
+
+    messages = [{"role": "user", "content": prompt}]
+    contents = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        return await _gerar(config, messages, contents)
+    except Exception:
+        return f"Preciso de mais info: {', '.join(faltam_desc)}. Me conta?"
+
+
+async def complementar_dados(dados_atuais: dict, campos_faltantes: list[str], mensagem: str, config=None) -> dict:
+    campos_desc = {c: NOMES_CAMPOS.get(c, c) for c in campos_faltantes}
+
+    prompt = (
+        "O usuário está completando um registro financeiro. "
+        f"Dados já preenchidos: {json.dumps(dados_atuais, ensure_ascii=False)}\n"
+        f"Campos que FALTAM preencher: {json.dumps(campos_desc, ensure_ascii=False)}\n"
+        f"Nova mensagem do usuário: \"{mensagem}\"\n\n"
+        "Extraia da mensagem APENAS os campos faltantes e retorne em JSON. "
+        "Regras:\n"
+        "- valor: número com 2 casas decimais\n"
+        "- forma_pagamento: debito|credito|pix|dinheiro|vale_alimentacao\n"
+        "- descricao: texto curto descrevendo o gasto/receita\n"
+        "- 'cartão' sem especificar = 'credito'\n"
+        "- '1'='debito', '2'='credito', '3'='pix', '4'='dinheiro', '5'='vale_alimentacao'\n"
+        "Responda APENAS com o JSON dos campos extraídos. Se não conseguiu extrair nada, retorne {}"
+    )
+
+    messages = [{"role": "user", "content": prompt}]
+    contents = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        resultado = await _gerar(config, messages, contents)
+        resultado = resultado.strip().removeprefix("```json").removesuffix("```").strip()
+        return json.loads(resultado)
+    except Exception:
+        return {}
+
+
 async def detectar_intencao(api_key: str, texto: str, config=None) -> str:
     intencoes = ["financeiro_consulta", "financeiro_registro", "agenda", "chat"]
 

@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.database import get_db
-from backend.assistente.gemini import chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto, humanizar_confirmacao, humanizar_confirmacao_sem_pgto
+from backend.assistente.gemini import (
+    chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto,
+    humanizar_confirmacao, perguntar_campos_faltantes, complementar_dados,
+)
 from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
@@ -86,6 +89,50 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+CAMPOS_OBRIGATORIOS = ["descricao", "valor", "forma_pagamento"]
+
+
+def validar_registro(dados: dict) -> list[str]:
+    faltantes = []
+    for campo in CAMPOS_OBRIGATORIOS:
+        val = dados.get(campo)
+        if val is None or val == "null" or val == "":
+            faltantes.append(campo)
+    valor = dados.get("valor")
+    if valor is not None and valor != "null" and valor != "" and float(valor) <= 0:
+        if "valor" not in faltantes:
+            faltantes.append("valor")
+    return faltantes
+
+
+def _get_pendente(user_id, db):
+    return db.query(models.RegistroPendente).filter(
+        models.RegistroPendente.user_id == user_id
+    ).first()
+
+
+def _salvar_pendente(user_id, dados, campos_faltantes, db):
+    pendente = _get_pendente(user_id, db)
+    if pendente:
+        pendente.dados_json = json.dumps(dados, ensure_ascii=False)
+        pendente.campos_faltantes = json.dumps(campos_faltantes)
+    else:
+        pendente = models.RegistroPendente(
+            user_id=user_id,
+            dados_json=json.dumps(dados, ensure_ascii=False),
+            campos_faltantes=json.dumps(campos_faltantes),
+        )
+        db.add(pendente)
+    db.commit()
+
+
+def _limpar_pendente(user_id, db):
+    db.query(models.RegistroPendente).filter(
+        models.RegistroPendente.user_id == user_id
+    ).delete()
+    db.commit()
+
+
 async def processar_mensagem(msg, config, user, db):
     tipo = msg.get("type")
     texto = msg.get("text", {}).get("body", "")
@@ -99,14 +146,15 @@ async def processar_mensagem(msg, config, user, db):
         if not dados or not dados.get("valor_total"):
             return "Não consegui identificar uma nota fiscal nessa imagem. Tente uma foto mais nítida."
 
+        _limpar_pendente(user.id, db)
         return processar_nota_fiscal(dados, user, db)
 
     if not texto:
         return None
 
-    atualizado = _tentar_atualizar_pagamento(texto, user, db)
-    if atualizado:
-        return atualizado
+    pendente = _get_pendente(user.id, db)
+    if pendente:
+        return await _processar_com_pendente(pendente, texto, config, user, db)
 
     intencao = await detectar_intencao(config.gemini_api_key, texto, config)
 
@@ -115,51 +163,55 @@ async def processar_mensagem(msg, config, user, db):
 
     if intencao == "financeiro_registro":
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
-        if not dados or not dados.get("valor") or dados["valor"] <= 0:
+        if not dados:
             return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
-        conta = salvar_conta(dados, user, db)
+        faltantes = validar_registro(dados)
+        if not faltantes:
+            salvar_conta(dados, user, db)
+            return await humanizar_confirmacao(dados, dados.get("forma_pagamento"), config)
 
-        forma = dados.get("forma_pagamento")
-        if not forma or forma == "null":
-            return await humanizar_confirmacao_sem_pgto(dados, config)
-
-        return await humanizar_confirmacao(dados, forma, config)
+        _salvar_pendente(user.id, dados, faltantes, db)
+        return await perguntar_campos_faltantes(dados, faltantes, config)
 
     return await chat(config.gemini_api_key, msg.get("from"), texto, config)
 
 
-FORMAS_PAGAMENTO = {
-    "1": "debito", "débito": "debito", "debito": "debito",
-    "2": "credito", "crédito": "credito", "credito": "credito",
-    "3": "pix", "pix": "pix",
-    "4": "dinheiro", "dinheiro": "dinheiro",
-    "5": "vale_alimentacao", "vale": "vale_alimentacao", "va": "vale_alimentacao",
-    "vale alimentação": "vale_alimentacao", "vale alimentacao": "vale_alimentacao",
-}
+async def _processar_com_pendente(pendente, texto, config, user, db):
+    dados_atuais = json.loads(pendente.dados_json)
+    campos_faltantes = json.loads(pendente.campos_faltantes)
 
+    texto_lower = texto.strip().lower()
+    if texto_lower in ("cancelar", "cancela", "deixa", "esquece", "para"):
+        desc = dados_atuais.get("descricao", "registro")
+        _limpar_pendente(user.id, db)
+        return f"Beleza, cancelei o registro de *{desc}*! 👍"
 
-def _tentar_atualizar_pagamento(texto, user, db):
-    forma = FORMAS_PAGAMENTO.get(texto.strip().lower())
-    if not forma:
-        return None
+    novos = await complementar_dados(dados_atuais, campos_faltantes, texto, config)
 
-    ultima = db.query(models.Conta).filter(
-        models.Conta.user_id == user.id,
-        models.Conta.origem == "goku",
-    ).order_by(models.Conta.id.desc()).first()
+    if not novos:
+        intencao = await detectar_intencao(config.gemini_api_key, texto, config)
+        if intencao in ("financeiro_consulta", "financeiro_registro", "agenda"):
+            desc = dados_atuais.get("descricao", "registro")
+            nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+            return (
+                f"Ei, você ainda tem o registro de *{desc}* pendente. "
+                "Quer cancelar e seguir com outra coisa? (responde 'cancelar' ou me manda o que falta)"
+            )
+        return await perguntar_campos_faltantes(dados_atuais, campos_faltantes, config)
 
-    if not ultima:
-        return None
+    for k, v in novos.items():
+        if v and v != "null":
+            dados_atuais[k] = v
 
-    from datetime import datetime, timedelta
-    if ultima.vencimento and (datetime.now().date() - ultima.vencimento).days > 1:
-        return None
+    faltantes = validar_registro(dados_atuais)
+    if not faltantes:
+        _limpar_pendente(user.id, db)
+        salvar_conta(dados_atuais, user, db)
+        return await humanizar_confirmacao(dados_atuais, dados_atuais.get("forma_pagamento"), config)
 
-    pgto_map = {"debito": "Débito", "credito": "Crédito", "pix": "Pix", "dinheiro": "Dinheiro", "vale_alimentacao": "VA"}
-    ultima.forma_pagamento = forma
-    db.commit()
-    return f"✅ Pagamento atualizado!\n• {ultima.descricao} — R$ {ultima.valor:.2f}\n• 💳 {pgto_map.get(forma, forma)}"
+    _salvar_pendente(user.id, dados_atuais, faltantes, db)
+    return await perguntar_campos_faltantes(dados_atuais, faltantes, config)
 
 
 def consultar_financeiro(user, db):

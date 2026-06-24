@@ -128,6 +128,16 @@ class Conta(Base):
     categoria = relationship("Categoria", back_populates="contas")
 
 
+class RegistroPendente(Base):
+    __tablename__ = "registro_pendente"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    dados_json = Column(Text, nullable=False)
+    campos_faltantes = Column(Text, nullable=False)
+    criado_em = Column(DateTime, default=func.now())
+
+
 class DividaTerceiro(Base):
     __tablename__ = 'dividas_terceiros'
 
