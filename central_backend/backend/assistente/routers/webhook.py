@@ -8,6 +8,7 @@ from backend.core.database import get_db
 from backend.assistente.gemini import (
     chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto,
     humanizar_confirmacao, perguntar_campos_faltantes, complementar_dados,
+    _gerar,
 )
 from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 
@@ -159,7 +160,7 @@ async def processar_mensagem(msg, config, user, db):
     intencao = await detectar_intencao(config.gemini_api_key, texto, config)
 
     if intencao == "financeiro_consulta":
-        return consultar_financeiro(user, db)
+        return await consultar_financeiro(texto, user, db, config)
 
     if intencao == "financeiro_registro":
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
@@ -214,7 +215,7 @@ async def _processar_com_pendente(pendente, texto, config, user, db):
     return await perguntar_campos_faltantes(dados_atuais, faltantes, config)
 
 
-def consultar_financeiro(user, db):
+async def consultar_financeiro(texto, user, db, config=None):
     from datetime import date
     hoje = date.today()
     mes, ano = hoje.month, hoje.year
@@ -228,17 +229,70 @@ def consultar_financeiro(user, db):
         or (not c.competencia and c.vencimento and c.vencimento.month == mes and c.vencimento.year == ano)
     )]
 
-    if not do_mes:
-        return f"Nenhuma conta registrada em {mes}/{ano}."
+    vencendo_hoje = [c for c in do_mes if c.vencimento == hoje and c.status != "paga"]
+    pendentes = [c for c in do_mes if c.status == "pendente"]
+    pagas = [c for c in do_mes if c.status == "paga"]
 
-    total = sum(c.valor for c in do_mes)
-    por_status = {}
-    for c in do_mes:
-        s = c.status or "sem status"
-        por_status[s] = por_status.get(s, 0) + c.valor
+    total_despesas = sum(c.valor for c in do_mes if c.natureza == "despesa")
+    total_receitas = sum(c.valor for c in do_mes if c.natureza == "receita")
+    total_pendente = sum(c.valor for c in pendentes)
+    total_pago = sum(c.valor for c in pagas)
+    saldo = total_receitas - total_despesas
 
-    linhas = "\n".join(f"• {s}: R$ {v:.2f}" for s, v in sorted(por_status.items(), key=lambda x: -x[1]))
-    return f"💰 *Resumo de {mes}/{ano}:*\n\n{linhas}\n\n*Total: R$ {total:.2f}*"
+    dados_financeiros = (
+        f"Mês: {mes}/{ano}\n"
+        f"Total de receitas: R$ {total_receitas:.2f}\n"
+        f"Total de despesas: R$ {total_despesas:.2f}\n"
+        f"Saldo (receitas - despesas): R$ {saldo:.2f}\n"
+        f"Total já pago: R$ {total_pago:.2f}\n"
+        f"Total pendente: R$ {total_pendente:.2f}\n"
+        f"Contas vencendo hoje ({hoje.strftime('%d/%m')}): {len(vencendo_hoje)}\n"
+    )
+
+    if vencendo_hoje:
+        dados_financeiros += "\nDetalhes das contas de hoje:\n"
+        for c in vencendo_hoje:
+            dados_financeiros += f"  - {c.descricao}: R$ {c.valor:.2f}\n"
+
+    if pendentes:
+        dados_financeiros += f"\nPróximas contas pendentes ({len(pendentes)}):\n"
+        pendentes_ord = sorted(pendentes, key=lambda c: c.vencimento or hoje)
+        for c in pendentes_ord[:10]:
+            venc = c.vencimento.strftime("%d/%m") if c.vencimento else "sem data"
+            dados_financeiros += f"  - {c.descricao}: R$ {c.valor:.2f} (vence {venc})\n"
+
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+    prompt = (
+        f"Você é o {nome}, assistente financeiro no WhatsApp. "
+        f"O usuário perguntou: \"{texto}\"\n\n"
+        f"Dados financeiros do mês atual:\n{dados_financeiros}\n"
+        "Responda a pergunta do usuário de forma direta e natural, como um amigo. "
+        "Use os dados acima para dar uma resposta precisa. "
+        "Formate valores como R$ X.XX. Use emoji com moderação (1-2). "
+        "Se o usuário perguntou sobre vencimentos de hoje e não tem nenhum, diga que está tranquilo. "
+        "Seja breve — máximo 4-5 linhas."
+    )
+
+    messages = [{"role": "user", "content": prompt}]
+    contents = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        return await _gerar(config, messages, contents)
+    except Exception:
+        linhas = []
+        if vencendo_hoje:
+            linhas.append(f"📅 *Vencendo hoje ({hoje.strftime('%d/%m')}):*")
+            for c in vencendo_hoje:
+                linhas.append(f"  • {c.descricao}: R$ {c.valor:.2f}")
+        else:
+            linhas.append(f"✅ Nenhuma conta vencendo hoje!")
+        linhas.append(f"\n💰 *Resumo {mes}/{ano}:*")
+        linhas.append(f"  • Receitas: R$ {total_receitas:.2f}")
+        linhas.append(f"  • Despesas: R$ {total_despesas:.2f}")
+        linhas.append(f"  • Saldo: R$ {saldo:.2f}")
+        if total_pendente > 0:
+            linhas.append(f"  • Pendente: R$ {total_pendente:.2f}")
+        return "\n".join(linhas)
 
 
 def processar_nota_fiscal(dados, user, db):
