@@ -43,11 +43,27 @@ db.commit()
 
 # Migrations manuais — adiciona colunas que podem não existir
 migrations = [
+    # Assistente — personalidade
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS nome_assistente VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS personalidade VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS tom_voz VARCHAR DEFAULT 'casual'",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS instrucoes_extras VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS groq_api_key VARCHAR",
+    # Assistente — provedores LLM
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS ollama_url VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS ollama_model VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS provedores_llm TEXT",
+    # Contas — origem e forma de pagamento via Goku
+    "ALTER TABLE contas ADD COLUMN IF NOT EXISTS origem VARCHAR",
+    "ALTER TABLE contas ADD COLUMN IF NOT EXISTS forma_pagamento VARCHAR",
+    # Registro pendente — loop conversacional do Goku
+    """CREATE TABLE IF NOT EXISTS registro_pendente (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        dados_json TEXT NOT NULL,
+        campos_faltantes TEXT NOT NULL,
+        criado_em TIMESTAMP DEFAULT NOW()
+    )""",
 ]
 for sql in migrations:
     try:
