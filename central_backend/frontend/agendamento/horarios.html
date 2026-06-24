@@ -45,9 +45,19 @@
     .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .3s;}
     .toast.show{opacity:1;transform:translateY(0);}.toast.ok{border-color:rgba(61,219,130,.4);color:var(--green);}.toast.err{border-color:rgba(226,75,74,.4);color:var(--red);}
     @media(max-width:640px){.sidebar{display:none;}.main{padding:16px;}.dia-row{flex-direction:column;align-items:flex-start;}}
+    .mobile-hamburger{display:none;position:fixed;top:14px;left:14px;z-index:1001;background:var(--bg2,#1A241C);border:0.5px solid var(--border,rgba(61,219,130,0.12));border-radius:10px;padding:10px;cursor:pointer;color:#fff;}
+    .mobile-hamburger svg{display:block;}
+    .sidebar-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);}
+    .sidebar-overlay.active{display:block;}
+    .sidebar.mobile-open{display:flex!important;position:fixed;z-index:1000;height:100vh;width:260px;left:0;top:0;}
+    @media(max-width:640px){.mobile-hamburger{display:block;}.main{padding-top:60px;}}
   </style>
 </head>
 <body>
+<button class="mobile-hamburger" onclick="document.querySelector('.sidebar').classList.toggle('mobile-open');document.querySelector('.sidebar-overlay').classList.toggle('active');" aria-label="Menu">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('mobile-open');this.classList.remove('active');"></div>
 
 <div class="sidebar">
   <div class="logo"><svg viewBox="0 0 56 56" width="26" height="26"><polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/><circle cx="28" cy="20" r="3" fill="#3DDB82"/><circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/><circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity=".7"/><line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/><line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width=".8" opacity=".6"/></svg><div><div class="name">Almeida <span>Inteligencia</span></div><div class="tag">Agendamento</div></div></div>
