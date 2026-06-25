@@ -1,0 +1,345 @@
+{
+	"info": {
+		"_postman_id": "almeida-inteligencia-full-flow",
+		"name": "Almeida Inteligência — Fluxo Completo (CRUD + Cleanup)",
+		"description": "Fluxo E2E: registra usuário, testa CRUD de todos os módulos disponíveis no deploy, e limpa tudo no final.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "base_url", "value": "http://147.15.47.151:8080" },
+		{ "key": "central_api", "value": "{{base_url}}/central" },
+		{ "key": "token", "value": "" },
+		{ "key": "test_email", "value": "" },
+		{ "key": "test_password", "value": "Test@12345" },
+		{ "key": "categoria_id", "value": "" },
+		{ "key": "conta_id", "value": "" },
+		{ "key": "divida_id", "value": "" },
+		{ "key": "pessoa_id", "value": "" },
+		{ "key": "senha_id", "value": "" },
+		{ "key": "dado_pessoal_id", "value": "" },
+		{ "key": "abastecimento_id", "value": "" }
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"if (!pm.collectionVariables.get('test_email') || pm.collectionVariables.get('test_email') === '') {",
+					"    pm.collectionVariables.set('test_email', 'postman_test_' + Date.now() + '@teste.com');",
+					"}"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "01 — Autenticação",
+			"item": [
+				{
+					"name": "01.1 Registrar Usuário",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 201 Created', function () { pm.expect(pm.response.code).to.equal(201); });",
+						"pm.test('Response time < 5s', function () { pm.expect(pm.response.responseTime).to.be.below(5000); });",
+						"pm.test('Content-Type JSON', function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+						"pm.test('Mensagem de sucesso', function () { var j = pm.response.json(); pm.expect(j).to.have.property('message'); pm.expect(j.message).to.include('sucesso'); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}" }, "url": { "raw": "{{central_api}}/auth/register", "host": ["{{central_api}}"], "path": ["auth", "register"] } }
+				},
+				{
+					"name": "01.2 Login",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('Content-Type JSON', function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+						"pm.test('access_token é string não vazia', function () { var j = pm.response.json(); pm.expect(j.access_token).to.be.a('string').and.not.empty; pm.collectionVariables.set('token', j.access_token); });",
+						"pm.test('Token formato JWT (3 partes)', function () { pm.expect(pm.response.json().access_token.split('.').length).to.equal(3); });",
+						"pm.test('token_type bearer', function () { pm.expect(pm.response.json().token_type.toLowerCase()).to.equal('bearer'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "username", "value": "{{test_email}}" }, { "key": "password", "value": "{{test_password}}" }] }, "url": { "raw": "{{central_api}}/auth/login", "host": ["{{central_api}}"], "path": ["auth", "login"] } }
+				},
+				{
+					"name": "01.3 Listar Perfis",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('Resposta é array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+						"pm.test('Não 401 (token válido)', function () { pm.expect(pm.response.code).to.not.equal(401); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/perfis", "host": ["{{central_api}}"], "path": ["me", "perfis"] } }
+				}
+			]
+		},
+		{
+			"name": "02 — Financeiro (Categorias + Contas + Dívidas)",
+			"item": [
+				{
+					"name": "02.1 Criar Categoria",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('id numérico retornado', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('categoria_id', j.id); });",
+						"pm.test('Nome capitalizado confere', function () { pm.expect(pm.response.json().nome).to.equal('Teste postman'); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"nome\": \"Teste Postman\"}" }, "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } }
+				},
+				{
+					"name": "02.2 Listar Categorias",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('É array', function () { pm.expect(pm.response.json()).to.be.an('array'); });",
+						"pm.test('Categoria criada na lista', function () { var f = pm.response.json().find(function(c){return c.id==pm.collectionVariables.get('categoria_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.nome).to.equal('Teste postman'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } }
+				},
+				{
+					"name": "02.3 Criar Conta",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('id numérico', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('conta_id', j.id); });",
+						"pm.test('Descrição confere', function () { pm.expect(pm.response.json().descricao).to.equal('Conta Teste Postman'); });",
+						"pm.test('Valor confere', function () { pm.expect(pm.response.json().valor).to.equal(150); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"Conta Teste Postman\",\n  \"vencimento\": \"2026-07-15\",\n  \"competencia\": \"2026-07\",\n  \"valor\": 150.00,\n  \"natureza\": \"débito\",\n  \"status\": \"A Pagar\",\n  \"categoria_id\": {{categoria_id}}\n}" }, "url": { "raw": "{{central_api}}/contas/", "host": ["{{central_api}}"], "path": ["contas", ""] } }
+				},
+				{
+					"name": "02.4 Listar Contas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Conta criada na lista', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.contas||j.items||j.data||[]); var f = items.find(function(c){return c.id==pm.collectionVariables.get('conta_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.descricao).to.equal('Conta Teste Postman'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["contas", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } }
+				},
+				{
+					"name": "02.5 Atualizar Conta",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Descrição atualizada', function () { pm.expect(pm.response.json().descricao).to.equal('Conta EDITADA'); });",
+						"pm.test('Valor atualizado', function () { pm.expect(pm.response.json().valor).to.equal(200); });",
+						"pm.test('Status atualizado', function () { pm.expect(pm.response.json().status).to.equal('Pago'); });",
+						"pm.test('ID inalterado', function () { pm.expect(pm.response.json().id).to.equal(Number(pm.collectionVariables.get('conta_id'))); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"Conta EDITADA\",\n  \"vencimento\": \"2026-07-20\",\n  \"competencia\": \"2026-07\",\n  \"valor\": 200.00,\n  \"natureza\": \"débito\",\n  \"status\": \"Pago\",\n  \"categoria_id\": {{categoria_id}}\n}" }, "url": { "raw": "{{central_api}}/contas/{{conta_id}}", "host": ["{{central_api}}"], "path": ["contas", "{{conta_id}}"] } }
+				},
+				{
+					"name": "02.6 Verificar Conta Editada",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Dados editados refletidos', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.contas||j.items||j.data||[]); var f = items.find(function(c){return c.id==pm.collectionVariables.get('conta_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.descricao).to.equal('Conta EDITADA'); pm.expect(f.valor).to.equal(200); pm.expect(f.status).to.equal('Pago'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["contas", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } }
+				},
+				{
+					"name": "02.7 Criar Dívida",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('id numérico', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('divida_id', j.id); });",
+						"pm.test('Devedor confere', function () { pm.expect(pm.response.json().devedor).to.equal('João Teste'); });",
+						"pm.test('Valor confere', function () { pm.expect(pm.response.json().valor).to.equal(500); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"devedor\": \"João Teste\",\n  \"descricao\": \"Empréstimo Postman\",\n  \"vencimento\": \"2026-08-01\",\n  \"valor\": 500.00,\n  \"status\": \"pendente\"\n}" }, "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } }
+				},
+				{
+					"name": "02.8 Listar Dívidas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Dívida na lista', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.items||j.data||[]); var f = items.find(function(d){return d.id==pm.collectionVariables.get('divida_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.devedor).to.equal('João Teste'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } }
+				},
+				{
+					"name": "02.9 Atualizar Dívida",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Descrição atualizada', function () { pm.expect(pm.response.json().descricao).to.equal('Empréstimo EDITADO'); });",
+						"pm.test('Valor atualizado', function () { pm.expect(pm.response.json().valor).to.equal(600); });",
+						"pm.test('ID inalterado', function () { pm.expect(pm.response.json().id).to.equal(Number(pm.collectionVariables.get('divida_id'))); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"devedor\": \"João Teste\",\n  \"descricao\": \"Empréstimo EDITADO\",\n  \"vencimento\": \"2026-08-15\",\n  \"valor\": 600.00,\n  \"status\": \"pago\"\n}" }, "url": { "raw": "{{central_api}}/dividas/{{divida_id}}", "host": ["{{central_api}}"], "path": ["dividas", "{{divida_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "03 — Credenciais (Pessoas + Senhas + Dados)",
+			"item": [
+				{
+					"name": "03.1 Criar Pessoa",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('id numérico', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('pessoa_id', j.id); });",
+						"pm.test('Nome confere', function () { pm.expect(pm.response.json().nome).to.equal('Perfil Teste Postman'); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"nome\": \"Perfil Teste Postman\"}" }, "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } }
+				},
+				{
+					"name": "03.2 Listar Pessoas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('É array com >= 1', function () { pm.expect(pm.response.json()).to.be.an('array').with.length.at.least(1); });",
+						"pm.test('Pessoa criada na lista', function () { var f = pm.response.json().find(function(p){return p.id==pm.collectionVariables.get('pessoa_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.nome).to.equal('Perfil Teste Postman'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } }
+				},
+				{
+					"name": "03.3 Salvar Senha",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('Mensagem de sucesso', function () { var j = pm.response.json(); pm.expect(j).to.have.property('mensagem'); pm.expect(j.mensagem).to.include('segurança'); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"sistema\": \"Gmail Teste\",\n  \"usuario_sistema\": \"postman@teste.com\",\n  \"senha\": \"SenhaSecreta123\",\n  \"pessoa_id\": {{pessoa_id}}\n}" }, "url": { "raw": "{{central_api}}/me/senhas/", "host": ["{{central_api}}"], "path": ["me", "senhas", ""] } }
+				},
+				{
+					"name": "03.4 Listar Senhas (e capturar ID)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('É array com >= 1 senha', function () { pm.expect(pm.response.json()).to.be.an('array').with.length.at.least(1); });",
+						"pm.test('Senha Gmail Teste encontrada e id salvo', function () { var f = pm.response.json().find(function(s){return s.sistema==='Gmail Teste';}); pm.expect(f).to.not.be.undefined; pm.expect(f.usuario_sistema).to.equal('postman@teste.com'); pm.collectionVariables.set('senha_id', f.id); });",
+						"pm.test('Campo senha_criptografada presente', function () { var f = pm.response.json().find(function(s){return s.sistema==='Gmail Teste';}); pm.expect(f).to.have.property('senha_criptografada'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/{{pessoa_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "{{pessoa_id}}"] } }
+				},
+				{
+					"name": "03.5 Adicionar Dado Pessoal",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('id numérico', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('dado_pessoal_id', j.id); });",
+						"pm.test('Chave CPF', function () { pm.expect(pm.response.json().chave).to.equal('CPF'); });",
+						"pm.test('Valor confere', function () { pm.expect(pm.response.json().valor).to.equal('123.456.789-00'); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"chave\": \"CPF\",\n  \"valor\": \"123.456.789-00\",\n  \"pessoa_id\": {{pessoa_id}}\n}" }, "url": { "raw": "{{central_api}}/me/senhas/dados/", "host": ["{{central_api}}"], "path": ["me", "senhas", "dados", ""] } }
+				},
+				{
+					"name": "03.6 Listar Dados Pessoais",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Dado CPF na lista', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.items||j.data||[]); var f = items.find(function(d){return d.id==pm.collectionVariables.get('dado_pessoal_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.chave).to.equal('CPF'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/propriedades/{{pessoa_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "propriedades", "{{pessoa_id}}"] } }
+				}
+			]
+		},
+		{
+			"name": "04 — Combustível",
+			"item": [
+				{
+					"name": "04.1 Registrar Abastecimento",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200 ou 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+						"pm.test('Response time < 3s', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
+						"pm.test('id numérico', function () { var j = pm.response.json(); pm.expect(j.id).to.be.a('number'); pm.collectionVariables.set('abastecimento_id', j.id); });",
+						"pm.test('Tipo gasolina', function () { pm.expect(pm.response.json().tipo_combustivel).to.equal('gasolina'); });",
+						"pm.test('km_atual 50000', function () { pm.expect(pm.response.json().km_atual).to.equal(50000); });",
+						"pm.test('litros 40', function () { pm.expect(pm.response.json().litros).to.equal(40); });",
+						"pm.test('tanque_cheio true', function () { pm.expect(pm.response.json().tanque_cheio).to.equal(true); });",
+						"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
+					] } }],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"data\": \"2026-07-01\",\n  \"tipo_combustivel\": \"gasolina\",\n  \"km_atual\": 50000,\n  \"litros\": 40.0,\n  \"valor_unitario\": 5.89,\n  \"valor_total\": 235.60,\n  \"forma_pagamento\": \"credito\",\n  \"tanque_cheio\": true\n}" }, "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } }
+				},
+				{
+					"name": "04.2 Listar Abastecimentos",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Abastecimento na lista', function () { var j = pm.response.json(); var items = j.abastecimentos||(Array.isArray(j)?j:(j.items||j.data||[])); var f = items.find(function(a){return a.id==pm.collectionVariables.get('abastecimento_id');}); pm.expect(f).to.not.be.undefined; pm.expect(f.tipo_combustivel).to.equal('gasolina'); });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["abastecimentos", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } }
+				}
+			]
+		},
+		{
+			"name": "05 — CLEANUP (Excluir Tudo)",
+			"item": [
+				{
+					"name": "05.01 Excluir Abastecimento",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído (200/204)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+						"pm.test('Não 404', function () { pm.expect(pm.response.code).to.not.equal(404); });",
+						"pm.test('Não 500', function () { pm.expect(pm.response.code).to.not.equal(500); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/{{abastecimento_id}}", "host": ["{{central_api}}"], "path": ["abastecimentos", "{{abastecimento_id}}"] } }
+				},
+				{
+					"name": "05.02 Verificar Abastecimento Excluído",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Abastecimento não está mais', function () { var j = pm.response.json(); var items = j.abastecimentos||(Array.isArray(j)?j:(j.items||j.data||[])); var f = items.find(function(a){return a.id==pm.collectionVariables.get('abastecimento_id');}); pm.expect(f).to.be.undefined; });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["abastecimentos", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } }
+				},
+				{
+					"name": "05.03 Excluir Dado Pessoal",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído (200/204)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+						"pm.test('Não 404', function () { pm.expect(pm.response.code).to.not.equal(404); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/dados/{{dado_pessoal_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "dados", "{{dado_pessoal_id}}"] } }
+				},
+				{
+					"name": "05.04 Excluir Senha",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído (200/204)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+						"pm.test('Não 404', function () { pm.expect(pm.response.code).to.not.equal(404); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/credencial/{{senha_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "credencial", "{{senha_id}}"] } }
+				},
+				{
+					"name": "05.05 Verificar Senhas Limpas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Senha excluída não está na lista', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:[]; var f = items.find(function(s){return s.id==pm.collectionVariables.get('senha_id');}); pm.expect(f).to.be.undefined; });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/{{pessoa_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "{{pessoa_id}}"] } }
+				},
+				{
+					"name": "05.06 Excluir Dívida",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído (200/204)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+						"pm.test('Não 404', function () { pm.expect(pm.response.code).to.not.equal(404); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/{{divida_id}}", "host": ["{{central_api}}"], "path": ["dividas", "{{divida_id}}"] } }
+				},
+				{
+					"name": "05.07 Verificar Dívida Excluída",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Dívida não está mais', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.items||j.data||[]); var f = items.find(function(d){return d.id==pm.collectionVariables.get('divida_id');}); pm.expect(f).to.be.undefined; });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } }
+				},
+				{
+					"name": "05.08 Excluir Conta",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído (200/204)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+						"pm.test('Não 404', function () { pm.expect(pm.response.code).to.not.equal(404); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/{{conta_id}}", "host": ["{{central_api}}"], "path": ["contas", "{{conta_id}}"] } }
+				},
+				{
+					"name": "05.09 Excluir Categoria",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Excluído ou rota indisponível (200/204/404)', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });",
+						"pm.test('Não 500', function () { pm.expect(pm.response.code).to.not.equal(500); });"
+					] } }],
+					"request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/{{categoria_id}}", "host": ["{{central_api}}"], "path": ["categorias", "{{categoria_id}}"] } }
+				},
+				{
+					"name": "05.11 Verificar Contas Limpas",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Conta não está mais', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.contas||j.items||j.data||[]); var f = items.find(function(c){return c.id==pm.collectionVariables.get('conta_id');}); pm.expect(f).to.be.undefined; });"
+					] } }],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["contas", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } }
+				}
+			]
+		}
+	]
+}

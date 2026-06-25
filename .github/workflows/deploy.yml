@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Testes Unitários (pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,6 +30,7 @@ jobs:
         run: pytest --cov=backend --cov-report=term-missing
 
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -38,3 +40,40 @@ jobs:
             -H "X-Deploy-Token: almeida-deploy-2025" \
             --fail \
             --max-time 30
+
+  integration:
+    name: Testes de Integração (Newman)
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Aguardar servidor estabilizar
+        run: |
+          echo "Aguardando servidor reiniciar após deploy..."
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -w "%{http_code}" http://147.15.47.151:8080/central/auth/login 2>/dev/null | grep -q "200\|405\|422"; then
+              echo "Servidor respondendo após ${i}s"
+              break
+            fi
+            echo "Tentativa $i/30..."
+            sleep 2
+          done
+
+      - name: Rodar testes de integração
+        run: |
+          newman run central_backend/tests/integration/Almeida_Inteligencia_Full_Flow.postman_collection.json \
+            --timeout-request 15000 \
+            --reporters cli
+
+      - name: Resumo
+        if: always()
+        run: echo "Testes de integração finalizados"
