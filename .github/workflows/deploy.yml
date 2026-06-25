@@ -56,24 +56,29 @@ jobs:
       - name: Instalar Newman
         run: npm install -g newman
 
-      - name: Aguardar servidor estabilizar
+      - name: Rodar testes de integração (com retry)
         run: |
-          echo "Aguardando servidor reiniciar após deploy..."
-          for i in $(seq 1 30); do
-            if curl -s -o /dev/null -w "%{http_code}" http://147.15.47.151:8080/central/auth/login 2>/dev/null | grep -q "200\|405\|422"; then
-              echo "Servidor respondendo após ${i}s"
-              break
-            fi
-            echo "Tentativa $i/30..."
-            sleep 2
+          MAX_TENTATIVAS=5
+          ESPERA=30
+          TENTATIVA=1
+
+          while [ $TENTATIVA -le $MAX_TENTATIVAS ]; do
+            echo ""
+            echo "========================================="
+            echo "  Tentativa $TENTATIVA de $MAX_TENTATIVAS"
+            echo "========================================="
+            echo ""
+
+            newman run central_backend/tests/integration/Almeida_Inteligencia_Full_Flow.postman_collection.json \
+              --timeout-request 15000 \
+              --reporters cli && exit 0
+
+            echo ""
+            echo "Tentativa $TENTATIVA falhou. Aguardando ${ESPERA}s antes de tentar novamente..."
+            sleep $ESPERA
+            TENTATIVA=$((TENTATIVA + 1))
           done
 
-      - name: Rodar testes de integração
-        run: |
-          newman run central_backend/tests/integration/Almeida_Inteligencia_Full_Flow.postman_collection.json \
-            --timeout-request 15000 \
-            --reporters cli
-
-      - name: Resumo
-        if: always()
-        run: echo "Testes de integração finalizados"
+          echo ""
+          echo "Todas as $MAX_TENTATIVAS tentativas falharam."
+          exit 1
