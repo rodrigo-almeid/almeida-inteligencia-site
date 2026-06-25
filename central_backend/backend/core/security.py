@@ -54,9 +54,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 # DEPENDÊNCIA: VERIFICA O UTILIZADOR LOGADO
 # ==========================================
 def require_perfil(perfil_nome: str):
-    """No portal Almeida, o controle de acesso é feito pelo portal. Qualquer usuário autenticado passa."""
+    """Verifica se o usuário autenticado possui o perfil exigido pela rota."""
     def build_checker(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-        return get_current_user(token, db)
+        user = get_current_user(token, db)
+        nomes = [p.nome for p in user.perfis]
+        if perfil_nome not in nomes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Acesso negado. Perfil '{perfil_nome}' necessário.",
+            )
+        return user
     return build_checker
 
 

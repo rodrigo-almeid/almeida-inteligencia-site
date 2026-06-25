@@ -30,7 +30,7 @@ _TestSession = sessionmaker(autocommit=False, autoflush=False, bind=_TEST_ENGINE
 
 # Imports do backend (só aqui, depois dos env vars)
 from backend.core.models import (
-    Base, User, Pessoa, Conta, Senha, AssistenteConfig,
+    Base, User, Perfil, Pessoa, Conta, Senha, AssistenteConfig,
     AgendamentoConfig, HorarioFuncionamento, Service, Client, Appointment,
     ConversationMessage, LlmLog,
 )
@@ -77,21 +77,48 @@ USER2_EMAIL = "outro@teste.com"
 USER2_PASS = "Outro@Teste456"
 
 
+ALL_PERFIS = ["dashboard", "senhas", "abastecimento", "games", "credenciais", "financeiro"]
+
+
 @pytest.fixture
-def user(db):
-    """Usuário autenticado principal."""
+def perfis(db):
+    """Cria todos os perfis RBAC no banco de testes."""
+    objs = []
+    for nome in ALL_PERFIS:
+        p = db.query(Perfil).filter(Perfil.nome == nome).first()
+        if not p:
+            p = Perfil(nome=nome)
+            db.add(p)
+        objs.append(p)
+    db.commit()
+    for p in objs:
+        db.refresh(p)
+    return objs
+
+
+@pytest.fixture
+def user(db, perfis):
+    """Usuário autenticado principal — com todos os perfis."""
     u = User(email=USER_EMAIL, hashed_password=get_password_hash(USER_PASS))
     db.add(u)
+    db.commit()
+    db.refresh(u)
+    for p in perfis:
+        u.perfis.append(p)
     db.commit()
     db.refresh(u)
     return u
 
 
 @pytest.fixture
-def user2(db):
-    """Segundo usuário — para testes de isolamento."""
+def user2(db, perfis):
+    """Segundo usuário — para testes de isolamento, com todos os perfis."""
     u = User(email=USER2_EMAIL, hashed_password=get_password_hash(USER2_PASS))
     db.add(u)
+    db.commit()
+    db.refresh(u)
+    for p in perfis:
+        u.perfis.append(p)
     db.commit()
     db.refresh(u)
     return u
