@@ -782,6 +782,16 @@
 
 <script>
   function openModal() {
+    const t = localStorage.getItem('admin_token');
+    if (t) {
+      try {
+        const payload = JSON.parse(atob(t.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          window.location.href = '/dashboard/';
+          return;
+        }
+      } catch {}
+    }
     document.getElementById('modalOverlay').classList.add('active');
     document.getElementById('loginToast').style.display = 'none';
     document.getElementById('loginLoading').style.display = 'none';
