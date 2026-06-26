@@ -27,7 +27,10 @@ from backend.agendamento.routers import (
 
 models.Base.metadata.create_all(bind=engine)
 
+from backend.core.webhook_security import WebhookSignatureMiddleware
+
 app = FastAPI(title="Almeida — Módulos Centrais", docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(WebhookSignatureMiddleware)
 
 
 @app.on_event("startup")
@@ -44,9 +47,12 @@ def start_scheduler():
     scheduler.add_job(renovar_google_channels, "interval", hours=12)
     scheduler.start()
 
+import os
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

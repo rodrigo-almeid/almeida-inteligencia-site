@@ -37,7 +37,7 @@ jobs:
       - name: Disparar deploy via webhook
         run: |
           curl -X POST https://deploy.almeidainteligencia.com.br/deploy \
-            -H "X-Deploy-Token: almeida-deploy-2025" \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
             --fail \
             --max-time 30
 

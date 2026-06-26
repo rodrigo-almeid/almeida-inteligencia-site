@@ -12,14 +12,18 @@ from datetime import datetime, timedelta
 
 app = FastAPI(title="Almeida Inteligência Auth API")
 
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-SECRET_KEY = os.getenv("SECRET_KEY", "almeida-secret-change-in-prod")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("ERRO: A variável SECRET_KEY não foi configurada!")
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 8
 
@@ -151,7 +155,8 @@ def login(body: LoginRequest):
         cur.execute("SELECT * FROM usuarios WHERE email = %s", (body.email,))
         user = cur.fetchone()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro de banco: {str(e)}")
+        print(f"[login] Erro de banco: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno do servidor")
 
     if not user:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")

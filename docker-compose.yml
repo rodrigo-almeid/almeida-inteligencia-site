@@ -4,16 +4,14 @@ services:
     image: postgres:15-alpine
     container_name: almeida-db
     environment:
-      POSTGRES_DB: almeida
-      POSTGRES_USER: almeida
-      POSTGRES_PASSWORD: almeida123
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - almeida_pgdata:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U almeida"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,10 +22,10 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: almeida
-      DB_USER: almeida
-      DB_PASS: almeida123
-      SECRET_KEY: "almeida-super-secret-2025"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASSWORD}
+      SECRET_KEY: ${PORTAL_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
@@ -37,12 +35,12 @@ services:
     build: ./email_classifier
     container_name: email-backend
     environment:
-      DATABASE_URL: "postgresql://almeida:almeida123@db:5432/almeida"
-      FERNET_SECRET_KEY: "_Vst7BJB0-lkH4_WBLn2K7OzOwBOS-pG49AYLlAKyuY="
-      JWT_SECRET_KEY: "f970d76284788d78273ab4bbe58e627190232299468af188c788eb973546148e"
-      PORTAL_SECRET_KEY: "almeida-super-secret-2025"
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+      FERNET_SECRET_KEY: ${EMAIL_FERNET_SECRET_KEY}
+      JWT_SECRET_KEY: ${EMAIL_JWT_SECRET_KEY}
+      PORTAL_SECRET_KEY: ${PORTAL_SECRET_KEY}
       JWT_ALGORITHM: "HS256"
-      JWT_EXPIRE_MINUTES: "480"
+      JWT_EXPIRE_MINUTES: "30"
     depends_on:
       db:
         condition: service_healthy
@@ -54,15 +52,16 @@ services:
     build: ./central_backend
     container_name: central-backend
     environment:
-      DATABASE_URL: "postgresql://almeida:almeida123@db:5432/almeida"
-      FERNET_SECRET_KEY: "YWxzT1RxZU9EUW1lWjhkVVlCS2tpN1htUDFwZzBVbTk="
-      JWT_SECRET_KEY: "c3e8d1a04f2b9e7c6d5a4b3f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2"
-      PORTAL_SECRET_KEY: "almeida-super-secret-2025"
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+      FERNET_SECRET_KEY: ${CENTRAL_FERNET_SECRET_KEY}
+      JWT_SECRET_KEY: ${CENTRAL_JWT_SECRET_KEY}
+      PORTAL_SECRET_KEY: ${PORTAL_SECRET_KEY}
       JWT_ALGORITHM: "HS256"
-      JWT_EXPIRE_MINUTES: "480"
-      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
-      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
-      APP_BASE_URL: "${APP_BASE_URL:-http://localhost:8080}"
+      JWT_EXPIRE_MINUTES: "30"
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy
