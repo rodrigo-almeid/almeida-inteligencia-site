@@ -28,8 +28,13 @@ from backend.agendamento.routers import (
 models.Base.metadata.create_all(bind=engine)
 
 from backend.core.webhook_security import WebhookSignatureMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.auth.routers.auth import limiter
 
 app = FastAPI(title="Almeida — Módulos Centrais", docs_url=None, redoc_url=None, openapi_url=None)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(WebhookSignatureMiddleware)
 
 

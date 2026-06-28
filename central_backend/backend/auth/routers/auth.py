@@ -1,13 +1,16 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from backend.core.database import get_db
 from backend.core import models, schemas
 from backend.core.security import get_password_hash, verify_password, create_access_token
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 PORTAL_SECRET_KEY = os.getenv("PORTAL_SECRET_KEY", "")
@@ -19,7 +22,8 @@ class SSORequest(BaseModel):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     # 1. Verifica se o e-mail já existe
     db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if db_user:
@@ -46,7 +50,8 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
 
     if not user:

@@ -108,9 +108,7 @@ async def _processar_em_background(config_id: int, telefone: str, nome: str, tex
         try:
             resposta = await processar_mensagem(texto, config, client, db)
         except Exception as e:
-            print(f"[agendamento] Erro ao processar: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[agendamento] Erro: {type(e).__name__}")
             resposta = config.mensagem_contingencia or "Desculpe, tive um problema. Tente novamente."
 
         await enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, telefone, resposta)

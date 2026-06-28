@@ -54,36 +54,26 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
         return {"status": "no messages"}
 
     phone_id = value.get("metadata", {}).get("phone_number_id")
-    print(f"[goku] webhook recebido. phone_id={phone_id}")
 
     config = get_config_by_phone_id(phone_id, db)
 
     if not config:
-        print(f"[goku] config NAO encontrada para phone_id={phone_id}")
         return {"status": "config not found"}
 
-    print(f"[goku] config encontrada. user_id={config.user_id}, ativo={config.ativo}")
     user = db.query(models.User).filter(models.User.id == config.user_id).first()
 
     for msg in value["messages"]:
         from_number = msg.get("from")
-        print(f"[goku] mensagem de {from_number}, autorizado={config.numero_autorizado}")
 
         if from_number != config.numero_autorizado:
-            print(f"[goku] BLOQUEADO - numero nao autorizado")
             continue
 
         try:
-            print(f"[goku] processando mensagem: {msg.get('text', {}).get('body', '')}")
             reply = await processar_mensagem(msg, config, user, db)
-            print(f"[goku] resposta gerada: {reply[:100] if reply else 'None'}")
             if reply:
                 await enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, from_number, reply)
-                print(f"[goku] mensagem enviada para {from_number}")
         except Exception as e:
-            print(f"[goku] ERRO: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[goku] ERRO: {type(e).__name__}")
             await enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, from_number,
                                   "Desculpe, tive um problema. Tente novamente.")
 

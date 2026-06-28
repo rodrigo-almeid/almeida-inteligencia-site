@@ -31,7 +31,7 @@ DB_HOST = os.getenv("DB_HOST", "db")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "almeida")
 DB_USER = os.getenv("DB_USER", "almeida")
-DB_PASS = os.getenv("DB_PASS", "almeida123")
+DB_PASS = os.getenv("DB_PASS", "")
 
 security = HTTPBearer()
 
