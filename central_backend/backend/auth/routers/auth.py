@@ -10,7 +10,7 @@ from backend.core.database import get_db
 from backend.core import models, schemas
 from backend.core.security import get_password_hash, verify_password, create_access_token
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, enabled=not os.getenv("TESTING"))
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 PORTAL_SECRET_KEY = os.getenv("PORTAL_SECRET_KEY", "")
