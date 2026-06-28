@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +31,7 @@ models.Base.metadata.create_all(bind=engine)
 from backend.core.webhook_security import WebhookSignatureMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from backend.auth.routers.auth import limiter
+from backend.core.rate_limit import limiter
 
 app = FastAPI(title="Almeida — Módulos Centrais", docs_url=None, redoc_url=None, openapi_url=None)
 app.state.limiter = limiter
@@ -52,7 +53,6 @@ def start_scheduler():
     scheduler.add_job(renovar_google_channels, "interval", hours=12)
     scheduler.start()
 
-import os
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080").split(",")
 app.add_middleware(
     CORSMiddleware,
