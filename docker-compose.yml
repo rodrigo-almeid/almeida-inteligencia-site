@@ -71,10 +71,7 @@ services:
     build: .
     container_name: almeida-inteligencia
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/ssl/cloudflare:/etc/ssl/cloudflare:ro
+      - "8080:80"
     depends_on:
       - backend
       - email-backend

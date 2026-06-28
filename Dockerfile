@@ -6,6 +6,6 @@ COPY auth-guard.js /usr/share/nginx/html/auth-guard.js
 COPY admin/ /usr/share/nginx/html/admin/
 COPY dashboard/ /usr/share/nginx/html/dashboard/
 
-EXPOSE 80 443
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
