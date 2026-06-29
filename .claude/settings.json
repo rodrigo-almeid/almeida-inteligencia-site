@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "mcp__Claude_in_Chrome__*",
+      "mcp__Claude_Preview__*",
+      "mcp__visualize__*",
+      "mcp__ccd_session__*",
+      "mcp__computer-use__*",
+      "WebFetch(*)",
+      "WebSearch(*)"
+    ]
+  }
+}
