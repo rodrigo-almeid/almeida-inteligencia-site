@@ -55,7 +55,7 @@
 			"item": [
 				{ "name": "02.1 /categorias/ → 403", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('403 Forbidden', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil dashboard', function () { pm.expect(pm.response.json().detail).to.include('dashboard'); });"
+					"pm.test('Indica perfil automacao_financeira', function () { pm.expect(pm.response.json().detail).to.include('automacao_financeira'); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } } },
 				{ "name": "02.2 /contas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });"
@@ -65,21 +65,21 @@
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } } },
 				{ "name": "02.4 /pessoas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil senhas', function () { pm.expect(pm.response.json().detail).to.include('senhas'); });"
+					"pm.test('Indica perfil gerenciador_credenciais', function () { pm.expect(pm.response.json().detail).to.include('gerenciador_credenciais'); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } } },
 				{ "name": "02.5 /abastecimentos/ → 403", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil abastecimento', function () { pm.expect(pm.response.json().detail).to.include('abastecimento'); });"
+					"pm.test('Indica perfil combustivel', function () { pm.expect(pm.response.json().detail).to.include('combustivel'); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } } }
 			]
 		},
 		{
-			"name": "03 — RBAC: Perfil Parcial (só dashboard)",
+			"name": "03 — RBAC: Perfil Parcial (só automacao_financeira)",
 			"item": [
-				{ "name": "03.1 Atribuir dashboard", "event": [{ "listen": "test", "script": { "exec": [
+				{ "name": "03.1 Atribuir automacao_financeira", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Perfil atribuído', function () { pm.expect(pm.response.json().perfis).to.eql(['dashboard']); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"dashboard\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
+					"pm.test('Perfil atribuído', function () { pm.expect(pm.response.json().perfis).to.eql(['automacao_financeira']); });"
+				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"automacao_financeira\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
 				{ "name": "03.2 Re-login", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
 					"pm.collectionVariables.set('token', pm.response.json().access_token);"
@@ -91,10 +91,10 @@
 					"pm.test('200 — acesso permitido', function () { pm.expect(pm.response.code).to.equal(200); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/", "host": ["{{central_api}}"], "path": ["contas", ""] } } },
 				{ "name": "03.5 /pessoas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403 — sem perfil senhas', function () { pm.expect(pm.response.code).to.equal(403); });"
+					"pm.test('403 — sem perfil gerenciador_credenciais', function () { pm.expect(pm.response.code).to.equal(403); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } } },
 				{ "name": "03.6 /abastecimentos/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403 — sem perfil abastecimento', function () { pm.expect(pm.response.code).to.equal(403); });"
+					"pm.test('403 — sem perfil combustivel', function () { pm.expect(pm.response.code).to.equal(403); });"
 				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } } }
 			]
 		},
@@ -103,8 +103,8 @@
 			"item": [
 				{ "name": "04.1 Atribuir todos os perfis", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Todos atribuídos', function () { var p = pm.response.json().perfis; pm.expect(p).to.include('dashboard'); pm.expect(p).to.include('senhas'); pm.expect(p).to.include('abastecimento'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"dashboard\", \"senhas\", \"abastecimento\", \"financeiro\", \"credenciais\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
+					"pm.test('Todos atribuídos', function () { var p = pm.response.json().perfis; pm.expect(p).to.include('automacao_financeira'); pm.expect(p).to.include('gerenciador_credenciais'); pm.expect(p).to.include('combustivel'); });"
+				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"automacao_financeira\", \"gerenciador_credenciais\", \"combustivel\", \"mercado\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
 				{ "name": "04.2 Re-login", "event": [{ "listen": "test", "script": { "exec": [
 					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
 					"pm.collectionVariables.set('token', pm.response.json().access_token);"
