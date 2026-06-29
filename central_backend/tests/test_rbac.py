@@ -87,7 +87,7 @@ def h_financeiro(client, user_financeiro):
 # Usuário dashboard + senhas
 @pytest.fixture
 def user_dash_senhas(db, perfis):
-    return _create_user_with_perfis(db, ["dashboard", "senhas"], "ds@teste.com", "DS@123")
+    return _create_user_with_perfis(db, ["automacao_financeira", "gerenciador_credenciais"], "ds@teste.com", "DS@123")
 
 @pytest.fixture
 def h_dash_senhas(client, user_dash_senhas):
@@ -97,7 +97,7 @@ def h_dash_senhas(client, user_dash_senhas):
 # Usuário dashboard + abastecimento
 @pytest.fixture
 def user_dash_abast(db, perfis):
-    return _create_user_with_perfis(db, ["dashboard", "abastecimento"], "da@teste.com", "DA@123")
+    return _create_user_with_perfis(db, ["automacao_financeira", "combustivel"], "da@teste.com", "DA@123")
 
 @pytest.fixture
 def h_dash_abast(client, user_dash_abast):
