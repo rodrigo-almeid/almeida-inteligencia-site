@@ -52,10 +52,13 @@
     .btn:hover{opacity:.9;}
     .btn:disabled{opacity:.4;cursor:not-allowed;}
     .btn-row{display:flex;gap:8px;margin-top:8px;}
+    .btn-outline{background:transparent;color:var(--green);border:0.5px solid rgba(61,219,130,.3);border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-outline:hover{background:rgba(61,219,130,.08);}
 
     .status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;}
     .status-badge.online{background:rgba(61,219,130,.12);color:var(--green);}
     .status-badge.offline{background:rgba(226,75,74,.12);color:var(--red);}
+    .status-badge.connecting{background:rgba(245,166,35,.12);color:var(--yellow);}
     .status-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 
     .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
@@ -83,7 +86,10 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--yellow);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;}
 
-    .webhook-url{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--gray-l);font-family:monospace;word-break:break-all;margin-top:8px;}
+    .qr-container{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;}
+    .qr-container img{border-radius:12px;max-width:280px;}
+    .qr-container .qr-status{font-size:13px;color:var(--gray-l);text-align:center;}
+    .qr-container .qr-hint{font-size:11px;color:var(--gray);text-align:center;max-width:300px;line-height:1.5;}
 
     .prov-card{background:rgba(255,255,255,.03);border:0.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;position:relative;cursor:grab;transition:border-color .2s;}
     .prov-card:hover{border-color:rgba(61,219,130,.3);}
@@ -163,7 +169,7 @@
 <div class="main">
   <div class="page-header">
     <h1>🐉 Goku — Assistente Virtual</h1>
-    <p>Configure a integração com o WhatsApp via Meta Cloud API</p>
+    <p>Configure a integração com o WhatsApp via Evolution API</p>
   </div>
 
   <!-- Status -->
@@ -187,28 +193,29 @@
     </div>
   </div>
 
-  <!-- Meta WhatsApp -->
+  <!-- Evolution API -->
   <div class="card">
-    <h2>Meta WhatsApp Cloud API</h2>
+    <h2>📱 Evolution API — WhatsApp</h2>
     <div class="form-group">
-      <label>Token de Acesso Permanente</label>
-      <input type="password" id="whatsapp_token" placeholder="EAAxxxxxxx...">
-      <div class="hint">Meta for Developers → Seu App → WhatsApp → Token</div>
+      <label>URL da Evolution API</label>
+      <input type="text" id="evolution_url" placeholder="http://evolution-api:8080">
+      <div class="hint">Endereço interno do container da Evolution API</div>
     </div>
     <div class="form-group">
-      <label>Phone Number ID</label>
-      <input type="text" id="whatsapp_phone_id" placeholder="1234567890">
-      <div class="hint">ID do número de telefone registrado na Meta</div>
+      <label>API Key</label>
+      <input type="password" id="evolution_api_key" placeholder="sua-api-key-aqui">
+      <div class="hint">Chave de autenticação da Evolution API (AUTHENTICATION_API_KEY no .env)</div>
     </div>
     <div class="form-group">
-      <label>Verify Token</label>
-      <input type="text" id="whatsapp_verify_token" placeholder="goku_verify_2024">
-      <div class="hint">Token que você define para verificação do webhook</div>
+      <label>Nome da Instância</label>
+      <input type="text" id="evolution_instance" placeholder="goku">
+      <div class="hint">Nome da instância do WhatsApp na Evolution (será criada se não existir)</div>
     </div>
-    <div class="form-group">
-      <label>URL do Webhook (para colar na Meta)</label>
-      <div class="webhook-url" id="webhook-url">Configure o domínio do servidor para gerar a URL</div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn-outline" onclick="verQRCode()">📷 Conectar WhatsApp (QR Code)</button>
+      <button class="btn-outline" onclick="verificarConexao()">🔄 Verificar Conexão</button>
     </div>
+    <div id="whatsapp-connection-info" style="margin-top:12px;font-size:12px;color:var(--gray);"></div>
   </div>
 
   <!-- Provedores LLM -->
@@ -261,7 +268,7 @@
     <div class="form-group">
       <label>Número Autorizado</label>
       <input type="text" id="numero_autorizado" placeholder="5543999211099">
-      <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número)</div>
+      <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número, sem espaços ou traços)</div>
     </div>
   </div>
 
@@ -270,6 +277,7 @@
   </div>
 </div>
 
+<!-- Modal Validação -->
 <div class="overlay" id="overlayValidacao">
   <div class="modal">
     <h3>Validando <span>Configurações</span></h3>
@@ -286,6 +294,21 @@
   </div>
 </div>
 
+<!-- Modal QR Code -->
+<div class="overlay" id="overlayQR">
+  <div class="modal" style="width:400px;">
+    <h3>📱 Conectar <span>WhatsApp</span></h3>
+    <div class="qr-container" id="qrContainer">
+      <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
+      <div class="qr-status">Carregando QR Code...</div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-cancel" onclick="fecharModalQR()" style="width:100%;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Adicionar Provedor -->
 <div class="overlay overlay-provedor" id="overlayProvedor">
   <div class="modal">
     <h3>Adicionar <span>Provedor</span></h3>
@@ -465,6 +488,77 @@ document.getElementById('overlayProvedor').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModalProvedor();
 });
 
+// ── QR Code ──
+
+async function verQRCode() {
+  document.getElementById('overlayQR').classList.add('active');
+  const container = document.getElementById('qrContainer');
+  container.innerHTML = '<div class="spinner" style="width:32px;height:32px;border-width:3px;"></div><div class="qr-status">Carregando QR Code...</div>';
+
+  const res = await apiCall('GET', '/assistente/qrcode');
+  if (!res || !res.ok) {
+    const err = res ? await res.json().catch(() => ({})) : {};
+    container.innerHTML = `<div class="qr-status" style="color:var(--red);">${err.detail || 'Erro ao obter QR Code. Verifique a configuração da Evolution API.'}</div>`;
+    return;
+  }
+
+  const data = await res.json();
+
+  if (data.base64) {
+    container.innerHTML = `
+      <img src="${data.base64}" alt="QR Code WhatsApp">
+      <div class="qr-status">Escaneie com o WhatsApp</div>
+      <div class="qr-hint">Abra o WhatsApp no celular → Menu (⋮) → Aparelhos conectados → Conectar aparelho → Escaneie este QR Code</div>
+    `;
+  } else if (data.pairingCode) {
+    container.innerHTML = `
+      <div style="font-size:32px;font-weight:600;letter-spacing:4px;color:var(--green);padding:20px;">${data.pairingCode}</div>
+      <div class="qr-status">Use o código de pareamento</div>
+      <div class="qr-hint">Abra o WhatsApp no celular → Menu (⋮) → Aparelhos conectados → Conectar aparelho → Conectar com número de telefone</div>
+    `;
+  } else if (data.instance && data.instance.state === 'open') {
+    container.innerHTML = `
+      <div style="font-size:48px;margin-bottom:8px;">✅</div>
+      <div class="qr-status" style="color:var(--green);">WhatsApp já está conectado!</div>
+    `;
+  } else {
+    container.innerHTML = `<div class="qr-status">${JSON.stringify(data)}</div>`;
+  }
+}
+
+function fecharModalQR() {
+  document.getElementById('overlayQR').classList.remove('active');
+}
+
+document.getElementById('overlayQR').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModalQR();
+});
+
+// ── Verificar Conexão ──
+
+async function verificarConexao() {
+  const info = document.getElementById('whatsapp-connection-info');
+  info.innerHTML = '<span style="color:var(--yellow);">Verificando...</span>';
+
+  const res = await apiCall('GET', '/assistente/connection-state');
+  if (!res || !res.ok) {
+    info.innerHTML = '<span style="color:var(--red);">Erro ao verificar conexão</span>';
+    return;
+  }
+
+  const data = await res.json();
+  const state = data.state;
+
+  if (state === 'open') {
+    info.innerHTML = '<span style="color:var(--green);">✅ WhatsApp conectado</span>';
+    atualizarStatus(true);
+  } else if (state === 'close' || state === 'disconnected') {
+    info.innerHTML = '<span style="color:var(--red);">❌ WhatsApp desconectado — clique em "Conectar WhatsApp" para escanear o QR Code</span>';
+  } else {
+    info.innerHTML = `<span style="color:var(--yellow);">Status: ${state}</span>`;
+  }
+}
+
 // ── Config ──
 
 async function carregarConfig() {
@@ -472,8 +566,9 @@ async function carregarConfig() {
   if (res && res.ok) {
     configExiste = true;
     const data = await res.json();
-    document.getElementById('whatsapp_phone_id').value = data.whatsapp_phone_id || '';
-    document.getElementById('whatsapp_verify_token').value = data.whatsapp_verify_token || '';
+    document.getElementById('evolution_url').value = data.evolution_url || '';
+    document.getElementById('evolution_api_key').value = data.evolution_api_key || '';
+    document.getElementById('evolution_instance').value = data.evolution_instance || '';
     document.getElementById('numero_autorizado').value = data.numero_autorizado || '';
     document.getElementById('nome_assistente').value = data.nome_assistente || 'Goku';
     document.getElementById('tom_voz').value = data.tom_voz || 'casual';
@@ -481,17 +576,17 @@ async function carregarConfig() {
     document.getElementById('instrucoes_extras').value = data.instrucoes_extras || '';
     document.getElementById('ativo').checked = data.ativo;
     atualizarStatus(data.ativo);
-    atualizarWebhookUrl();
 
     if (data.provedores_llm && data.provedores_llm.length) {
       provedores = data.provedores_llm;
     } else {
       provedores = [];
-      if (data.gemini_api_key) provedores.push({ tipo: 'gemini', api_key: '', ativo: true });
-      if (data.groq_api_key) provedores.push({ tipo: 'groq', api_key: '', ativo: true });
-      if (data.ollama_url) provedores.push({ tipo: 'ollama', url: data.ollama_url, modelo: data.ollama_model || '', ativo: true });
     }
     renderProvedores();
+
+    if (data.evolution_url && data.ativo) {
+      verificarConexao();
+    }
   }
 }
 
@@ -507,10 +602,6 @@ function atualizarStatus(ativo) {
   }
 }
 
-function atualizarWebhookUrl() {
-  document.getElementById('webhook-url').textContent = `${API}/assistente/webhook`;
-}
-
 let payloadPendente = null;
 
 function getPayload() {
@@ -519,9 +610,9 @@ function getPayload() {
   const ollama = provedores.find(p => p.tipo === 'ollama' && p.ativo !== false);
 
   return {
-    whatsapp_token: document.getElementById('whatsapp_token').value || null,
-    whatsapp_phone_id: document.getElementById('whatsapp_phone_id').value || null,
-    whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
+    evolution_url: document.getElementById('evolution_url').value || null,
+    evolution_api_key: document.getElementById('evolution_api_key').value || null,
+    evolution_instance: document.getElementById('evolution_instance').value || null,
     gemini_api_key: gemini ? gemini.api_key : null,
     groq_api_key: groq ? groq.api_key : null,
     ollama_url: ollama ? ollama.url : null,
@@ -543,7 +634,11 @@ async function salvar() {
   document.getElementById('modalActions').style.display = 'none';
 
   const loadingItems = [];
-  const validarPayload = { whatsapp_token: payloadPendente.whatsapp_token, whatsapp_phone_id: payloadPendente.whatsapp_phone_id };
+  const validarPayload = {
+    evolution_url: payloadPendente.evolution_url,
+    evolution_api_key: payloadPendente.evolution_api_key,
+    evolution_instance: payloadPendente.evolution_instance,
+  };
 
   provedores.filter(p => p.ativo !== false).forEach(p => {
     const info = TIPOS_LLM[p.tipo];
@@ -553,7 +648,7 @@ async function salvar() {
     if (p.tipo === 'ollama') { validarPayload.ollama_url = p.url; validarPayload.ollama_model = p.modelo; }
   });
 
-  loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">WhatsApp (Meta)</div><div class="check-msg">Testando Token e Phone ID...</div></div></div>`);
+  loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">Evolution API</div><div class="check-msg">Testando conexão...</div></div></div>`);
 
   document.getElementById('checkList').innerHTML = loadingItems.join('');
 
@@ -611,7 +706,7 @@ document.getElementById('overlayValidacao').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModal();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); }
+  if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); fecharModalQR(); }
 });
 
 try {
@@ -622,7 +717,6 @@ try {
 if (!token) {
   window.location.href = '/';
 } else {
-  atualizarWebhookUrl();
   carregarConfig();
 }
 </script>

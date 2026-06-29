@@ -15,69 +15,92 @@ from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
 
-def get_config_by_phone_id(phone_id: str, db: Session):
+def get_config_by_instance(instance: str, db: Session):
     return db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.whatsapp_phone_id == phone_id,
+        models.AssistenteConfig.evolution_instance == instance,
         models.AssistenteConfig.ativo == True
     ).first()
 
 
-@router.get("/webhook")
-def webhook_verify(request: Request, db: Session = Depends(get_db)):
-    mode = request.query_params.get("hub.mode")
-    token = request.query_params.get("hub.verify_token")
-    challenge = request.query_params.get("hub.challenge")
-
-    if mode != "subscribe" or not token:
-        raise HTTPException(status_code=403, detail="Verificação inválida")
-
-    config = db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.whatsapp_verify_token == token,
+def get_first_active_config(db: Session):
+    return db.query(models.AssistenteConfig).filter(
         models.AssistenteConfig.ativo == True
     ).first()
-
-    if not config:
-        raise HTTPException(status_code=403, detail="Token de verificação inválido")
-
-    return Response(content=challenge, media_type="text/plain")
 
 
 @router.post("/webhook")
 async def webhook_receive(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
 
-    entry = (body.get("entry") or [{}])[0]
-    changes = (entry.get("changes") or [{}])[0]
-    value = changes.get("value", {})
+    event = body.get("event")
+    if event != "messages.upsert":
+        return {"status": "ignored", "event": event}
 
-    if "messages" not in value:
-        return {"status": "no messages"}
+    data = body.get("data", {})
+    key = data.get("key", {})
+    from_me = key.get("fromMe", False)
+    if from_me:
+        return {"status": "ignored", "reason": "fromMe"}
 
-    phone_id = value.get("metadata", {}).get("phone_number_id")
-
-    config = get_config_by_phone_id(phone_id, db)
-
+    instance_name = body.get("instance")
+    config = None
+    if instance_name:
+        config = get_config_by_instance(instance_name, db)
+    if not config:
+        config = get_first_active_config(db)
     if not config:
         return {"status": "config not found"}
 
     user = db.query(models.User).filter(models.User.id == config.user_id).first()
 
-    for msg in value["messages"]:
-        from_number = msg.get("from")
+    remote_jid = key.get("remoteJid", "")
+    from_number = remote_jid.split("@")[0]
 
-        if from_number != config.numero_autorizado:
-            continue
+    if config.numero_autorizado and from_number != config.numero_autorizado:
+        return {"status": "unauthorized"}
 
-        try:
-            reply = await processar_mensagem(msg, config, user, db)
-            if reply:
-                await enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, from_number, reply)
-        except Exception as e:
-            print(f"[goku] ERRO: {type(e).__name__}")
-            await enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, from_number,
-                                  "Desculpe, tive um problema. Tente novamente.")
+    message = data.get("message", {})
+
+    msg = _evolution_to_msg(message, from_number, data)
+
+    try:
+        reply = await processar_mensagem(msg, config, user, db)
+        if reply:
+            await enviar_mensagem(
+                config.evolution_url, config.evolution_api_key,
+                config.evolution_instance, from_number, reply
+            )
+    except Exception as e:
+        print(f"[goku] ERRO: {type(e).__name__}: {e}")
+        await enviar_mensagem(
+            config.evolution_url, config.evolution_api_key,
+            config.evolution_instance, from_number,
+            "Desculpe, tive um problema. Tente novamente."
+        )
 
     return {"status": "ok"}
+
+
+def _evolution_to_msg(message: dict, from_number: str, data: dict) -> dict:
+    if "imageMessage" in message:
+        media_url = data.get("mediaUrl") or message.get("imageMessage", {}).get("url")
+        mime = message.get("imageMessage", {}).get("mimetype", "image/jpeg")
+        return {
+            "type": "image",
+            "image": {"media_url": media_url, "mime_type": mime},
+            "from": from_number,
+        }
+
+    texto = (
+        message.get("conversation")
+        or message.get("extendedTextMessage", {}).get("text")
+        or ""
+    )
+    return {
+        "type": "text",
+        "text": {"body": texto},
+        "from": from_number,
+    }
 
 
 CAMPOS_OBRIGATORIOS = ["descricao", "valor", "forma_pagamento"]
@@ -129,9 +152,11 @@ async def processar_mensagem(msg, config, user, db):
     texto = msg.get("text", {}).get("body", "")
 
     if tipo == "image":
-        media_id = msg.get("image", {}).get("id")
+        media_url = msg.get("image", {}).get("media_url")
         mime = msg.get("image", {}).get("mime_type", "image/jpeg")
-        buffer = await baixar_midia(config.whatsapp_token, media_id)
+        if not media_url:
+            return "Não consegui acessar a imagem. Tente enviar novamente."
+        buffer = await baixar_midia(media_url)
         dados = await extrair_dados_nota(config.gemini_api_key, buffer, mime, config)
 
         if not dados or not dados.get("valor_total"):
@@ -184,7 +209,6 @@ async def _processar_com_pendente(pendente, texto, config, user, db):
         intencao = await detectar_intencao(config.gemini_api_key, texto, config)
         if intencao in ("financeiro_consulta", "financeiro_registro", "agenda"):
             desc = dados_atuais.get("descricao", "registro")
-            nome = config.nome_assistente if config and config.nome_assistente else "Goku"
             return (
                 f"Ei, você ainda tem o registro de *{desc}* pendente. "
                 "Quer cancelar e seguir com outra coisa? (responde 'cancelar' ou me manda o que falta)"

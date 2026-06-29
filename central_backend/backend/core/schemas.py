@@ -198,9 +198,9 @@ class AssistenteProvedorLLM(BaseModel):
     ativo: bool = True
 
 class AssistenteConfigCreate(BaseModel):
-    whatsapp_token: Optional[str] = None
-    whatsapp_phone_id: Optional[str] = None
-    whatsapp_verify_token: Optional[str] = None
+    evolution_url: Optional[str] = None
+    evolution_api_key: Optional[str] = None
+    evolution_instance: Optional[str] = None
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     ollama_url: Optional[str] = None
@@ -215,8 +215,9 @@ class AssistenteConfigCreate(BaseModel):
 
 class AssistenteConfigResponse(ORMBase):
     id: int
-    whatsapp_phone_id: Optional[str]
-    whatsapp_verify_token: Optional[str]
+    evolution_url: Optional[str] = None
+    evolution_api_key: Optional[str] = None
+    evolution_instance: Optional[str] = None
     ollama_url: Optional[str] = None
     ollama_model: Optional[str] = None
     provedores_llm: Optional[List[AssistenteProvedorLLM]] = None

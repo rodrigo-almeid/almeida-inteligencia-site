@@ -217,9 +217,9 @@ class AssistenteConfig(Base):
     __tablename__ = "assistente_config"
 
     id = Column(Integer, primary_key=True, index=True)
-    whatsapp_token = Column(String, nullable=True)
-    whatsapp_phone_id = Column(String, nullable=True)
-    whatsapp_verify_token = Column(String, nullable=True)
+    evolution_url = Column(String, nullable=True)
+    evolution_api_key = Column(String, nullable=True)
+    evolution_instance = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
     groq_api_key = Column(String, nullable=True)
     ollama_url = Column(String, nullable=True)

@@ -60,13 +60,28 @@ services:
       PORTAL_SECRET_KEY: ${PORTAL_SECRET_KEY}
       JWT_ALGORITHM: "HS256"
       JWT_EXPIRE_MINUTES: "30"
-      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
+      EVOLUTION_API_URL: http://evolution-api:8080
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      SERVER_URL: http://evolution-api:8080
+      DEL_INSTANCE: "false"
+      DATABASE_ENABLED: "false"
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      LOG_LEVEL: WARN
+    volumes:
+      - evolution_instances:/evolution/instances
     restart: unless-stopped
 
   site:
@@ -83,3 +98,4 @@ services:
 volumes:
   almeida_pgdata:
   email_models:
+  evolution_instances:

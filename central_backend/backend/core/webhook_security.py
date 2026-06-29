@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 
 class WebhookSignatureMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.method == "POST" and "/webhook" in request.url.path:
+        if request.method == "POST" and "/agendamento/webhook" in request.url.path:
             app_secret = os.getenv("WHATSAPP_APP_SECRET", "")
             if app_secret:
                 signature = request.headers.get("X-Hub-Signature-256", "")

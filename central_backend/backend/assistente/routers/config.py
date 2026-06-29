@@ -1,6 +1,7 @@
 import json
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -13,18 +14,13 @@ router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
 
 class ValidacaoRequest(BaseModel):
-    whatsapp_token: Optional[str] = None
-    whatsapp_phone_id: Optional[str] = None
+    evolution_url: Optional[str] = None
+    evolution_api_key: Optional[str] = None
+    evolution_instance: Optional[str] = None
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     ollama_url: Optional[str] = None
     ollama_model: Optional[str] = None
-
-
-class ValidacaoItem(BaseModel):
-    nome: str
-    ok: bool
-    mensagem: str
 
 
 @router.post("/validar")
@@ -83,29 +79,88 @@ async def validar_configuracoes(
         except Exception as e:
             resultados.append({"nome": "Ollama", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
 
-    if payload.whatsapp_token and payload.whatsapp_phone_id:
+    if payload.evolution_url and payload.evolution_api_key and payload.evolution_instance:
         try:
+            base = payload.evolution_url.rstrip("/")
             async with httpx.AsyncClient(timeout=10) as client:
                 res = await client.get(
-                    f"https://graph.facebook.com/v21.0/{payload.whatsapp_phone_id}",
-                    headers={"Authorization": f"Bearer {payload.whatsapp_token}"},
+                    f"{base}/instance/connectionState/{payload.evolution_instance}",
+                    headers={"apikey": payload.evolution_api_key},
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    numero = data.get("display_phone_number", "")
-                    resultados.append({"nome": "WhatsApp (Meta)", "ok": True, "mensagem": f"Conectado — número {numero}" if numero else "Token e Phone ID válidos"})
+                    state = data.get("instance", {}).get("state", data.get("state", "unknown"))
+                    if state == "open":
+                        resultados.append({"nome": "Evolution API", "ok": True, "mensagem": "Conectado ao WhatsApp"})
+                    else:
+                        resultados.append({"nome": "Evolution API", "ok": True, "mensagem": f"API acessível — WhatsApp: {state} (escaneie o QR Code)"})
+                elif res.status_code == 404:
+                    resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Instância '{payload.evolution_instance}' não encontrada"})
                 else:
-                    data = res.json()
-                    msg = data.get("error", {}).get("message", "Token ou Phone ID inválido")
-                    resultados.append({"nome": "WhatsApp (Meta)", "ok": False, "mensagem": msg})
+                    resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Erro {res.status_code}"})
         except Exception as e:
-            resultados.append({"nome": "WhatsApp (Meta)", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
-    elif payload.whatsapp_token or payload.whatsapp_phone_id:
-        resultados.append({"nome": "WhatsApp (Meta)", "ok": False, "mensagem": "Preencha Token e Phone ID"})
+            resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
+    elif payload.evolution_url or payload.evolution_api_key or payload.evolution_instance:
+        resultados.append({"nome": "Evolution API", "ok": False, "mensagem": "Preencha URL, API Key e Nome da Instância"})
     else:
-        resultados.append({"nome": "WhatsApp (Meta)", "ok": False, "mensagem": "Não configurado"})
+        resultados.append({"nome": "Evolution API", "ok": False, "mensagem": "Não configurado"})
 
     return {"resultados": resultados, "todos_ok": all(r["ok"] for r in resultados)}
+
+
+@router.get("/qrcode")
+async def get_qrcode(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.user_id == current_user.id
+    ).first()
+
+    if not config or not config.evolution_url:
+        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
+
+    base = config.evolution_url.rstrip("/")
+    instance = config.evolution_instance
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(
+            f"{base}/instance/connect/{instance}",
+            headers={"apikey": config.evolution_api_key},
+        )
+
+    if not res.is_success:
+        raise HTTPException(status_code=502, detail=f"Erro ao obter QR Code: {res.text}")
+
+    return res.json()
+
+
+@router.get("/connection-state")
+async def get_connection_state(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.user_id == current_user.id
+    ).first()
+
+    if not config or not config.evolution_url:
+        return {"state": "disconnected"}
+
+    base = config.evolution_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(
+                f"{base}/instance/connectionState/{config.evolution_instance}",
+                headers={"apikey": config.evolution_api_key},
+            )
+        if res.is_success:
+            data = res.json()
+            state = data.get("instance", {}).get("state", data.get("state", "unknown"))
+            return {"state": state}
+    except Exception:
+        pass
+    return {"state": "error"}
 
 
 def _config_to_response(config):
