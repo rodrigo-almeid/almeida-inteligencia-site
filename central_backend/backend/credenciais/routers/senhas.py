@@ -14,7 +14,7 @@ fernet = Fernet(CHAVE_MESTRA)
 router = APIRouter(
     prefix="/me/senhas",
     tags=["Perfis e Propriedades"],
-    dependencies=[Depends(require_perfil("senhas"))],
+    dependencies=[Depends(require_perfil("gerenciador_credenciais"))],
 )
 
 

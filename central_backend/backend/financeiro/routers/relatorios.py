@@ -21,7 +21,7 @@ from backend.core.security import get_current_user, require_perfil
 router = APIRouter(
     prefix="/relatorios",
     tags=["Relatórios e Exportação"],
-    dependencies=[Depends(require_perfil("dashboard"))]
+    dependencies=[Depends(require_perfil("automacao_financeira"))]
 )
 
 MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',

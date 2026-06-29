@@ -69,7 +69,6 @@ def sso(body: SSORequest, db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(body.portal_token, PORTAL_SECRET_KEY, algorithms=[PORTAL_ALGORITHM])
         email: str = payload.get("email")
-        nome: str = payload.get("email", "").split("@")[0]
         if not email:
             raise HTTPException(status_code=401, detail="Token inválido")
     except JWTError:
@@ -83,6 +82,19 @@ def sso(body: SSORequest, db: Session = Depends(get_db)):
         db.refresh(user)
         perfil = models.Pessoa(nome="Meu Perfil", user_id=user.id, principal=True)
         db.add(perfil)
+        db.commit()
+
+    portal_sistemas = payload.get("sistemas", [])
+    if portal_sistemas:
+        slugs = [s["slug"] for s in portal_sistemas if isinstance(s, dict) and "slug" in s]
+        user.perfis.clear()
+        for slug in slugs:
+            perfil = db.query(models.Perfil).filter(models.Perfil.nome == slug).first()
+            if not perfil:
+                perfil = models.Perfil(nome=slug)
+                db.add(perfil)
+                db.flush()
+            user.perfis.append(perfil)
         db.commit()
 
     access_token = create_access_token(data={"sub": user.email})

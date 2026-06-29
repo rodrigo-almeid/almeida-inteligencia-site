@@ -9,7 +9,7 @@ from backend.core import models, schemas
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_perfil
 
-router = APIRouter(prefix="/abastecimentos", tags=["Abastecimentos"], dependencies=[Depends(require_perfil("abastecimento"))])
+router = APIRouter(prefix="/abastecimentos", tags=["Abastecimentos"], dependencies=[Depends(require_perfil("combustivel"))])
 
 
 @router.post("/", response_model=schemas.AbastecimentoResponse, status_code=status.HTTP_201_CREATED)

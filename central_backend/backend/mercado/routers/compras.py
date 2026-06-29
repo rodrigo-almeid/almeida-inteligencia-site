@@ -9,7 +9,7 @@ from backend.core.security import get_current_user, require_perfil
 router = APIRouter(
     prefix="/mercado",
     tags=["Mercado"],
-    dependencies=[Depends(require_perfil("financeiro"))]
+    dependencies=[Depends(require_perfil("mercado"))]
 )
 
 

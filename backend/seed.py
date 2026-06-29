@@ -63,6 +63,9 @@ sistemas_seed = [
     ("Conciliação Bancária",        "conciliacao_bancaria",   "Robô RPA que cruza extratos e aponta divergências automaticamente.",      "#",                              "🏦"),
     ("Extração de Documentos",      "extracao_documentos",    "OCR e parsing de PDFs e notas fiscais sem digitação manual.",             "#",                              "📄"),
     ("Agendamento Inteligente",     "agendamento_inteligente","Agendamento automático via WhatsApp com IA e gestão de LLMs.",           "/agendamento-painel/",           "📅"),
+    ("Assistente Virtual",          "assistente_virtual",     "Chatbot WhatsApp multi-LLM para finanças e OCR de notas.",              "#",                              "🤖"),
+    ("Combustível",                 "combustivel",            "Registro de abastecimentos e média de consumo.",                        "/central/abastecimentos/",       "⛽"),
+    ("Mercado",                     "mercado",                "Compras de supermercado com itens detalhados.",                          "/central/mercado/",              "🛒"),
 ]
 
 for nome, slug, desc, url, icone in sistemas_seed:

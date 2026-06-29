@@ -40,7 +40,7 @@ def atribuir_perfis(
         if not perfil:
             raise HTTPException(
                 status_code=400,
-                detail=f"Perfil '{nome}' não existe. Perfis válidos: dashboard, senhas, abastecimento, financeiro, games, credenciais",
+                detail=f"Perfil '{nome}' não existe.",
             )
         user.perfis.append(perfil)
     db.commit()

@@ -8,7 +8,7 @@ from backend.core.security import get_current_user, require_perfil
 router = APIRouter(
     prefix="/pessoas",
     tags=["Pessoas"],
-    dependencies=[Depends(require_perfil("senhas"))],
+    dependencies=[Depends(require_perfil("gerenciador_credenciais"))],
 )
 
 

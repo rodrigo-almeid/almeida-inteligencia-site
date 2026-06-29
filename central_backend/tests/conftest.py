@@ -77,7 +77,17 @@ USER2_EMAIL = "outro@teste.com"
 USER2_PASS = "Outro@Teste456"
 
 
-ALL_PERFIS = ["dashboard", "senhas", "abastecimento", "games", "credenciais", "financeiro"]
+ALL_PERFIS = [
+    "automacao_financeira",
+    "gerenciador_credenciais",
+    "classificador_emails",
+    "conciliacao_bancaria",
+    "extracao_documentos",
+    "agendamento_inteligente",
+    "assistente_virtual",
+    "combustivel",
+    "mercado",
+]
 
 
 @pytest.fixture

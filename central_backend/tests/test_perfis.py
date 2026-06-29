@@ -32,13 +32,13 @@ class TestPerfis:
         assert res.json() == []
 
     def test_listar_perfis_com_perfil_atribuido(self, client, headers_noperfil, db, user_noperfil):
-        p = db.query(Perfil).filter(Perfil.nome == "financeiro").first()
+        p = db.query(Perfil).filter(Perfil.nome == "mercado").first()
         user_noperfil.perfis.append(p)
         db.commit()
 
         res = client.get("/me/perfis", headers=headers_noperfil)
         assert res.status_code == 200
-        assert "financeiro" in res.json()
+        assert "mercado" in res.json()
 
     def test_listar_perfis_sem_auth(self, client):
         res = client.get("/me/perfis")
@@ -54,6 +54,6 @@ class TestPerfis:
     def test_usuario_com_todos_perfis(self, client, auth_headers):
         res = client.get("/me/perfis", headers=auth_headers)
         perfis = res.json()
-        assert "dashboard" in perfis
-        assert "senhas" in perfis
-        assert "abastecimento" in perfis
+        assert "automacao_financeira" in perfis
+        assert "gerenciador_credenciais" in perfis
+        assert "combustivel" in perfis

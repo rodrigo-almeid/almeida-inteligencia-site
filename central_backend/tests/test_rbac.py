@@ -47,7 +47,7 @@ def h_sem_perfil(client, user_sem_perfil):
 # Usuário só dashboard
 @pytest.fixture
 def user_dashboard(db, perfis):
-    return _create_user_with_perfis(db, ["dashboard"], "dashboard@teste.com", "Dash@123")
+    return _create_user_with_perfis(db, ["automacao_financeira"], "dashboard@teste.com", "Dash@123")
 
 @pytest.fixture
 def h_dashboard(client, user_dashboard):
@@ -57,7 +57,7 @@ def h_dashboard(client, user_dashboard):
 # Usuário só senhas
 @pytest.fixture
 def user_senhas(db, perfis):
-    return _create_user_with_perfis(db, ["senhas"], "senhas@teste.com", "Senhas@123")
+    return _create_user_with_perfis(db, ["gerenciador_credenciais"], "senhas@teste.com", "Senhas@123")
 
 @pytest.fixture
 def h_senhas(client, user_senhas):
@@ -67,7 +67,7 @@ def h_senhas(client, user_senhas):
 # Usuário só abastecimento
 @pytest.fixture
 def user_abastecimento(db, perfis):
-    return _create_user_with_perfis(db, ["abastecimento"], "abast@teste.com", "Abast@123")
+    return _create_user_with_perfis(db, ["combustivel"], "abast@teste.com", "Abast@123")
 
 @pytest.fixture
 def h_abastecimento(client, user_abastecimento):
@@ -77,7 +77,7 @@ def h_abastecimento(client, user_abastecimento):
 # Usuário só financeiro (mercado)
 @pytest.fixture
 def user_financeiro(db, perfis):
-    return _create_user_with_perfis(db, ["financeiro"], "financeiro@teste.com", "Fin@123")
+    return _create_user_with_perfis(db, ["mercado"], "financeiro@teste.com", "Fin@123")
 
 @pytest.fixture
 def h_financeiro(client, user_financeiro):
@@ -141,19 +141,19 @@ class TestSemPerfil:
 
     def test_mensagem_dashboard(self, client, h_sem_perfil):
         res = client.get("/categorias/", headers=h_sem_perfil)
-        assert "dashboard" in res.json()["detail"]
+        assert "automacao_financeira" in res.json()["detail"]
 
-    def test_mensagem_senhas(self, client, h_sem_perfil):
+    def test_mensagem_credenciais(self, client, h_sem_perfil):
         res = client.get("/pessoas/", headers=h_sem_perfil)
-        assert "senhas" in res.json()["detail"]
+        assert "gerenciador_credenciais" in res.json()["detail"]
 
-    def test_mensagem_abastecimento(self, client, h_sem_perfil):
+    def test_mensagem_combustivel(self, client, h_sem_perfil):
         res = client.get("/abastecimentos/", headers=h_sem_perfil)
-        assert "abastecimento" in res.json()["detail"]
+        assert "combustivel" in res.json()["detail"]
 
-    def test_mensagem_financeiro(self, client, h_sem_perfil):
+    def test_mensagem_mercado(self, client, h_sem_perfil):
         res = client.get("/mercado/compras", headers=h_sem_perfil)
-        assert "financeiro" in res.json()["detail"]
+        assert "mercado" in res.json()["detail"]
 
     def test_post_categoria_403(self, client, h_sem_perfil):
         res = client.post("/categorias/", json={"nome": "X"}, headers=h_sem_perfil)
@@ -371,13 +371,13 @@ class TestRotasPublicas:
     def test_listar_perfis_com_dashboard(self, client, h_dashboard):
         res = client.get("/me/perfis", headers=h_dashboard)
         assert res.status_code == 200
-        assert "dashboard" in res.json()
+        assert "automacao_financeira" in res.json()
 
     def test_listar_perfis_multiplos(self, client, h_dash_senhas):
         res = client.get("/me/perfis", headers=h_dash_senhas)
         perfis = res.json()
-        assert "dashboard" in perfis
-        assert "senhas" in perfis
+        assert "automacao_financeira" in perfis
+        assert "gerenciador_credenciais" in perfis
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -387,31 +387,31 @@ class TestRotasPublicas:
 class TestAtribuirPerfis:
     def test_atribuir_um_perfil(self, client, auth_headers, user_sem_perfil):
         res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["dashboard"]
+            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira"]
         }, headers=auth_headers)
         assert res.status_code == 200
-        assert res.json()["perfis"] == ["dashboard"]
+        assert res.json()["perfis"] == ["automacao_financeira"]
 
     def test_atribuir_multiplos(self, client, auth_headers, user_sem_perfil):
         res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["dashboard", "senhas", "abastecimento"]
+            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira", "gerenciador_credenciais", "combustivel"]
         }, headers=auth_headers)
         assert res.status_code == 200
-        assert set(res.json()["perfis"]) == {"dashboard", "senhas", "abastecimento"}
+        assert set(res.json()["perfis"]) == {"automacao_financeira", "gerenciador_credenciais", "combustivel"}
 
     def test_atribuir_substitui_perfis_anteriores(self, client, auth_headers, user_sem_perfil):
         client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["dashboard", "senhas"]
+            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira", "gerenciador_credenciais"]
         }, headers=auth_headers)
         res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["abastecimento"]
+            "email": "sem_perfil@teste.com", "perfis": ["combustivel"]
         }, headers=auth_headers)
-        assert res.json()["perfis"] == ["abastecimento"]
+        assert res.json()["perfis"] == ["combustivel"]
 
     def test_usuario_ganha_acesso_apos_atribuicao(self, client, auth_headers, user_sem_perfil):
         assert client.get("/categorias/", headers=_login(client, "sem_perfil@teste.com", "Sem@123")).status_code == 403
         client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["dashboard"]
+            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira"]
         }, headers=auth_headers)
         assert client.get("/categorias/", headers=_login(client, "sem_perfil@teste.com", "Sem@123")).status_code == 200
 
@@ -423,7 +423,7 @@ class TestAtribuirPerfis:
 
     def test_usuario_inexistente(self, client, auth_headers):
         res = client.post("/auth/perfis/atribuir", json={
-            "email": "nao_existe@teste.com", "perfis": ["dashboard"]
+            "email": "nao_existe@teste.com", "perfis": ["automacao_financeira"]
         }, headers=auth_headers)
         assert res.status_code == 404
 

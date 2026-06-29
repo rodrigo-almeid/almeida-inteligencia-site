@@ -15,7 +15,17 @@ Base.metadata.create_all(bind=engine)
 db = Session()
 
 # Perfis padrão
-perfis = ["dashboard", "senhas", "abastecimento", "games", "credenciais", "financeiro"]
+perfis = [
+    "automacao_financeira",
+    "gerenciador_credenciais",
+    "classificador_emails",
+    "conciliacao_bancaria",
+    "extracao_documentos",
+    "agendamento_inteligente",
+    "assistente_virtual",
+    "combustivel",
+    "mercado",
+]
 for nome in perfis:
     exists = db.query(Perfil).filter(Perfil.nome == nome).first()
     if not exists:
@@ -64,6 +74,13 @@ migrations = [
         campos_faltantes TEXT NOT NULL,
         criado_em TIMESTAMP DEFAULT NOW()
     )""",
+    # Renomeia perfis antigos para slugs alinhados com o portal
+    "UPDATE perfis SET nome = 'automacao_financeira' WHERE nome = 'dashboard'",
+    "UPDATE perfis SET nome = 'gerenciador_credenciais' WHERE nome = 'senhas'",
+    "UPDATE perfis SET nome = 'gerenciador_credenciais' WHERE nome = 'credenciais'",
+    "UPDATE perfis SET nome = 'combustivel' WHERE nome = 'abastecimento'",
+    "UPDATE perfis SET nome = 'mercado' WHERE nome = 'financeiro'",
+    "DELETE FROM perfis WHERE nome = 'games'",
 ]
 for sql in migrations:
     try:

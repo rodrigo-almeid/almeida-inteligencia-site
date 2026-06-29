@@ -7,7 +7,7 @@ from backend.core import models, schemas
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_perfil
 
-router = APIRouter(prefix="/categorias", tags=["Categorias"], dependencies=[Depends(require_perfil("dashboard"))])
+router = APIRouter(prefix="/categorias", tags=["Categorias"], dependencies=[Depends(require_perfil("automacao_financeira"))])
 
 
 @router.post("/", response_model=schemas.CategoriaResponse, status_code=status.HTTP_201_CREATED)

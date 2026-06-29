@@ -8,7 +8,7 @@ from backend.core.models import Senha, Pessoa
 from backend.core.security import get_current_user, require_perfil
 from backend.core.models import User
 
-router = APIRouter(dependencies=[Depends(require_perfil("senhas"))])
+router = APIRouter(dependencies=[Depends(require_perfil("gerenciador_credenciais"))])
 
 
 @router.get("/exportar-csv")

@@ -9,7 +9,7 @@ from backend.core import models, schemas
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_perfil
 
-router = APIRouter(prefix="/contas", tags=["Contas"], dependencies=[Depends(require_perfil("dashboard"))])
+router = APIRouter(prefix="/contas", tags=["Contas"], dependencies=[Depends(require_perfil("automacao_financeira"))])
 
 
 def somar_meses(data_original: date, meses_a_somar: int) -> date:
