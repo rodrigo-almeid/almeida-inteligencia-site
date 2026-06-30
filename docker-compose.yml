@@ -70,7 +70,7 @@ services:
     restart: unless-stopped
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evolutionapi/evolution-api:latest
     container_name: evolution-api
     environment:
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
