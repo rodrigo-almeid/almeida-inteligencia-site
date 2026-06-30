@@ -100,7 +100,8 @@ services:
     volumes:
       - evolution_instances:/evolution/instances
     depends_on:
-      - redis
+      redis:
+        condition: service_started
       db:
         condition: service_healthy
     restart: unless-stopped
