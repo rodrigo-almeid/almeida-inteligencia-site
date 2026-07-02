@@ -1,4 +1,5 @@
 import json
+import os
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -11,6 +12,43 @@ from backend.core.database import get_db
 from backend.core.security import get_current_user
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
+
+# Nome do serviço do central-backend na rede interna do Docker Compose — a Evolution API
+# roda como container irmão e alcança o webhook direto por aí, sem depender do Cloudflare Tunnel.
+CENTRAL_BACKEND_INTERNAL_URL = os.getenv("CENTRAL_BACKEND_INTERNAL_URL", "http://central-backend:8000")
+
+
+async def _garantir_instance(base: str, api_key: str, instance: str, webhook_url: str):
+    headers = {"apikey": api_key, "Content-Type": "application/json"}
+    webhook_payload = {
+        "webhook": {
+            "url": webhook_url,
+            "byEvents": False,
+            "base64": False,
+            "events": ["MESSAGES_UPSERT"],
+        }
+    }
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(f"{base}/instance/connectionState/{instance}", headers=headers)
+        if res.status_code == 404:
+            create_res = await client.post(
+                f"{base}/instance/create",
+                headers=headers,
+                json={
+                    "instanceName": instance,
+                    "qrcode": True,
+                    "integration": "WHATSAPP-BAILEYS",
+                    **webhook_payload,
+                },
+            )
+            if not create_res.is_success:
+                raise HTTPException(status_code=502, detail=f"Erro ao criar instância na Evolution API: {create_res.text}")
+        else:
+            # Instância já existe — garante que o webhook está configurado (idempotente).
+            try:
+                await client.post(f"{base}/webhook/set/{instance}", headers=headers, json=webhook_payload)
+            except Exception:
+                pass
 
 
 class ValidacaoRequest(BaseModel):
@@ -122,6 +160,9 @@ async def get_qrcode(
 
     base = config.evolution_url.rstrip("/")
     instance = config.evolution_instance
+    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook"
+
+    await _garantir_instance(base, config.evolution_api_key, instance, webhook_url)
 
     async with httpx.AsyncClient(timeout=15) as client:
         res = await client.get(

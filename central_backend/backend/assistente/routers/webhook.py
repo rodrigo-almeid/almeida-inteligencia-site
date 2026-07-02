@@ -83,11 +83,10 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
 
 def _evolution_to_msg(message: dict, from_number: str, data: dict) -> dict:
     if "imageMessage" in message:
-        media_url = data.get("mediaUrl") or message.get("imageMessage", {}).get("url")
         mime = message.get("imageMessage", {}).get("mimetype", "image/jpeg")
         return {
             "type": "image",
-            "image": {"media_url": media_url, "mime_type": mime},
+            "image": {"raw_data": data, "mime_type": mime},
             "from": from_number,
         }
 
@@ -152,11 +151,17 @@ async def processar_mensagem(msg, config, user, db):
     texto = msg.get("text", {}).get("body", "")
 
     if tipo == "image":
-        media_url = msg.get("image", {}).get("media_url")
+        raw_data = msg.get("image", {}).get("raw_data")
         mime = msg.get("image", {}).get("mime_type", "image/jpeg")
-        if not media_url:
+        if not raw_data:
             return "Não consegui acessar a imagem. Tente enviar novamente."
-        buffer = await baixar_midia(media_url)
+        try:
+            buffer = await baixar_midia(
+                config.evolution_url, config.evolution_api_key, config.evolution_instance, raw_data
+            )
+        except Exception as e:
+            print(f"[goku] erro ao baixar mídia: {e}")
+            return "Não consegui baixar a imagem. Tente enviar novamente."
         dados = await extrair_dados_nota(config.gemini_api_key, buffer, mime, config)
 
         if not dados or not dados.get("valor_total"):
