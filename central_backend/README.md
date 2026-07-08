@@ -161,7 +161,7 @@ Chatbot pessoal via WhatsApp que usa IA para interpretar mensagens, registrar ga
 - **OCR de notas fiscais** — envia foto → Gemini extrai dados estruturados (estabelecimento, itens, valores, forma de pagamento)
 - **Registro automático** — cria lançamentos no módulo Financeiro e compras no módulo Mercado
 - **Personalidade configurável** — nome do assistente, tom de voz, personalidade, instruções extras
-- **Segurança** — responde apenas ao número de WhatsApp autorizado
+- **Segurança** — webhook autenticado por `webhook_secret` próprio (query param), e só processa mensagens do número de WhatsApp autorizado
 - **Fallback** — se Gemini falhar, tenta Groq automaticamente
 
 **Fluxo de nota fiscal:**
@@ -173,8 +173,9 @@ Foto no WhatsApp → Download da imagem → Gemini Vision (OCR)
 → Responde: "Nota registrada! Mercado X | R$ 150,50"
 ```
 
+**WhatsApp:** Evolution API (Baileys, self-hosted) — conexão por QR Code, sem aprovação da Meta  
 **Configurações:** nome_assistente, personalidade, tom_voz, instrucoes_extras, numero_autorizado  
-**Rotas:** `/assistente/config`, `/assistente/validar`, `/assistente/webhook`  
+**Rotas:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT)  
 **Código:** `backend/assistente/` (routers, gemini.py, whatsapp.py)  
 **Frontend:** `frontend/assistente/index.html` (painel de configuração)
 
@@ -579,8 +580,10 @@ email_classifier/
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
 | `POST` | `/assistente/validar` | JWT | Validar credenciais |
-| `GET/POST/PUT` | `/assistente/config` | JWT | Configuração |
-| `GET/POST` | `/assistente/webhook` | — | Webhook WhatsApp |
+| `GET/POST/PUT` | `/assistente/config` | JWT | Configuração (chaves sensíveis mascaradas no GET) |
+| `GET` | `/assistente/qrcode` | JWT | Gerar/renovar QR Code de conexão |
+| `GET` | `/assistente/connection-state` | JWT | Estado da conexão com o WhatsApp |
+| `POST` | `/assistente/webhook?secret=...` | Segredo por URL | Webhook Evolution API (WhatsApp) |
 
 ### Agendamento Inteligente
 | Método | Rota | Auth | Descrição |
@@ -612,7 +615,7 @@ email_classifier/
 | Criptografia | Fernet (cryptography) |
 | Frontend | HTML5 + TailwindCSS + Chart.js |
 | IA / LLM | Google Gemini 2.0 Flash, Groq LLaMA 3.3 70B, Ollama |
-| WhatsApp | Meta Cloud API v21.0 |
+| WhatsApp | Meta Cloud API v21.0 (Agendamento) + Evolution API/Baileys self-hosted (Assistente) |
 | Calendário | Google Calendar API v3 (google-auth + google-auth-oauthlib) |
 | HTTP Client | httpx |
 | Relatórios | openpyxl (Excel) + ReportLab (PDF) |
