@@ -1,6 +1,7 @@
 """Testes do módulo assistente virtual: /assistente/config e /assistente/webhook."""
 import json
 import pytest
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from backend.core.models import AssistenteConfig
 
@@ -252,3 +253,40 @@ class TestMascaramentoDeChaves:
         assert config.evolution_api_key == "nova-evolution-key"
         provedores_salvos = json.loads(config.provedores_llm)
         assert provedores_salvos[0]["api_key"] == "AIzaSyNOVACHAVE000000"
+
+
+class TestGarantirInstanceWebhook:
+    """Regressão: sem 'enabled': true, a Evolution API aceita o /webhook/set mas
+    nunca dispara o webhook — mensagens reais chegam e são silenciosamente ignoradas."""
+
+    def test_qrcode_configura_webhook_com_enabled_true_e_secret(self, client, auth_headers, db):
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+
+        state_response = MagicMock()
+        state_response.status_code = 200
+
+        webhook_set_response = MagicMock()
+        webhook_set_response.is_success = True
+
+        connect_response = MagicMock()
+        connect_response.is_success = True
+        connect_response.json.return_value = {"code": "fake-qrcode"}
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.get = AsyncMock(side_effect=[state_response, connect_response])
+            mock_instance.post = AsyncMock(return_value=webhook_set_response)
+            mock_client.return_value = mock_instance
+
+            res = client.get("/assistente/qrcode", headers=auth_headers)
+
+        assert res.status_code == 200
+
+        webhook_payload = mock_instance.post.call_args.kwargs["json"]["webhook"]
+        assert webhook_payload["enabled"] is True
+        assert "secret=" in webhook_payload["url"]
+
+        config = db.query(AssistenteConfig).first()
+        assert config.webhook_secret in webhook_payload["url"]

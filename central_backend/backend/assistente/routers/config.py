@@ -23,6 +23,7 @@ async def _garantir_instance(base: str, api_key: str, instance: str, webhook_url
     headers = {"apikey": api_key, "Content-Type": "application/json"}
     webhook_payload = {
         "webhook": {
+            "enabled": True,
             "url": webhook_url,
             "byEvents": False,
             "base64": False,
@@ -47,9 +48,11 @@ async def _garantir_instance(base: str, api_key: str, instance: str, webhook_url
         else:
             # Instância já existe — garante que o webhook está configurado (idempotente).
             try:
-                await client.post(f"{base}/webhook/set/{instance}", headers=headers, json=webhook_payload)
-            except Exception:
-                pass
+                webhook_res = await client.post(f"{base}/webhook/set/{instance}", headers=headers, json=webhook_payload)
+                if not webhook_res.is_success:
+                    print(f"[assistente] erro ao configurar webhook na Evolution API: {webhook_res.status_code} {webhook_res.text}")
+            except Exception as e:
+                print(f"[assistente] erro ao configurar webhook na Evolution API: {e}")
 
 
 class ValidacaoRequest(BaseModel):
