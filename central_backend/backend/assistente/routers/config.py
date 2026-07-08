@@ -68,8 +68,26 @@ class ValidacaoRequest(BaseModel):
 @router.post("/validar")
 async def validar_configuracoes(
     payload: ValidacaoRequest,
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    # O painel reexibe as chaves mascaradas (GET /assistente/config); se o usuário
+    # clicar em "Validar" sem reescrever o campo, troca de volta pelo valor real
+    # antes de testar — senão o teste roda literalmente com a máscara (ex: "AIza…7890"),
+    # que nem é uma chave válida nem um valor ASCII válido em header HTTP.
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.user_id == current_user.id
+    ).first()
+    if config:
+        if payload.evolution_api_key and payload.evolution_api_key == _mask_key(config.evolution_api_key):
+            payload.evolution_api_key = config.evolution_api_key
+        chave_gemini_atual = _chave_atual_provedor(config, "gemini")
+        if payload.gemini_api_key and payload.gemini_api_key == _mask_key(chave_gemini_atual):
+            payload.gemini_api_key = chave_gemini_atual
+        chave_groq_atual = _chave_atual_provedor(config, "groq")
+        if payload.groq_api_key and payload.groq_api_key == _mask_key(chave_groq_atual):
+            payload.groq_api_key = chave_groq_atual
+
     resultados = []
 
     if payload.gemini_api_key:
@@ -231,6 +249,19 @@ def _provedores_atuais(config) -> list:
         return raw if isinstance(raw, list) else []
     except (json.JSONDecodeError, TypeError):
         return []
+
+
+def _chave_atual_provedor(config, tipo: str) -> Optional[str]:
+    """API key atualmente salva pra um tipo de provedor — busca em provedores_llm
+    primeiro, cai pro campo legado (gemini_api_key/groq_api_key) se não achar."""
+    for p in _provedores_atuais(config):
+        if p.get("tipo") == tipo and p.get("api_key"):
+            return p.get("api_key")
+    if tipo == "gemini":
+        return getattr(config, "gemini_api_key", None)
+    if tipo == "groq":
+        return getattr(config, "groq_api_key", None)
+    return None
 
 
 def _merge_provedores_secrets(config, novos_provedores: list) -> list:

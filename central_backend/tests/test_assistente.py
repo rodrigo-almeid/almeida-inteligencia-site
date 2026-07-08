@@ -235,6 +235,57 @@ class TestMascaramentoDeChaves:
         provedores_salvos = json.loads(config.provedores_llm)
         assert provedores_salvos[0]["api_key"] == "AIzaSyREALKEY1234567890"
 
+    def test_validar_com_chaves_mascaradas_usa_valores_reais(self, client, auth_headers):
+        """Regressão: /assistente/validar não pode testar com o valor mascarado
+        (o '…' quebra encoding ASCII de header HTTP e nunca é uma chave válida)."""
+        payload = {
+            **CONFIG_BASE,
+            "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyREALKEY1234567890", "ativo": True}],
+        }
+        client.post("/assistente/config", json=payload, headers=auth_headers)
+
+        get_res = client.get("/assistente/config", headers=auth_headers)
+        chave_mascarada_evolution = get_res.json()["evolution_api_key"]
+        chave_mascarada_gemini = get_res.json()["provedores_llm"][0]["api_key"]
+        assert "…" in chave_mascarada_evolution
+        assert "…" in chave_mascarada_gemini
+
+        gemini_response = MagicMock()
+        gemini_response.status_code = 200
+
+        evolution_response = MagicMock()
+        evolution_response.status_code = 200
+        evolution_response.json.return_value = {"instance": {"state": "open"}}
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.post = AsyncMock(return_value=gemini_response)
+            mock_instance.get = AsyncMock(return_value=evolution_response)
+            mock_client.return_value = mock_instance
+
+            res = client.post("/assistente/validar", json={
+                "gemini_api_key": chave_mascarada_gemini,
+                "evolution_api_key": chave_mascarada_evolution,
+                "evolution_url": CONFIG_BASE["evolution_url"],
+                "evolution_instance": CONFIG_BASE["evolution_instance"],
+            }, headers=auth_headers)
+
+        assert res.status_code == 200
+        data = res.json()
+        gemini_result = next(r for r in data["resultados"] if r["nome"] == "Google Gemini")
+        assert gemini_result["ok"] is True
+        evolution_result = next(r for r in data["resultados"] if r["nome"] == "Evolution API")
+        assert evolution_result["ok"] is True
+
+        gemini_call_url = mock_instance.post.call_args.args[0]
+        assert "AIzaSyREALKEY1234567890" in gemini_call_url
+        assert "…" not in gemini_call_url
+
+        evolution_call_headers = mock_instance.get.call_args.kwargs["headers"]
+        assert evolution_call_headers["apikey"] == "test-api-key"
+
     def test_atualizar_com_chave_nova_sobrescreve_valor_real(self, client, auth_headers, db):
         payload = {
             **CONFIG_BASE,
