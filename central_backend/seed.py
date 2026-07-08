@@ -90,6 +90,8 @@ migrations = [
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_verify_token",
     # Segredo do webhook — autentica chamadas em /assistente/webhook (endpoint é público)
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR",
+    # Agendamento — sincronização com Google Calendar (coluna existia só no model, faltava a migration)
+    "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS google_event_id VARCHAR",
 ]
 for sql in migrations:
     try:
