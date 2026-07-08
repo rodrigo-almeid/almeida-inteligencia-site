@@ -1,5 +1,8 @@
 """Testes do módulo assistente virtual: /assistente/config e /assistente/webhook."""
+import json
 import pytest
+
+from backend.core.models import AssistenteConfig
 
 
 CONFIG_BASE = {
@@ -105,6 +108,7 @@ class TestAtualizarConfig:
 
 class TestWebhookMensagens:
     def test_post_evento_ignorado(self, client):
+        """Eventos que não são messages.upsert são ignorados mesmo sem secret."""
         res = client.post("/assistente/webhook", json={
             "event": "connection.update",
             "data": {},
@@ -112,30 +116,8 @@ class TestWebhookMensagens:
         assert res.status_code == 200
         assert res.json()["status"] == "ignored"
 
-    def test_post_sem_config(self, client):
-        res = client.post("/assistente/webhook", json={
-            "event": "messages.upsert",
-            "instance": "inexistente",
-            "data": {
-                "key": {"remoteJid": "5511111111111@s.whatsapp.net", "fromMe": False},
-                "message": {"conversation": "oi"},
-            }
-        })
-        assert res.status_code == 200
-
-    def test_post_numero_nao_autorizado(self, client, db, user):
-        from backend.core.models import AssistenteConfig
-        config = AssistenteConfig(
-            evolution_instance="goku",
-            evolution_url="http://evolution-api:8080",
-            evolution_api_key="key",
-            numero_autorizado="5500000000000",
-            ativo=True,
-            user_id=user.id,
-        )
-        db.add(config)
-        db.commit()
-
+    def test_post_sem_secret(self, client):
+        """Rota é pública (exposta pelo nginx) — sem secret, não autentica."""
         res = client.post("/assistente/webhook", json={
             "event": "messages.upsert",
             "instance": "goku",
@@ -146,3 +128,127 @@ class TestWebhookMensagens:
         })
         assert res.status_code == 200
         assert res.json()["status"] == "unauthorized"
+
+    def test_post_secret_invalido(self, client, db, user):
+        config = AssistenteConfig(
+            evolution_instance="goku",
+            evolution_url="http://evolution-api:8080",
+            evolution_api_key="key",
+            numero_autorizado="5500000000000",
+            webhook_secret="segredo-correto",
+            ativo=True,
+            user_id=user.id,
+        )
+        db.add(config)
+        db.commit()
+
+        res = client.post("/assistente/webhook?secret=segredo-errado", json={
+            "event": "messages.upsert",
+            "data": {
+                "key": {"remoteJid": "5500000000000@s.whatsapp.net", "fromMe": False},
+                "message": {"conversation": "oi"},
+            }
+        })
+        assert res.status_code == 200
+        assert res.json()["status"] == "unauthorized"
+
+    def test_post_numero_nao_autorizado(self, client, db, user):
+        config = AssistenteConfig(
+            evolution_instance="goku",
+            evolution_url="http://evolution-api:8080",
+            evolution_api_key="key",
+            numero_autorizado="5500000000000",
+            webhook_secret="segredo-correto",
+            ativo=True,
+            user_id=user.id,
+        )
+        db.add(config)
+        db.commit()
+
+        res = client.post("/assistente/webhook?secret=segredo-correto", json={
+            "event": "messages.upsert",
+            "data": {
+                "key": {"remoteJid": "5511111111111@s.whatsapp.net", "fromMe": False},
+                "message": {"conversation": "oi"},
+            }
+        })
+        assert res.status_code == 200
+        assert res.json()["status"] == "unauthorized"
+
+
+class TestWebhookSecret:
+    def test_webhook_secret_gerado_automaticamente(self, client, auth_headers, db):
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+        config = db.query(AssistenteConfig).first()
+        assert config.webhook_secret
+        assert len(config.webhook_secret) >= 16
+
+    def test_webhook_secret_nao_aparece_na_resposta(self, client, auth_headers):
+        res = client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+        assert "webhook_secret" not in res.json()
+        res_get = client.get("/assistente/config", headers=auth_headers)
+        assert "webhook_secret" not in res_get.json()
+
+
+class TestMascaramentoDeChaves:
+    def test_evolution_api_key_mascarada_no_get(self, client, auth_headers):
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+        res = client.get("/assistente/config", headers=auth_headers)
+        data = res.json()
+        assert data["evolution_api_key"] != CONFIG_BASE["evolution_api_key"]
+        assert CONFIG_BASE["evolution_api_key"] not in data["evolution_api_key"]
+
+    def test_provedores_llm_api_key_mascarada_no_get(self, client, auth_headers):
+        payload = {
+            **CONFIG_BASE,
+            "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyREALKEY1234567890", "ativo": True}],
+        }
+        client.post("/assistente/config", json=payload, headers=auth_headers)
+        res = client.get("/assistente/config", headers=auth_headers)
+        chave_retornada = res.json()["provedores_llm"][0]["api_key"]
+        assert chave_retornada != "AIzaSyREALKEY1234567890"
+        assert "REALKEY" not in chave_retornada
+
+    def test_atualizar_sem_mudar_chave_mascarada_preserva_valor_real(self, client, auth_headers, db):
+        payload = {
+            **CONFIG_BASE,
+            "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyREALKEY1234567890", "ativo": True}],
+        }
+        client.post("/assistente/config", json=payload, headers=auth_headers)
+
+        get_res = client.get("/assistente/config", headers=auth_headers)
+        provedores_mascarados = get_res.json()["provedores_llm"]
+        chave_mascarada_evolution = get_res.json()["evolution_api_key"]
+
+        # Simula o painel reenviando o formulário sem o usuário ter tocado nas chaves
+        put_payload = {
+            **CONFIG_BASE,
+            "evolution_api_key": chave_mascarada_evolution,
+            "provedores_llm": provedores_mascarados,
+        }
+        put_res = client.put("/assistente/config", json=put_payload, headers=auth_headers)
+        assert put_res.status_code == 200
+
+        config = db.query(AssistenteConfig).first()
+        assert config.evolution_api_key == CONFIG_BASE["evolution_api_key"]
+        provedores_salvos = json.loads(config.provedores_llm)
+        assert provedores_salvos[0]["api_key"] == "AIzaSyREALKEY1234567890"
+
+    def test_atualizar_com_chave_nova_sobrescreve_valor_real(self, client, auth_headers, db):
+        payload = {
+            **CONFIG_BASE,
+            "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyREALKEY1234567890", "ativo": True}],
+        }
+        client.post("/assistente/config", json=payload, headers=auth_headers)
+
+        put_payload = {
+            **CONFIG_BASE,
+            "evolution_api_key": "nova-evolution-key",
+            "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyNOVACHAVE000000", "ativo": True}],
+        }
+        client.put("/assistente/config", json=put_payload, headers=auth_headers)
+
+        config = db.query(AssistenteConfig).first()
+        assert config.evolution_api_key == "nova-evolution-key"
+        provedores_salvos = json.loads(config.provedores_llm)
+        assert provedores_salvos[0]["api_key"] == "AIzaSyNOVACHAVE000000"

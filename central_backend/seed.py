@@ -88,6 +88,8 @@ migrations = [
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_token",
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_phone_id",
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_verify_token",
+    # Segredo do webhook — autentica chamadas em /assistente/webhook (endpoint é público)
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR",
 ]
 for sql in migrations:
     try:

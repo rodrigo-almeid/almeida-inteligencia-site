@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 import httpx
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -15,41 +16,34 @@ from backend.assistente.whatsapp import enviar_mensagem, baixar_midia
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
 
-def get_config_by_instance(instance: str, db: Session):
+def get_config_by_secret(secret: Optional[str], db: Session):
+    """Autentica o webhook pelo segredo — a rota é pública (exposta pelo nginx),
+    então não dá pra confiar em campos do próprio corpo da requisição (ex: instance)."""
+    if not secret:
+        return None
     return db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.evolution_instance == instance,
-        models.AssistenteConfig.ativo == True
-    ).first()
-
-
-def get_first_active_config(db: Session):
-    return db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.webhook_secret == secret,
         models.AssistenteConfig.ativo == True
     ).first()
 
 
 @router.post("/webhook")
-async def webhook_receive(request: Request, db: Session = Depends(get_db)):
+async def webhook_receive(request: Request, secret: Optional[str] = None, db: Session = Depends(get_db)):
     body = await request.json()
 
     event = body.get("event")
     if event != "messages.upsert":
         return {"status": "ignored", "event": event}
 
+    config = get_config_by_secret(secret, db)
+    if not config:
+        return {"status": "unauthorized"}
+
     data = body.get("data", {})
     key = data.get("key", {})
     from_me = key.get("fromMe", False)
     if from_me:
         return {"status": "ignored", "reason": "fromMe"}
-
-    instance_name = body.get("instance")
-    config = None
-    if instance_name:
-        config = get_config_by_instance(instance_name, db)
-    if not config:
-        config = get_first_active_config(db)
-    if not config:
-        return {"status": "config not found"}
 
     user = db.query(models.User).filter(models.User.id == config.user_id).first()
 

@@ -226,6 +226,7 @@ class AssistenteConfig(Base):
     ollama_model = Column(String, nullable=True)
     provedores_llm = Column(Text, nullable=True)
     numero_autorizado = Column(String, nullable=True)
+    webhook_secret = Column(String, nullable=True)
     ativo = Column(Boolean, default=False)
 
     nome_assistente = Column(String, nullable=True, default="Goku")

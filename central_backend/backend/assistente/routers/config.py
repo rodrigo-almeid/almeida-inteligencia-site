@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -158,9 +159,14 @@ async def get_qrcode(
     if not config or not config.evolution_url:
         raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
 
+    if not config.webhook_secret:
+        config.webhook_secret = secrets.token_hex(16)
+        db.commit()
+        db.refresh(config)
+
     base = config.evolution_url.rstrip("/")
     instance = config.evolution_instance
-    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook"
+    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook?secret={config.webhook_secret}"
 
     await _garantir_instance(base, config.evolution_api_key, instance, webhook_url)
 
@@ -204,11 +210,59 @@ async def get_connection_state(
     return {"state": "error"}
 
 
+def _mask_key(key: Optional[str]) -> Optional[str]:
+    """Mascara uma chave sensível para exibição — só os 4 primeiros/últimos caracteres."""
+    if not key:
+        return None
+    if len(key) <= 8:
+        return "•" * len(key)
+    return f"{key[:4]}…{key[-4:]}"
+
+
+def _provedores_atuais(config) -> list:
+    """Lista de provedores (dicts) já salvos no banco, sem filtrar por 'ativo'."""
+    if not config or not config.provedores_llm:
+        return []
+    try:
+        raw = json.loads(config.provedores_llm)
+        return raw if isinstance(raw, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def _merge_provedores_secrets(config, novos_provedores: list) -> list:
+    """Preserva a api_key real quando o valor recebido é a versão mascarada
+    (ou seja, o painel reenviou o campo sem o usuário ter alterado a chave)."""
+    existentes_por_tipo: dict = {}
+    for p in _provedores_atuais(config):
+        existentes_por_tipo.setdefault(p.get("tipo"), []).append(p)
+
+    indices_usados: dict = {}
+    resultado = []
+    for np in novos_provedores:
+        p = np.model_dump() if hasattr(np, "model_dump") else dict(np)
+        tipo = p.get("tipo")
+        idx = indices_usados.get(tipo, 0)
+        candidatos = existentes_por_tipo.get(tipo, [])
+        antigo = candidatos[idx] if idx < len(candidatos) else None
+        indices_usados[tipo] = idx + 1
+        if antigo and p.get("api_key") and p.get("api_key") == _mask_key(antigo.get("api_key")):
+            p["api_key"] = antigo.get("api_key")
+        resultado.append(p)
+    return resultado
+
+
 def _config_to_response(config):
     data = {c.name: getattr(config, c.name) for c in config.__table__.columns}
+    data.pop("webhook_secret", None)
+    data["evolution_api_key"] = _mask_key(data.get("evolution_api_key"))
     if data.get("provedores_llm"):
         try:
-            data["provedores_llm"] = json.loads(data["provedores_llm"])
+            provedores = json.loads(data["provedores_llm"])
+            for p in provedores:
+                if isinstance(p, dict) and p.get("api_key"):
+                    p["api_key"] = _mask_key(p["api_key"])
+            data["provedores_llm"] = provedores
         except (json.JSONDecodeError, TypeError):
             data["provedores_llm"] = None
     return schemas.AssistenteConfigResponse(**data)
@@ -251,7 +305,7 @@ def criar_config(
         raise HTTPException(status_code=400, detail="Configuração já existe. Use PUT para atualizar.")
 
     data = _serialize_provedores(payload.model_dump())
-    config = models.AssistenteConfig(**data, user_id=current_user.id)
+    config = models.AssistenteConfig(**data, user_id=current_user.id, webhook_secret=secrets.token_hex(16))
     db.add(config)
     db.commit()
     db.refresh(config)
@@ -271,10 +325,21 @@ def atualizar_config(
     if not config:
         raise HTTPException(status_code=404, detail="Configuração não encontrada.")
 
-    data = _serialize_provedores(payload.model_dump())
+    payload_dict = payload.model_dump()
+
+    # Preserva a chave real quando o painel reenvia o valor mascarado (campo não editado)
+    if payload.provedores_llm is not None:
+        payload_dict["provedores_llm"] = _merge_provedores_secrets(config, payload.provedores_llm)
+    if payload_dict.get("evolution_api_key") == _mask_key(config.evolution_api_key):
+        payload_dict["evolution_api_key"] = config.evolution_api_key
+
+    data = _serialize_provedores(payload_dict)
     for key, value in data.items():
         if value is not None:
             setattr(config, key, value)
+
+    if not config.webhook_secret:
+        config.webhook_secret = secrets.token_hex(16)
 
     db.commit()
     db.refresh(config)
