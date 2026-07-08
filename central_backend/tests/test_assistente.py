@@ -306,6 +306,89 @@ class TestMascaramentoDeChaves:
         assert provedores_salvos[0]["api_key"] == "AIzaSyNOVACHAVE000000"
 
 
+class TestDesconectar:
+    def test_desconectar_com_sessao_ativa_faz_logout(self, client, auth_headers):
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+
+        logout_response = MagicMock()
+        logout_response.is_success = True
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.delete = AsyncMock(return_value=logout_response)
+            mock_client.return_value = mock_instance
+
+            res = client.post("/assistente/desconectar", headers=auth_headers)
+
+        assert res.status_code == 200
+        assert res.json()["status"] == "desconectado"
+        mock_instance.delete.assert_called_once()
+        assert "/instance/logout/" in mock_instance.delete.call_args.args[0]
+
+    def test_desconectar_com_sessao_travada_apaga_instancia(self, client, auth_headers):
+        """Regressão: sessão derrubada pelo WhatsApp (conflict/device_removed) fica
+        'not connected' — logout falha com 400, precisa cair pro delete da instância
+        pra parar o loop de reconexão automática."""
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+
+        logout_response = MagicMock()
+        logout_response.is_success = False
+        logout_response.status_code = 400
+        logout_response.text = '{"message":["The instance is not connected"]}'
+
+        delete_response = MagicMock()
+        delete_response.is_success = True
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.delete = AsyncMock(side_effect=[logout_response, delete_response])
+            mock_client.return_value = mock_instance
+
+            res = client.post("/assistente/desconectar", headers=auth_headers)
+
+        assert res.status_code == 200
+        assert res.json()["status"] == "instancia_removida"
+        assert mock_instance.delete.call_count == 2
+
+    def test_desconectar_sem_config(self, client, auth_headers):
+        res = client.post("/assistente/desconectar", headers=auth_headers)
+        assert res.status_code == 404
+
+
+class TestWebhookResync:
+    def test_resync_atualiza_webhook_sem_gerar_qrcode(self, client, auth_headers, db):
+        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
+
+        state_response = MagicMock()
+        state_response.status_code = 200
+
+        webhook_set_response = MagicMock()
+        webhook_set_response.is_success = True
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.get = AsyncMock(return_value=state_response)
+            mock_instance.post = AsyncMock(return_value=webhook_set_response)
+            mock_client.return_value = mock_instance
+
+            res = client.post("/assistente/webhook/resync", headers=auth_headers)
+
+        assert res.status_code == 200
+        assert res.json()["status"] == "ok"
+
+        # Só chamou connectionState (get) e webhook/set (post) — nunca instance/connect
+        get_urls = [c.args[0] for c in mock_instance.get.call_args_list]
+        assert all("instance/connect/" not in u for u in get_urls)
+        mock_instance.post.assert_called_once()
+        assert "/webhook/set/" in mock_instance.post.call_args.args[0]
+
+
 class TestGarantirInstanceWebhook:
     """Regressão: sem 'enabled': true, a Evolution API aceita o /webhook/set mas
     nunca dispara o webhook — mensagens reais chegam e são silenciosamente ignoradas."""

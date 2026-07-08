@@ -231,6 +231,68 @@ async def get_connection_state(
     return {"state": "error"}
 
 
+@router.post("/desconectar")
+async def desconectar_whatsapp(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Encerra a sessão do WhatsApp na Evolution API. Tenta logout normal; se a
+    instância já não estiver conectada (sessão travada/derrubada pelo WhatsApp),
+    apaga a instância pra parar o loop de reconexão automática — mesma limpeza
+    manual feita via docker exec quando o WhatsApp derruba o device (conflict/device_removed)."""
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.user_id == current_user.id
+    ).first()
+
+    if not config or not config.evolution_url or not config.evolution_instance:
+        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
+
+    base = config.evolution_url.rstrip("/")
+    instance = config.evolution_instance
+    headers = {"apikey": config.evolution_api_key}
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        logout_res = await client.delete(f"{base}/instance/logout/{instance}", headers=headers)
+        if logout_res.is_success:
+            return {"status": "desconectado"}
+
+        delete_res = await client.delete(f"{base}/instance/delete/{instance}", headers=headers)
+        if delete_res.is_success:
+            return {"status": "instancia_removida"}
+
+        raise HTTPException(
+            status_code=502,
+            detail=f"Erro ao desconectar: {delete_res.status_code} {delete_res.text}",
+        )
+
+
+@router.post("/webhook/resync")
+async def resync_webhook(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Reconfigura o webhook na Evolution API sem tocar na conexão (sem gerar QR Code).
+    Existe pra não precisar passar pelo fluxo de 'Conectar WhatsApp' só pra atualizar
+    o secret/URL do webhook — repetir esse fluxo à toa foi o que ajudou a instabilizar
+    uma sessão real em produção."""
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.user_id == current_user.id
+    ).first()
+
+    if not config or not config.evolution_url:
+        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
+
+    if not config.webhook_secret:
+        config.webhook_secret = secrets.token_hex(16)
+        db.commit()
+        db.refresh(config)
+
+    base = config.evolution_url.rstrip("/")
+    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook?secret={config.webhook_secret}"
+    await _garantir_instance(base, config.evolution_api_key, config.evolution_instance, webhook_url)
+    return {"status": "ok"}
+
+
 def _mask_key(key: Optional[str]) -> Optional[str]:
     """Mascara uma chave sensível para exibição — só os 4 primeiros/últimos caracteres."""
     if not key:
