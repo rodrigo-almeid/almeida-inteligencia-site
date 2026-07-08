@@ -43,6 +43,7 @@ async def webhook_receive(request: Request, secret: Optional[str] = None, db: Se
     key = data.get("key", {})
     from_me = key.get("fromMe", False)
     if from_me:
+        print(f"[goku] mensagem ignorada (fromMe): remoteJid={key.get('remoteJid', '')!r}")
         return {"status": "ignored", "reason": "fromMe"}
 
     user = db.query(models.User).filter(models.User.id == config.user_id).first()
@@ -51,6 +52,7 @@ async def webhook_receive(request: Request, secret: Optional[str] = None, db: Se
     from_number = remote_jid.split("@")[0]
 
     if config.numero_autorizado and from_number != config.numero_autorizado:
+        print(f"[goku] número não autorizado: recebido={from_number!r} esperado={config.numero_autorizado!r}")
         return {"status": "unauthorized"}
 
     message = data.get("message", {})
