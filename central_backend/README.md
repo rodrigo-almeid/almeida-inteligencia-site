@@ -175,9 +175,11 @@ Foto no WhatsApp → Download da imagem → Gemini Vision (OCR)
 
 **WhatsApp:** Evolution API (Baileys, self-hosted) — conexão por QR Code, sem aprovação da Meta  
 **Configurações:** nome_assistente, personalidade, tom_voz, instrucoes_extras, numero_autorizado  
-**Rotas:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT)  
+**Rotas:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/desconectar`, `/assistente/webhook/resync`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT)  
 **Código:** `backend/assistente/` (routers, gemini.py, whatsapp.py)  
 **Frontend:** `frontend/assistente/index.html` (painel de configuração)
+
+**Cuidado com reconexões repetidas:** o WhatsApp pode remover o aparelho vinculado (log da Evolution API: `conflict`/`device_removed`) se a instância for reconectada várias vezes seguidas em pouco tempo — mais comum em números novos. Use `/assistente/webhook/resync` pra atualizar o webhook sem tocar na conexão, e `/assistente/desconectar` (botão "🔌 Desconectar" no painel) se a sessão travar num loop de reconexão.
 
 ---
 
@@ -583,6 +585,8 @@ email_classifier/
 | `GET/POST/PUT` | `/assistente/config` | JWT | Configuração (chaves sensíveis mascaradas no GET) |
 | `GET` | `/assistente/qrcode` | JWT | Gerar/renovar QR Code de conexão |
 | `GET` | `/assistente/connection-state` | JWT | Estado da conexão com o WhatsApp |
+| `POST` | `/assistente/desconectar` | JWT | Encerrar sessão do WhatsApp (logout ou apaga instância travada) |
+| `POST` | `/assistente/webhook/resync` | JWT | Reconfigurar webhook na Evolution API sem gerar QR Code |
 | `POST` | `/assistente/webhook?secret=...` | Segredo por URL | Webhook Evolution API (WhatsApp) |
 
 ### Agendamento Inteligente
