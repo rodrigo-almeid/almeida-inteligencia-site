@@ -478,6 +478,10 @@ central_backend/
 │   └── main.py                # App FastAPI + registro de routers + scheduler
 │
 ├── frontend/
+│   ├── shared/                 # sidebar.js + sidebar.css — menu lateral e breadcrumb
+│   │                           # compartilhados por financeiro/agendamento/assistente/credenciais
+│   │                           # (servido via mount /shared no main.py). email_classifier/
+│   │                           # NÃO usa esse componente — é uma base de código à parte.
 │   ├── financeiro/            # Dashboard, contas, combustível, mercado
 │   ├── credenciais/           # Cofre de senhas
 │   ├── assistente/            # Config do Goku
