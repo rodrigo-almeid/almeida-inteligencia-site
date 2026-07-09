@@ -2,168 +2,250 @@
 	"info": {
 		"_postman_id": "almeida-inteligencia-full-flow",
 		"name": "Almeida Inteligência — Fluxo Completo (RBAC + CRUD + Cleanup)",
-		"description": "Fluxo E2E: registra usuário, valida RBAC (403 sem perfil), atribui perfis, faz CRUD completo e limpa tudo.",
+		"description": "Fluxo E2E: registra usuario e valida login/perfis vazios (pasta 01). As pastas 02-05 (RBAC com atribuicao de perfil via /auth/perfis/atribuir, CRUD completo e cleanup) foram REMOVIDAS temporariamente em 2026-07-09 porque o sistema de perfis (Portal <-> central_backend) esta sendo revisado e os estados de perfil em producao nao sao confiaveis no momento. O conteudo original esta no historico do git (commit anterior a esta mudanca) — restaurar as pastas quando o /auth/perfis/atribuir e o fluxo de perfis do Portal estiverem corrigidos e estaveis.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
-		{ "key": "base_url", "value": "https://almeidainteligencia.com.br" },
-		{ "key": "central_api", "value": "{{base_url}}/central" },
-		{ "key": "token", "value": "" },
-		{ "key": "admin_token", "value": "" },
-		{ "key": "test_email", "value": "" },
-		{ "key": "test_password", "value": "Test@12345" },
-		{ "key": "admin_email", "value": "almeidainteligencia@gmail.com" },
-		{ "key": "admin_password", "value": "REDACTED" },
-		{ "key": "categoria_id", "value": "" },
-		{ "key": "conta_id", "value": "" },
-		{ "key": "divida_id", "value": "" },
-		{ "key": "pessoa_id", "value": "" },
-		{ "key": "senha_id", "value": "" },
-		{ "key": "dado_pessoal_id", "value": "" },
-		{ "key": "abastecimento_id", "value": "" }
+		{
+			"key": "base_url",
+			"value": "https://almeidainteligencia.com.br"
+		},
+		{
+			"key": "central_api",
+			"value": "{{base_url}}/central"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "admin_token",
+			"value": ""
+		},
+		{
+			"key": "test_email",
+			"value": ""
+		},
+		{
+			"key": "test_password",
+			"value": "Test@12345"
+		},
+		{
+			"key": "admin_email",
+			"value": "almeidainteligencia@gmail.com"
+		},
+		{
+			"key": "admin_password",
+			"value": "REDACTED"
+		},
+		{
+			"key": "categoria_id",
+			"value": ""
+		},
+		{
+			"key": "conta_id",
+			"value": ""
+		},
+		{
+			"key": "divida_id",
+			"value": ""
+		},
+		{
+			"key": "pessoa_id",
+			"value": ""
+		},
+		{
+			"key": "senha_id",
+			"value": ""
+		},
+		{
+			"key": "dado_pessoal_id",
+			"value": ""
+		},
+		{
+			"key": "abastecimento_id",
+			"value": ""
+		}
 	],
-	"event": [{ "listen": "prerequest", "script": { "exec": [
-		"if (!pm.collectionVariables.get('test_email') || pm.collectionVariables.get('test_email') === '') {",
-		"    pm.collectionVariables.set('test_email', 'postman_rbac_' + Date.now() + '@teste.com');",
-		"}"
-	] } }],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"if (!pm.collectionVariables.get('test_email') || pm.collectionVariables.get('test_email') === '') {",
+					"    pm.collectionVariables.set('test_email', 'postman_rbac_' + Date.now() + '@teste.com');",
+					"}"
+				]
+			}
+		}
+	],
 	"item": [
 		{
 			"name": "01 — Auth + Setup",
 			"item": [
-				{ "name": "01.1 Login Admin", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Token salvo', function () { pm.collectionVariables.set('admin_token', pm.response.json().access_token); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "username", "value": "{{admin_email}}" }, { "key": "password", "value": "{{admin_password}}" }] }, "url": { "raw": "{{central_api}}/auth/login", "host": ["{{central_api}}"], "path": ["auth", "login"] } } },
-				{ "name": "01.2 Registrar Usuário", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 201', function () { pm.expect(pm.response.code).to.equal(201); });",
-					"pm.test('Sucesso', function () { pm.expect(pm.response.json().message).to.include('sucesso'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"password\": \"{{test_password}}\"}" }, "url": { "raw": "{{central_api}}/auth/register", "host": ["{{central_api}}"], "path": ["auth", "register"] } } },
-				{ "name": "01.3 Login Usuário", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('JWT válido', function () { var j = pm.response.json(); pm.expect(j.access_token.split('.').length).to.equal(3); pm.collectionVariables.set('token', j.access_token); });",
-					"pm.test('Bearer', function () { pm.expect(pm.response.json().token_type.toLowerCase()).to.equal('bearer'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "username", "value": "{{test_email}}" }, { "key": "password", "value": "{{test_password}}" }] }, "url": { "raw": "{{central_api}}/auth/login", "host": ["{{central_api}}"], "path": ["auth", "login"] } } },
-				{ "name": "01.4 Perfis = vazio", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Sem perfis', function () { pm.expect(pm.response.json()).to.be.an('array').with.length(0); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/perfis", "host": ["{{central_api}}"], "path": ["me", "perfis"] } } }
-			]
-		},
-		{
-			"name": "02 — RBAC: Sem Perfil → 403",
-			"item": [
-				{ "name": "02.1 /categorias/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403 Forbidden', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil automacao_financeira', function () { pm.expect(pm.response.json().detail).to.include('automacao_financeira'); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } } },
-				{ "name": "02.2 /contas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/", "host": ["{{central_api}}"], "path": ["contas", ""] } } },
-				{ "name": "02.3 /dividas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } } },
-				{ "name": "02.4 /pessoas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil gerenciador_credenciais', function () { pm.expect(pm.response.json().detail).to.include('gerenciador_credenciais'); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } } },
-				{ "name": "02.5 /abastecimentos/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403', function () { pm.expect(pm.response.code).to.equal(403); });",
-					"pm.test('Indica perfil combustivel', function () { pm.expect(pm.response.json().detail).to.include('combustivel'); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } } }
-			]
-		},
-		{
-			"name": "03 — RBAC: Perfil Parcial (só automacao_financeira)",
-			"item": [
-				{ "name": "03.1 Atribuir automacao_financeira", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Perfil atribuído', function () { pm.expect(pm.response.json().perfis).to.eql(['automacao_financeira']); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"automacao_financeira\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
-				{ "name": "03.2 Re-login", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.collectionVariables.set('token', pm.response.json().access_token);"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "username", "value": "{{test_email}}" }, { "key": "password", "value": "{{test_password}}" }] }, "url": { "raw": "{{central_api}}/auth/login", "host": ["{{central_api}}"], "path": ["auth", "login"] } } },
-				{ "name": "03.3 /categorias/ → 200", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200 — acesso permitido', function () { pm.expect(pm.response.code).to.equal(200); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } } },
-				{ "name": "03.4 /contas/ → 200", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200 — acesso permitido', function () { pm.expect(pm.response.code).to.equal(200); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/", "host": ["{{central_api}}"], "path": ["contas", ""] } } },
-				{ "name": "03.5 /pessoas/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403 — sem perfil gerenciador_credenciais', function () { pm.expect(pm.response.code).to.equal(403); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } } },
-				{ "name": "03.6 /abastecimentos/ → 403", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('403 — sem perfil combustivel', function () { pm.expect(pm.response.code).to.equal(403); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } } }
-			]
-		},
-		{
-			"name": "04 — Atribuir Todos os Perfis + CRUD",
-			"item": [
-				{ "name": "04.1 Atribuir todos os perfis", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Todos atribuídos', function () { var p = pm.response.json().perfis; pm.expect(p).to.include('automacao_financeira'); pm.expect(p).to.include('gerenciador_credenciais'); pm.expect(p).to.include('combustivel'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\": \"{{test_email}}\", \"perfis\": [\"automacao_financeira\", \"gerenciador_credenciais\", \"combustivel\", \"mercado\"]}" }, "url": { "raw": "{{central_api}}/auth/perfis/atribuir", "host": ["{{central_api}}"], "path": ["auth", "perfis", "atribuir"] } } },
-				{ "name": "04.2 Re-login", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.collectionVariables.set('token', pm.response.json().access_token);"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }], "body": { "mode": "urlencoded", "urlencoded": [{ "key": "username", "value": "{{test_email}}" }, { "key": "password", "value": "{{test_password}}" }] }, "url": { "raw": "{{central_api}}/auth/login", "host": ["{{central_api}}"], "path": ["auth", "login"] } } },
-				{ "name": "04.3 Criar Categoria", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('categoria_id', pm.response.json().id); });",
-					"pm.test('Sem erro', function () { pm.expect(pm.response.json()).to.not.have.property('detail'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"nome\": \"Teste Postman\"}" }, "url": { "raw": "{{central_api}}/categorias/", "host": ["{{central_api}}"], "path": ["categorias", ""] } } },
-				{ "name": "04.4 Criar Conta", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('conta_id', pm.response.json().id); });",
-					"pm.test('Descrição', function () { pm.expect(pm.response.json().descricao).to.equal('Conta Teste RBAC'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"Conta Teste RBAC\",\n  \"vencimento\": \"2026-07-15\",\n  \"competencia\": \"2026-07\",\n  \"valor\": 150.00,\n  \"natureza\": \"débito\",\n  \"status\": \"A Pagar\",\n  \"categoria_id\": {{categoria_id}}\n}" }, "url": { "raw": "{{central_api}}/contas/", "host": ["{{central_api}}"], "path": ["contas", ""] } } },
-				{ "name": "04.5 Atualizar Conta", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Valor atualizado', function () { pm.expect(pm.response.json().valor).to.equal(200); });",
-					"pm.test('Status Pago', function () { pm.expect(pm.response.json().status).to.equal('Pago'); });"
-				] } }], "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"descricao\": \"Conta EDITADA\",\n  \"vencimento\": \"2026-07-20\",\n  \"competencia\": \"2026-07\",\n  \"valor\": 200.00,\n  \"natureza\": \"débito\",\n  \"status\": \"Pago\",\n  \"categoria_id\": {{categoria_id}}\n}" }, "url": { "raw": "{{central_api}}/contas/{{conta_id}}", "host": ["{{central_api}}"], "path": ["contas", "{{conta_id}}"] } } },
-				{ "name": "04.6 Criar Dívida", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('divida_id', pm.response.json().id); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"devedor\": \"João RBAC\",\n  \"descricao\": \"Empréstimo RBAC\",\n  \"vencimento\": \"2026-08-01\",\n  \"valor\": 500.00,\n  \"status\": \"pendente\"\n}" }, "url": { "raw": "{{central_api}}/dividas/", "host": ["{{central_api}}"], "path": ["dividas", ""] } } },
-				{ "name": "04.7 Criar Pessoa", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('pessoa_id', pm.response.json().id); });",
-					"pm.test('Nome', function () { pm.expect(pm.response.json().nome).to.equal('Perfil RBAC'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"nome\": \"Perfil RBAC\"}" }, "url": { "raw": "{{central_api}}/pessoas/", "host": ["{{central_api}}"], "path": ["pessoas", ""] } } },
-				{ "name": "04.8 Salvar Senha", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Sucesso', function () { pm.expect(pm.response.json().mensagem).to.include('segurança'); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"sistema\": \"Gmail RBAC\",\n  \"usuario_sistema\": \"rbac@teste.com\",\n  \"senha\": \"SenhaRBAC123\",\n  \"pessoa_id\": {{pessoa_id}}\n}" }, "url": { "raw": "{{central_api}}/me/senhas/", "host": ["{{central_api}}"], "path": ["me", "senhas", ""] } } },
-				{ "name": "04.9 Listar Senhas (capturar ID)", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Senha encontrada', function () { var f = pm.response.json().find(function(s){return s.sistema==='Gmail RBAC';}); pm.expect(f).to.not.be.undefined; pm.collectionVariables.set('senha_id', f.id); });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/{{pessoa_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "{{pessoa_id}}"] } } },
-				{ "name": "04.10 Dado Pessoal", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200/201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('dado_pessoal_id', pm.response.json().id); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"chave\": \"CPF\", \"valor\": \"123.456.789-00\", \"pessoa_id\": {{pessoa_id}}}" }, "url": { "raw": "{{central_api}}/me/senhas/dados/", "host": ["{{central_api}}"], "path": ["me", "senhas", "dados", ""] } } },
-				{ "name": "04.11 Abastecimento", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
-					"pm.test('id', function () { pm.collectionVariables.set('abastecimento_id', pm.response.json().id); });"
-				] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"data\": \"2026-07-01\",\n  \"tipo_combustivel\": \"gasolina\",\n  \"km_atual\": 50000,\n  \"litros\": 40.0,\n  \"valor_unitario\": 5.89,\n  \"valor_total\": 235.60,\n  \"forma_pagamento\": \"credito\",\n  \"tanque_cheio\": true\n}" }, "url": { "raw": "{{central_api}}/abastecimentos/", "host": ["{{central_api}}"], "path": ["abastecimentos", ""] } } }
-			]
-		},
-		{
-			"name": "05 — CLEANUP",
-			"item": [
-				{ "name": "05.01 DEL Abastecimento", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/abastecimentos/{{abastecimento_id}}", "host": ["{{central_api}}"], "path": ["abastecimentos", "{{abastecimento_id}}"] } } },
-				{ "name": "05.02 DEL Dado Pessoal", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/dados/{{dado_pessoal_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "dados", "{{dado_pessoal_id}}"] } } },
-				{ "name": "05.03 DEL Senha", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/me/senhas/credencial/{{senha_id}}", "host": ["{{central_api}}"], "path": ["me", "senhas", "credencial", "{{senha_id}}"] } } },
-				{ "name": "05.04 DEL Dívida", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/dividas/{{divida_id}}", "host": ["{{central_api}}"], "path": ["dividas", "{{divida_id}}"] } } },
-				{ "name": "05.05 DEL Conta", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/{{conta_id}}", "host": ["{{central_api}}"], "path": ["contas", "{{conta_id}}"] } } },
-				{ "name": "05.06 DEL Categoria", "event": [{ "listen": "test", "script": { "exec": ["pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]); });"] } }], "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/categorias/{{categoria_id}}", "host": ["{{central_api}}"], "path": ["categorias", "{{categoria_id}}"] } } },
-				{ "name": "05.07 Verificar Contas Limpas", "event": [{ "listen": "test", "script": { "exec": [
-					"pm.test('200', function () { pm.expect(pm.response.code).to.equal(200); });",
-					"pm.test('Conta removida', function () { var j = pm.response.json(); var items = Array.isArray(j)?j:(j.contas||[]); var f = items.find(function(c){return c.id==pm.collectionVariables.get('conta_id');}); pm.expect(f).to.be.undefined; });"
-				] } }], "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": { "raw": "{{central_api}}/contas/?mes=7&ano=2026", "host": ["{{central_api}}"], "path": ["contas", ""], "query": [{ "key": "mes", "value": "7" }, { "key": "ano", "value": "2026" }] } } }
+				{
+					"name": "01.1 Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+									"pm.test('Token salvo', function () { pm.collectionVariables.set('admin_token', pm.response.json().access_token); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{admin_email}}"
+								},
+								{
+									"key": "password",
+									"value": "{{admin_password}}"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{central_api}}/auth/login",
+							"host": [
+								"{{central_api}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "01.2 Registrar Usuário",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', function () { pm.expect(pm.response.code).to.equal(201); });",
+									"pm.test('Sucesso', function () { pm.expect(pm.response.json().message).to.include('sucesso'); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"email\": \"{{test_email}}\", \"password\": \"{{test_password}}\"}"
+						},
+						"url": {
+							"raw": "{{central_api}}/auth/register",
+							"host": [
+								"{{central_api}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "01.3 Login Usuário",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+									"pm.test('JWT válido', function () { var j = pm.response.json(); pm.expect(j.access_token.split('.').length).to.equal(3); pm.collectionVariables.set('token', j.access_token); });",
+									"pm.test('Bearer', function () { pm.expect(pm.response.json().token_type.toLowerCase()).to.equal('bearer'); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{test_email}}"
+								},
+								{
+									"key": "password",
+									"value": "{{test_password}}"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{central_api}}/auth/login",
+							"host": [
+								"{{central_api}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "01.4 Perfis = vazio",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+									"pm.test('Sem perfis', function () { pm.expect(pm.response.json()).to.be.an('array').with.length(0); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{central_api}}/me/perfis",
+							"host": [
+								"{{central_api}}"
+							],
+							"path": [
+								"me",
+								"perfis"
+							]
+						}
+					}
+				}
 			]
 		}
 	]
