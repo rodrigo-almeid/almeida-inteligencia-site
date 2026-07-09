@@ -381,58 +381,29 @@ class TestRotasPublicas:
 
 
 # ──────────────────────────────────────────────────────────────────
-# 9. Endpoint de atribuição de perfis
+# 9. Endpoint de atribuição de perfis — DESATIVADO (2026-07-09)
+#
+# Não validava se quem chama é admin — qualquer usuário autenticado podia se
+# auto-atribuir qualquer perfil do sistema. Desativado até decidirmos o modelo
+# de autorização certo. Os testes do comportamento antigo estão no histórico
+# do git (mesmo commit que desativou o endpoint em perfis.py); restaurar
+# quando o endpoint for reativado com a checagem de admin.
 # ──────────────────────────────────────────────────────────────────
 
-class TestAtribuirPerfis:
-    def test_atribuir_um_perfil(self, client, auth_headers, user_sem_perfil):
+class TestAtribuirPerfisDesativado:
+    def test_atribuir_retorna_403(self, client, auth_headers, user_sem_perfil):
         res = client.post("/auth/perfis/atribuir", json={
             "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira"]
         }, headers=auth_headers)
-        assert res.status_code == 200
-        assert res.json()["perfis"] == ["automacao_financeira"]
+        assert res.status_code == 403
 
-    def test_atribuir_multiplos(self, client, auth_headers, user_sem_perfil):
-        res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira", "gerenciador_credenciais", "combustivel"]
-        }, headers=auth_headers)
-        assert res.status_code == 200
-        assert set(res.json()["perfis"]) == {"automacao_financeira", "gerenciador_credenciais", "combustivel"}
-
-    def test_atribuir_substitui_perfis_anteriores(self, client, auth_headers, user_sem_perfil):
-        client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira", "gerenciador_credenciais"]
-        }, headers=auth_headers)
-        res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["combustivel"]
-        }, headers=auth_headers)
-        assert res.json()["perfis"] == ["combustivel"]
-
-    def test_usuario_ganha_acesso_apos_atribuicao(self, client, auth_headers, user_sem_perfil):
-        assert client.get("/categorias/", headers=_login(client, "sem_perfil@teste.com", "Sem@123")).status_code == 403
+    def test_atribuir_nao_altera_perfis(self, client, auth_headers, user_sem_perfil, db):
         client.post("/auth/perfis/atribuir", json={
             "email": "sem_perfil@teste.com", "perfis": ["automacao_financeira"]
         }, headers=auth_headers)
-        assert client.get("/categorias/", headers=_login(client, "sem_perfil@teste.com", "Sem@123")).status_code == 200
-
-    def test_perfil_invalido(self, client, auth_headers, user_sem_perfil):
-        res = client.post("/auth/perfis/atribuir", json={
-            "email": "sem_perfil@teste.com", "perfis": ["inexistente"]
-        }, headers=auth_headers)
-        assert res.status_code == 400
-
-    def test_usuario_inexistente(self, client, auth_headers):
-        res = client.post("/auth/perfis/atribuir", json={
-            "email": "nao_existe@teste.com", "perfis": ["automacao_financeira"]
-        }, headers=auth_headers)
-        assert res.status_code == 404
-
-    def test_lista_vazia_remove_todos(self, client, auth_headers, user_dashboard):
-        res = client.post("/auth/perfis/atribuir", json={
-            "email": "dashboard@teste.com", "perfis": []
-        }, headers=auth_headers)
-        assert res.status_code == 200
-        assert res.json()["perfis"] == []
+        db.expire_all()
+        u = db.query(User).filter(User.email == "sem_perfil@teste.com").first()
+        assert u.perfis == []
 
 
 # ──────────────────────────────────────────────────────────────────

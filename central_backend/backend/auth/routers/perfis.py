@@ -30,18 +30,11 @@ def atribuir_perfis(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user = db.query(models.User).filter(models.User.email == body.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-    user.perfis.clear()
-    for nome in body.perfis:
-        perfil = db.query(models.Perfil).filter(models.Perfil.nome == nome).first()
-        if not perfil:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Perfil '{nome}' não existe.",
-            )
-        user.perfis.append(perfil)
-    db.commit()
-    return {"mensagem": f"Perfis atribuídos a {body.email}", "perfis": body.perfis}
+    """Desativado (2026-07-09) — não validava se current_user é admin, o que permitia
+    qualquer usuário autenticado se auto-atribuir qualquer perfil do sistema. Reativar
+    só depois de decidir o modelo de autorização certo (ex: exigir perfil 'admin' do
+    Portal, como o SSO já sincroniza — ver auth.py). Lógica original no histórico do git."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Endpoint temporariamente desativado — sistema de perfis em revisão.",
+    )
