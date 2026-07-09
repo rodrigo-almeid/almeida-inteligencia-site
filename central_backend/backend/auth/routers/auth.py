@@ -84,8 +84,19 @@ def sso(body: SSORequest, db: Session = Depends(get_db)):
         db.add(perfil)
         db.commit()
 
+    portal_perfil_slug = payload.get("perfil")
     portal_sistemas = payload.get("sistemas", [])
-    if portal_sistemas:
+
+    if portal_perfil_slug == "admin":
+        # O Portal manda 'sistemas' vazio pra admin (a tela dele já mostra tudo sem
+        # depender dessa lista) — sincroniza com TODOS os perfis do central_backend
+        # em vez disso, senão o bloco abaixo nunca roda (lista vazia é falsy) e um
+        # admin do Portal não ganha nenhum acesso real nos módulos.
+        user.perfis.clear()
+        for perfil in db.query(models.Perfil).all():
+            user.perfis.append(perfil)
+        db.commit()
+    elif portal_sistemas:
         slugs = [s["slug"] for s in portal_sistemas if isinstance(s, dict) and "slug" in s]
         user.perfis.clear()
         for slug in slugs:

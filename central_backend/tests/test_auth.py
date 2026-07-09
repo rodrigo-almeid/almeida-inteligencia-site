@@ -1,6 +1,6 @@
 """Testes do módulo de autenticação: /auth/register e /auth/login."""
 import pytest
-from .conftest import USER_EMAIL, USER_PASS
+from .conftest import USER_EMAIL, USER_PASS, ALL_PERFIS
 
 
 # ─── Register ────────────────────────────────────────────────────────
@@ -111,6 +111,45 @@ class TestSSO:
         token = jwt.encode({"sub": "sem_email"}, self.PORTAL_KEY, algorithm="HS256")
         res = client.post("/auth/sso", json={"portal_token": token})
         assert res.status_code == 401
+
+    def test_sso_admin_recebe_todos_os_perfis(self, client, db, perfis):
+        """Regressão: o Portal manda 'sistemas' vazio pra admin, então o sync não
+        pode depender só dessa lista — senão admin do Portal não ganha perfil nenhum."""
+        from jose import jwt
+        from backend.core.models import User
+
+        token = jwt.encode(
+            {"email": "admin_portal@teste.com", "perfil": "admin", "sistemas": []},
+            self.PORTAL_KEY, algorithm="HS256",
+        )
+        res = client.post("/auth/sso", json={"portal_token": token})
+        assert res.status_code == 200
+
+        db.expire_all()
+        u = db.query(User).filter(User.email == "admin_portal@teste.com").first()
+        nomes_perfis = {p.nome for p in u.perfis}
+        assert nomes_perfis == set(ALL_PERFIS)
+
+    def test_sso_nao_admin_continua_usando_lista_de_sistemas(self, client, db):
+        """Não deve mudar o comportamento existente pra perfis não-admin."""
+        from jose import jwt
+        from backend.core.models import User
+
+        token = jwt.encode(
+            {
+                "email": "usuario_comum@teste.com",
+                "perfil": "financeiro",
+                "sistemas": [{"slug": "mercado"}, {"slug": "combustivel"}],
+            },
+            self.PORTAL_KEY, algorithm="HS256",
+        )
+        res = client.post("/auth/sso", json={"portal_token": token})
+        assert res.status_code == 200
+
+        db.expire_all()
+        u = db.query(User).filter(User.email == "usuario_comum@teste.com").first()
+        nomes_perfis = {p.nome for p in u.perfis}
+        assert nomes_perfis == {"mercado", "combustivel"}
 
 
 # ─── Security module edge cases ──────────────────────────────────────
