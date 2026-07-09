@@ -185,7 +185,7 @@ async def processar_mensagem(msg, config, user, db):
 
         faltantes = validar_registro(dados)
         if not faltantes:
-            salvar_conta(dados, user, db)
+            salvar_registro_financeiro(dados, user, db)
             return await humanizar_confirmacao(dados, dados.get("forma_pagamento"), config)
 
         _salvar_pendente(user.id, dados, faltantes, db)
@@ -223,7 +223,7 @@ async def _processar_com_pendente(pendente, texto, config, user, db):
     faltantes = validar_registro(dados_atuais)
     if not faltantes:
         _limpar_pendente(user.id, db)
-        salvar_conta(dados_atuais, user, db)
+        salvar_registro_financeiro(dados_atuais, user, db)
         return await humanizar_confirmacao(dados_atuais, dados_atuais.get("forma_pagamento"), config)
 
     _salvar_pendente(user.id, dados_atuais, faltantes, db)
@@ -329,6 +329,47 @@ def processar_nota_fiscal(dados, user, db):
         destinos.append("Contas")
 
     return formatar_nota(dados, destinos, forma_pgto)
+
+
+def _eh_compra_de_mercado(dados) -> bool:
+    return (
+        dados.get("tipo_estabelecimento") == "mercado"
+        and dados.get("natureza", "despesa") == "despesa"
+    )
+
+
+def salvar_registro_financeiro(dados, user, db):
+    """Roteia o registro de texto pro módulo certo: compra de mercado (com
+    espelho em Contas quando pago no débito, igual ao fluxo de nota fiscal
+    em processar_nota_fiscal) ou conta normal."""
+    if _eh_compra_de_mercado(dados):
+        salvar_compra_mercado_de_texto(dados, user, db)
+        if (dados.get("forma_pagamento") or "") == "debito":
+            salvar_conta(dados, user, db)
+        return
+
+    salvar_conta(dados, user, db)
+
+
+def salvar_compra_mercado_de_texto(dados, user, db):
+    from datetime import date
+    forma_pgto = dados.get("forma_pagamento") or "debito"
+    if forma_pgto == "null":
+        forma_pgto = "debito"
+    bandeira = dados.get("bandeira_vale") if forma_pgto == "vale_alimentacao" else None
+
+    compra = models.CompraSupermercado(
+        data=dados.get("data") or date.today().isoformat(),
+        loja=dados.get("estabelecimento"),
+        forma_pagamento=forma_pgto,
+        bandeira_vale=bandeira,
+        valor_total=dados["valor"],
+        user_id=user.id,
+    )
+    db.add(compra)
+    db.commit()
+    db.refresh(compra)
+    return compra
 
 
 def salvar_conta(dados, user, db):

@@ -368,7 +368,8 @@ async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | N
         f'"estabelecimento":"onde (ou null)","data":"YYYY-MM-DD (hoje: {hoje})",'
         '"status":"paga|pendente",'
         '"vencimento":"YYYY-MM-DD ou null se já pago",'
-        '"forma_pagamento":"debito|credito|pix|dinheiro|vale_alimentacao|null"}\n'
+        '"forma_pagamento":"debito|credito|pix|dinheiro|vale_alimentacao|null",'
+        '"tipo_estabelecimento":"mercado|outro"}\n'
         "Regras de natureza:\n"
         "- despesa: gastei, paguei, comprei, conta de, boleto, parcela, fatura, apostei e perdi, perdi na bet, assinei, emprestei\n"
         "- receita: recebi, ganhei, me pagaram, entrou, salário, freelance, vendi, reembolso, ganhei na aposta/bet, rendeu, resgatei\n"
@@ -376,6 +377,8 @@ async def extrair_dados_gasto(api_key: str, texto: str, config=None) -> dict | N
         "Se diz 'conta de', 'vence', 'parcela', 'boleto', 'vou receber' = status 'pendente' e preencha vencimento.\n"
         "Regras forma_pagamento: se o usuário mencionar explicitamente (pix, cartão, débito, crédito, dinheiro, vale), preencha. "
         "Se não mencionar, use null.\n"
+        "Regras tipo_estabelecimento: se for supermercado, hipermercado, atacadão, mercearia ou mercadinho = 'mercado'. "
+        "Qualquer outro lugar (restaurante, farmácia, posto, loja, serviço, etc.) = 'outro'.\n"
         f'Texto: "{texto}"\nResponda APENAS com o JSON.'
     )
 

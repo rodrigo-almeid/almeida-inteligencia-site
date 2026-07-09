@@ -3,7 +3,10 @@ import json
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from backend.core.models import AssistenteConfig
+from backend.core.models import AssistenteConfig, Conta, CompraSupermercado
+from backend.assistente.routers.webhook import (
+    salvar_registro_financeiro, salvar_compra_mercado_de_texto, _eh_compra_de_mercado,
+)
 
 
 CONFIG_BASE = {
@@ -424,3 +427,72 @@ class TestGarantirInstanceWebhook:
 
         config = db.query(AssistenteConfig).first()
         assert config.webhook_secret in webhook_payload["url"]
+
+
+class TestRegistroDeMercadoPorTexto:
+    """Gasto de mercado relatado por texto (ex: 'gastei 45 no mercado no pix')
+    deve cair no módulo Mercado, igual já acontece com foto de nota fiscal."""
+
+    DADOS_MERCADO = {
+        "descricao": "mercado", "valor": 45.0, "natureza": "despesa",
+        "categoria": "alimentacao", "estabelecimento": "Mercado Bom Preço",
+        "data": "2026-07-09", "status": "paga", "forma_pagamento": "pix",
+        "tipo_estabelecimento": "mercado",
+    }
+
+    def test_eh_compra_de_mercado_true(self):
+        assert _eh_compra_de_mercado(self.DADOS_MERCADO) is True
+
+    def test_eh_compra_de_mercado_false_quando_outro_estabelecimento(self):
+        assert _eh_compra_de_mercado({**self.DADOS_MERCADO, "tipo_estabelecimento": "outro"}) is False
+
+    def test_eh_compra_de_mercado_false_quando_receita(self):
+        assert _eh_compra_de_mercado({**self.DADOS_MERCADO, "natureza": "receita"}) is False
+
+    def test_mercado_no_pix_cria_so_compra_supermercado(self, db, user):
+        salvar_registro_financeiro(self.DADOS_MERCADO, user, db)
+
+        compras = db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).all()
+        assert len(compras) == 1
+        assert compras[0].valor_total == 45.0
+        assert compras[0].loja == "Mercado Bom Preço"
+        assert compras[0].forma_pagamento == "pix"
+
+        assert db.query(Conta).filter(Conta.user_id == user.id).count() == 0
+
+    def test_mercado_no_debito_cria_compra_e_conta(self, db, user):
+        """Espelha o fluxo de nota fiscal: débito também lança em Contas."""
+        dados = {**self.DADOS_MERCADO, "forma_pagamento": "debito"}
+        salvar_registro_financeiro(dados, user, db)
+
+        assert db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).count() == 1
+
+        contas = db.query(Conta).filter(Conta.user_id == user.id).all()
+        assert len(contas) == 1
+        assert contas[0].valor == 45.0
+
+    def test_nao_mercado_cria_so_conta(self, db, user):
+        dados = {**self.DADOS_MERCADO, "descricao": "almoço", "estabelecimento": "Restaurante X", "tipo_estabelecimento": "outro"}
+        salvar_registro_financeiro(dados, user, db)
+
+        assert db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).count() == 0
+        assert db.query(Conta).filter(Conta.user_id == user.id).count() == 1
+
+    def test_receita_ignora_flag_mercado(self, db, user):
+        dados = {**self.DADOS_MERCADO, "descricao": "reembolso do mercado", "natureza": "receita"}
+        salvar_registro_financeiro(dados, user, db)
+
+        assert db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).count() == 0
+        assert db.query(Conta).filter(Conta.user_id == user.id).count() == 1
+
+    def test_sem_tipo_estabelecimento_continua_indo_pra_conta(self, db, user):
+        """Compatibilidade: dados sem o campo novo (ex: pendente antigo) não quebram."""
+        dados = {
+            "descricao": "presente", "valor": 100.0, "natureza": "despesa",
+            "categoria": "outros", "data": "2026-07-09", "status": "paga",
+            "forma_pagamento": "credito",
+        }
+        salvar_registro_financeiro(dados, user, db)
+
+        assert db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).count() == 0
+        assert db.query(Conta).filter(Conta.user_id == user.id).count() == 1
