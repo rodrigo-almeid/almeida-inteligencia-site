@@ -159,7 +159,7 @@ Chatbot pessoal via WhatsApp que usa IA para interpretar mensagens, registrar ga
   - `image` → processa foto de nota fiscal via OCR
   - `chat` → conversa livre
 - **OCR de notas fiscais** — envia foto → Gemini extrai dados estruturados (estabelecimento, itens, valores, forma de pagamento)
-- **Registro automático** — cria lançamentos no módulo Financeiro e compras no módulo Mercado
+- **Registro automático** — cria lançamentos no módulo Financeiro; se for mercado (foto ou texto — ex. "gastei 45 no mercado no pix"), cria em Mercado em vez de uma conta genérica
 - **Personalidade configurável** — nome do assistente, tom de voz, personalidade, instruções extras
 - **Segurança** — webhook autenticado por `webhook_secret` próprio (query param), e só processa mensagens do número de WhatsApp autorizado
 - **Fallback** — se Gemini falhar, tenta Groq automaticamente
