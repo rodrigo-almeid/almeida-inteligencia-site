@@ -1,0 +1,31 @@
+/* Sidebar + breadcrumb compartilhados entre os módulos do central_backend.
+   Depende das variáveis --green/--black/--bg2/--bg3/--gray/--gray-l/--red/--border
+   já definidas no :root de cada página (design system comum). */
+
+.sidebar{width:220px;height:100vh;position:sticky;top:0;background:var(--bg3);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0;overflow-y:auto;}
+.sidebar .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.sidebar .logo .name{font-size:13px;font-weight:600;}
+.sidebar .logo .name span{color:var(--green);}
+.sidebar .tag{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;color:var(--gray-l);cursor:pointer;transition:all .2s;margin-bottom:4px;text-decoration:none;}
+.nav-item:hover,.nav-item.active{background:rgba(61,219,130,.08);color:var(--green);}
+.sidebar-spacer{flex:1;}
+.user-chip{background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gray-l);}
+.user-chip .email{font-size:11px;color:var(--gray);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.logout-btn{margin-top:8px;width:100%;background:none;border:0.5px solid rgba(226,75,74,.3);border-radius:10px;padding:9px;color:var(--red);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+.logout-btn:hover{background:rgba(226,75,74,.08);}
+
+.mobile-hamburger{display:none;position:fixed;top:14px;left:14px;z-index:1001;background:var(--bg2,#1A241C);border:0.5px solid var(--border,rgba(61,219,130,0.12));border-radius:10px;padding:10px;cursor:pointer;color:#fff;}
+.mobile-hamburger svg{display:block;}
+.sidebar-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);}
+.sidebar-overlay.active{display:block;}
+.sidebar.mobile-open{display:flex!important;position:fixed;z-index:1000;height:100vh;width:260px;left:0;top:0;}
+
+@media(max-width:640px){
+  .sidebar{display:none;}
+  .mobile-hamburger{display:block;}
+}
+
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray);margin-bottom:16px;}
+.breadcrumb-sep{opacity:.5;}
+.breadcrumb-atual{color:var(--gray-l);}

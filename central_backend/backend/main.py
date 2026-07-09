@@ -100,6 +100,7 @@ app.include_router(agendamento_webhook.router)
 app.include_router(agendamento_google.router)
 
 # Frontends estáticos
+app.mount("/shared", StaticFiles(directory="frontend/shared"), name="shared")
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")
 app.mount("/assistente-painel", StaticFiles(directory="frontend/assistente", html=True), name="assistente-painel")
