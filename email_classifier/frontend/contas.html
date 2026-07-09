@@ -6,6 +6,7 @@
   <title>Configuração de E-mails — Almeida Inteligência</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/sidebar.css">
   <style>
     :root {
       --green-primary: #3DDB82;
@@ -20,25 +21,6 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--black-tech); color: #fff; display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
-
-    /* ── SIDEBAR ── */
-    aside { width: 240px; background: var(--black-green); border-right: var(--border); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
-    .sidebar-brand { padding: 20px; border-bottom: var(--border); display: flex; align-items: center; gap: 12px; }
-    .brand-text .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
-    .brand-text .name span { color: var(--green-primary); }
-    .brand-text .tag { font-size: 9px; color: var(--gray-moss); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 3px; }
-    .sidebar-module { padding: 12px 20px; border-bottom: var(--border); font-size: 11px; color: var(--green-primary); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
-    nav { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
-    nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius); font-size: 13px; color: var(--gray-light); text-decoration: none; transition: background 0.15s, color 0.15s; }
-    nav a:hover { background: rgba(61,219,130,0.08); color: #fff; }
-    nav a.active { background: rgba(61,219,130,0.12); color: var(--green-primary); }
-    .nav-icon { width: 16px; text-align: center; flex-shrink: 0; }
-    .sidebar-spacer { flex: 1; }
-    .user-chip { margin: 0 12px 6px; background: rgba(255,255,255,0.04); border: var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 11px; }
-    .user-chip-label { color: var(--gray-moss); margin-bottom: 3px; }
-    .user-chip-email { color: var(--gray-light); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .btn-logout { margin: 0 12px 12px; width: calc(100% - 24px); background: none; border: 0.5px solid rgba(226,75,74,0.3); border-radius: var(--radius); padding: 9px; color: #E24B4A; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.2s; }
-    .btn-logout:hover { background: rgba(226,75,74,0.08); }
 
     /* ── MAIN ── */
     main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -99,75 +81,45 @@
     #toast-msg { background: var(--black-green); border: var(--border); border-radius: var(--radius); padding: 12px 18px; font-size: 13px; color: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; }
     .hidden { display: none !important; }
     @media (max-width: 768px) {
-      aside { display: none; }
       main { width: 100%; }
       .content { padding: 16px; }
       header { padding: 12px 16px; flex-wrap: wrap; }
       .conta-card { flex-direction: column; align-items: flex-start; }
       .conta-actions { width: 100%; }
       .form-grid-2 { grid-template-columns: 1fr; }
-      .mobile-hamburger { display: block; }
     }
-    .mobile-hamburger{display:none;position:fixed;top:14px;left:14px;z-index:1001;background:var(--black-green);border:0.5px solid #2A3A2C;border-radius:10px;padding:10px;cursor:pointer;color:#fff;}
-    .mobile-hamburger svg{display:block;}
-    .sidebar-overlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);}
-    .sidebar-overlay.active{display:block;}
-    aside.mobile-open{display:flex!important;position:fixed;z-index:1000;height:100vh;width:260px;left:0;top:0;}
   </style>
 </head>
 <body>
 
-<button class="mobile-hamburger" onclick="document.querySelector('aside').classList.toggle('mobile-open');document.querySelector('.sidebar-overlay').classList.toggle('active');" aria-label="Menu">
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-<div class="sidebar-overlay" onclick="document.querySelector('aside').classList.remove('mobile-open');this.classList.remove('active');"></div>
+<script>
+  window.SIDEBAR_CONFIG = {
+    tag: 'Processos · IA · Resultados',
+    moduleLabel: 'Classificador de E-mails',
+    ativo: 'config',
+    items: [
+      { id: 'caixa', type: 'link', href: '/email/dashboard.html', icon: 'caixa', label: 'Caixa de E-mails' },
+      { id: 'config', type: 'link', href: '/email/contas.html', icon: 'config', label: 'Configuração de E-mails' },
+      { id: 'nav-treinar', type: 'link', href: '/email/dashboard.html#treinar', icon: 'treinar', label: 'Treinar IA' },
+      { id: 'nav-exportar', type: 'link', href: '/email/dashboard.html#exportar', icon: 'exportar', label: 'Exportar Dataset' },
+    ],
+    breadcrumb: [
+      { label: 'Portal', href: 'https://almeidainteligencia.com.br/dashboard/' },
+      { label: 'Classificador de E-mails', href: '/email/dashboard.html' },
+      { label: 'Configuração de E-mails' },
+    ],
+  };
+</script>
+<script src="/shared/sidebar.js"></script>
 
-  <aside>
-    <div class="sidebar-brand">
-      <svg viewBox="0 0 56 56" width="32" height="32">
-        <polygon points="28,4 50,16 50,40 28,52 6,40 6,16" fill="none" stroke="#3DDB82" stroke-width="1.5"/>
-        <circle cx="28" cy="20" r="3" fill="#3DDB82"/>
-        <circle cx="18" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
-        <circle cx="38" cy="30" r="2.5" fill="#3DDB82" opacity="0.7"/>
-        <line x1="28" y1="23" x2="18" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
-        <line x1="28" y1="23" x2="38" y2="28" stroke="#3DDB82" stroke-width="0.8" opacity="0.6"/>
-      </svg>
-      <div class="brand-text">
-        <div class="name">Almeida <span>Inteligência</span></div>
-        <div class="tag">Processos · IA · Resultados</div>
-      </div>
-    </div>
-    <div class="sidebar-module">Classificador de E-mails</div>
-    <nav>
-      <a href="/email/dashboard.html">
-        <span class="nav-icon">✉</span> Caixa de E-mails
-      </a>
-      <a href="/email/contas.html" class="active">
-        <span class="nav-icon">@</span> Configuração de E-mails
-      </a>
-      <a href="/email/dashboard.html#treinar" id="nav-treinar">
-        <span class="nav-icon">◈</span> Treinar IA
-      </a>
-      <a href="/email/dashboard.html#exportar" id="nav-exportar">
-        <span class="nav-icon">↓</span> Exportar Dataset
-      </a>
-    </nav>
-    <div class="sidebar-spacer"></div>
-    <a href="https://almeidainteligencia.com.br/dashboard/" class="nav-item" id="portal-link" style="display:none">
-      <span class="nav-icon">🏠</span> Portal
-    </a>
-    <div class="user-chip">
-      <div class="user-chip-label">Conta</div>
-      <div class="user-chip-email" id="sidebar-usuario-email">—</div>
-    </div>
-    <button class="btn-logout" id="btn-logout">Sair</button>
-  </aside>
+<div id="sidebar-root"></div>
 
   <main>
     <header>
       <h1>Configuração de E-mails</h1>
       <button class="btn btn-primary" id="btn-nova-conta">+ Nova Conta</button>
     </header>
+    <div id="breadcrumb-root"></div>
     <div class="content">
       <div id="lista-contas" class="contas-grid">
         <div class="empty-state">Carregando…</div>
@@ -380,7 +332,7 @@
       } catch (_) {}
     }
 
-    (async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       const t = token();
       if (!t) { location.href = '/'; return; }
       try {
@@ -421,7 +373,7 @@
       });
 
       document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharForm(); });
-    })();
+    });
   </script>
 </body>
 </html>

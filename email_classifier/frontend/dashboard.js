@@ -434,7 +434,10 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ───────────────────────────────────────────────────────────────────
-(async () => {
+// Espera o DOMContentLoaded pra garantir que o sidebar-root já foi renderizado
+// pelo /shared/sidebar.js (o script dele carrega antes deste, mas ambos só
+// desenham/consultam elementos depois desse evento).
+document.addEventListener('DOMContentLoaded', async () => {
   // Nav sidebar
   document.getElementById('nav-treinar').addEventListener('click', abrirModalTreinar);
   document.getElementById('nav-exportar').addEventListener('click', exportarDataset);
@@ -488,4 +491,4 @@ document.addEventListener('keydown', e => {
   verificarPendentes();
   carregarSubcategorias();
   carregarEmails();
-})();
+});
