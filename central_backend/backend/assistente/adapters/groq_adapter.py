@@ -1,6 +1,6 @@
 import httpx
 import json
-from .base import LlmResponse, ToolCall
+from .base import LlmResponse, ToolCall, extrair_tool_calls_de_texto
 
 
 def _build_openai_tools(tools_schema: list) -> list:
@@ -63,8 +63,14 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, tools_sch
                         args = {}
                 tool_calls.append(ToolCall(name=fn.get("name", ""), arguments=args))
 
+        content = msg.get("content", "") or ""
+        content, tool_calls_no_texto = extrair_tool_calls_de_texto(content)
+        if tool_calls_no_texto:
+            print(f"[groq_adapter] modelo emitiu tool call como texto em vez de tool_calls estruturado: {tool_calls_no_texto}")
+            tool_calls.extend(tool_calls_no_texto)
+
         return LlmResponse(
-            content=msg.get("content", "") or "",
+            content=content,
             tool_calls=tool_calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,

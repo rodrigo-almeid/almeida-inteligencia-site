@@ -1,3 +1,5 @@
+import json
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -16,6 +18,37 @@ class LlmResponse:
 class ToolCall:
     name: str
     arguments: dict = field(default_factory=dict)
+
+
+# Alguns modelos Llama (via Groq/Ollama) às vezes "escrevem" a chamada de
+# função como texto pseudo-XML em vez de usar o campo estruturado tool_calls
+# da API — visto em produção com llama-3.1-8b-instant (Groq). Sem tratar isso,
+# o texto cru (com uma "resposta" inventada pelo modelo, sem a função ter sido
+# executada de verdade) ia direto pro usuário como se fosse a resposta real.
+_FUNCTION_CALL_PATTERN = re.compile(r"<function=([\w-]+)>(\{.*?\})</function>", re.DOTALL)
+
+
+def extrair_tool_calls_de_texto(content: str) -> tuple:
+    """Retorna (texto_sem_a_chamada, [ToolCall, ...]) — lista vazia se o
+    conteúdo não tiver nenhuma chamada de função em formato de texto.
+
+    Quando encontra uma chamada, descarta TODO o texto ao redor (não só a
+    tag) — esse texto foi escrito pelo modelo antes de saber o resultado
+    real da função, então qualquer alegação nele (ex: "você já tem
+    compromisso nesse horário") é invenção, não fato."""
+    if not content:
+        return content, []
+    matches = _FUNCTION_CALL_PATTERN.findall(content)
+    if not matches:
+        return content, []
+    tool_calls = []
+    for nome, args_json in matches:
+        try:
+            args = json.loads(args_json)
+        except json.JSONDecodeError:
+            args = {}
+        tool_calls.append(ToolCall(name=nome, arguments=args))
+    return "", tool_calls
 
 
 AGENDAMENTO_TOOLS_SCHEMA = [

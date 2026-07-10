@@ -1,6 +1,6 @@
 import httpx
 import json
-from .base import LlmResponse, ToolCall
+from .base import LlmResponse, ToolCall, extrair_tool_calls_de_texto
 
 
 def _build_ollama_tools(tools_schema: list) -> list:
@@ -56,8 +56,14 @@ async def call(messages: list[dict], system_prompt: str, url: str, model: str, t
         tokens_in = data.get("prompt_eval_count", 0)
         tokens_out = data.get("eval_count", 0)
 
+        content = msg.get("content", "") or ""
+        content, tool_calls_no_texto = extrair_tool_calls_de_texto(content)
+        if tool_calls_no_texto:
+            print(f"[ollama_adapter] modelo emitiu tool call como texto em vez de tool_calls estruturado: {tool_calls_no_texto}")
+            tool_calls.extend(tool_calls_no_texto)
+
         return LlmResponse(
-            content=msg.get("content", "") or "",
+            content=content,
             tool_calls=tool_calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
