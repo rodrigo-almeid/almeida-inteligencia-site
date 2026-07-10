@@ -38,6 +38,35 @@ class TestProcessarMensagemAgendamento:
         assert resposta == "Aqui estão os horários disponíveis!"
 
     @pytest.mark.asyncio
+    async def test_llm_chama_consultar_agenda_nao_alucina(self, db, user, assistente_config, agendamento_config, agendamento_client, agendamento_servico):
+        """Mesma regressão de test_assistente.py::TestConsultarAgendaSemAlucinacao,
+        agora pelo pipeline de tool-calling: a tool sempre reflete Appointment real."""
+        from backend.core.models import Appointment
+        from datetime import datetime, timedelta
+
+        agendamento_config.ativo = True
+        assistente_config.numero_autorizado = agendamento_client.telefone
+        db.commit()
+        amanha = datetime.utcnow() + timedelta(days=1)
+        db.add(Appointment(
+            data_hora=amanha, status="confirmado",
+            config_id=agendamento_config.id, client_id=agendamento_client.id, service_id=agendamento_servico.id,
+        ))
+        db.commit()
+
+        primeira = _resp(tool_calls=[ToolCall(name="consultar_agenda", arguments={})])
+        segunda = _resp(content="Você tem Corte Masculino confirmado amanhã!")
+
+        with patch("backend.assistente.llm_gateway.gemini_adapter.call", new=AsyncMock(side_effect=[primeira, segunda])) as mock_call:
+            resposta = await llm_gateway.processar_mensagem("tenho algo marcado?", assistente_config, user, db)
+
+        assert resposta == "Você tem Corte Masculino confirmado amanhã!"
+        # confirma que o resultado real da tool (não um texto genérico) foi passado pro LLM na 2ª chamada
+        segunda_chamada_messages = mock_call.call_args_list[1].args[0]
+        resultado_tool = segunda_chamada_messages[-1]["content"]
+        assert "Corte Masculino" in resultado_tool
+
+    @pytest.mark.asyncio
     async def test_tools_de_agendamento_somem_quando_modulo_inativo(self, db, user, assistente_config, agendamento_config):
         agendamento_config.ativo = False
         db.commit()

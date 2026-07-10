@@ -6,10 +6,11 @@ from backend.core import models
 from backend.agendamento.slots import calcular_slots_livres
 from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google
 from backend.assistente.adapters.base import ToolCall
+from backend.assistente.agenda_actions import montar_resumo_agenda
 
 NOMES_TOOLS = {
     "buscar_horarios_disponiveis", "pre_reservar_horario", "confirmar_agendamento",
-    "cancelar_agendamento", "reagendar_agendamento",
+    "cancelar_agendamento", "reagendar_agendamento", "consultar_agenda",
 }
 
 
@@ -27,6 +28,8 @@ async def executar(tool_call: ToolCall, config: models.AgendamentoConfig, client
         return await _cancelar(config, client, db)
     if name == "reagendar_agendamento":
         return await _reagendar(args, config, client, db)
+    if name == "consultar_agenda":
+        return montar_resumo_agenda(config, client, db)
     return f"Função '{name}' não reconhecida."
 
 

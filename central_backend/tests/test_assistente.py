@@ -497,3 +497,73 @@ class TestRegistroDeMercadoPorTexto:
 
         assert db.query(CompraSupermercado).filter(CompraSupermercado.user_id == user.id).count() == 0
         assert db.query(Conta).filter(Conta.user_id == user.id).count() == 1
+
+
+class TestConsultarAgendaSemAlucinacao:
+    """Regressão de bug real de produção (2026-07-10): perguntar sobre a
+    agenda no fluxo legado (usar_tool_calling=False) caía em chat() livre,
+    que inventava compromissos que não existiam. consultar_agenda() precisa
+    sempre responder só com dados reais de Appointment."""
+
+    @pytest.mark.asyncio
+    async def test_agenda_sem_compromissos_nao_inventa_nada(self, db, user, assistente_config, agendamento_config, agendamento_client):
+        from backend.assistente.routers.webhook import processar_mensagem
+
+        agendamento_config.ativo = True
+        assistente_config.numero_autorizado = agendamento_client.telefone
+        assistente_config.usar_tool_calling = False
+        db.commit()
+
+        msg = {"type": "text", "text": {"body": "tenho algo agendado pra hoje?"}, "from": agendamento_client.telefone}
+
+        with patch("backend.assistente.routers.webhook.detectar_intencao", new=AsyncMock(return_value="agenda")), \
+             patch("backend.assistente.routers.webhook._gerar", new=AsyncMock(side_effect=Exception("IA indisponível no teste"))):
+            resposta = await processar_mensagem(msg, assistente_config, user, db)
+
+        assert "Nenhum compromisso" in resposta
+        assert "14h" not in resposta and "Reunião" not in resposta
+
+    @pytest.mark.asyncio
+    async def test_agenda_com_compromisso_real_usa_dado_do_banco(
+        self, db, user, assistente_config, agendamento_config, agendamento_client, agendamento_servico,
+    ):
+        from backend.assistente.routers.webhook import processar_mensagem
+        from backend.core.models import Appointment
+        from datetime import datetime, timedelta
+
+        agendamento_config.ativo = True
+        assistente_config.numero_autorizado = agendamento_client.telefone
+        assistente_config.usar_tool_calling = False
+        db.commit()
+
+        amanha = datetime.utcnow() + timedelta(days=1)
+        appt = Appointment(
+            data_hora=amanha, status="confirmado",
+            config_id=agendamento_config.id, client_id=agendamento_client.id, service_id=agendamento_servico.id,
+        )
+        db.add(appt)
+        db.commit()
+
+        msg = {"type": "text", "text": {"body": "o que eu tenho marcado?"}, "from": agendamento_client.telefone}
+
+        with patch("backend.assistente.routers.webhook.detectar_intencao", new=AsyncMock(return_value="agenda")), \
+             patch("backend.assistente.routers.webhook._gerar", new=AsyncMock(side_effect=Exception("IA indisponível no teste"))):
+            resposta = await processar_mensagem(msg, assistente_config, user, db)
+
+        assert "Corte Masculino" in resposta
+
+    @pytest.mark.asyncio
+    async def test_agenda_cria_config_automaticamente_se_nao_existir(self, db, user, assistente_config):
+        """Usuário nunca configurou agendamento — não pode quebrar, só dizer que está livre."""
+        from backend.assistente.routers.webhook import processar_mensagem
+
+        assistente_config.usar_tool_calling = False
+        db.commit()
+
+        msg = {"type": "text", "text": {"body": "tenho reunião hoje?"}, "from": assistente_config.numero_autorizado}
+
+        with patch("backend.assistente.routers.webhook.detectar_intencao", new=AsyncMock(return_value="agenda")), \
+             patch("backend.assistente.routers.webhook._gerar", new=AsyncMock(side_effect=Exception("IA indisponível no teste"))):
+            resposta = await processar_mensagem(msg, assistente_config, user, db)
+
+        assert "não está ativo" in resposta or "Nenhum compromisso" in resposta

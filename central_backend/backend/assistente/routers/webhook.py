@@ -19,6 +19,7 @@ from backend.assistente.finance_actions import (
     salvar_conta, salvar_conta_from_nota, salvar_compra_mercado, formatar_nota, processar_nota_fiscal,
     montar_resumo_financeiro,
 )
+from backend.assistente.agenda_actions import montar_resumo_agenda
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
@@ -148,6 +149,9 @@ async def processar_mensagem(msg, config, user, db):
     if intencao == "financeiro_consulta":
         return await consultar_financeiro(texto, user, db, config)
 
+    if intencao == "agenda":
+        return await consultar_agenda(texto, user, config, db)
+
     if intencao == "financeiro_registro":
         dados = await extrair_dados_gasto(config.gemini_api_key, texto, config)
         if not dados:
@@ -222,3 +226,30 @@ async def consultar_financeiro(texto, user, db, config=None):
         return await _gerar(config, messages, contents)
     except Exception:
         return f"📊 Resumo do mês:\n{dados_financeiros}"
+
+
+async def consultar_agenda(texto, user, config, db):
+    """Responde perguntas sobre a agenda usando SOMENTE dados reais de
+    Appointment — nunca inventa compromisso (bug real corrigido em
+    2026-07-10: 'agenda' caía no chat() livre, que alucinava eventos)."""
+    agendamento_config = llm_gateway._get_or_create_agendamento_config(user, db)
+    cliente = llm_gateway._get_or_create_client(agendamento_config, config.numero_autorizado, db)
+    resumo = montar_resumo_agenda(agendamento_config, cliente, db)
+
+    nome = config.nome_assistente if config and config.nome_assistente else "Goku"
+    prompt = (
+        f"Você é o {nome}, assistente pessoal no WhatsApp. "
+        f"O usuário perguntou: \"{texto}\"\n\n"
+        f"Dados reais da agenda:\n{resumo}\n\n"
+        "Responda usando SOMENTE os dados acima. NUNCA invente, sugira ou complete "
+        "um compromisso que não esteja listado — se a lista estiver vazia, diga claramente "
+        "que não há nada agendado. Seja breve, no máximo 3-4 linhas, tom de amigo."
+    )
+
+    messages = [{"role": "user", "content": prompt}]
+    contents = [{"role": "user", "parts": [{"text": prompt}]}]
+
+    try:
+        return await _gerar(config, messages, contents)
+    except Exception:
+        return resumo

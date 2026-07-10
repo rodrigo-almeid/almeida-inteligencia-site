@@ -73,6 +73,14 @@ AGENDAMENTO_TOOLS_SCHEMA = [
             "required": ["nova_data_hora"],
         },
     },
+    {
+        "name": "consultar_agenda",
+        "description": "Consulta os compromissos confirmados ou pré-reservados dos próximos dias. Use sempre que o cliente perguntar o que tem agendado, se tem algo marcado, ou pedir a agenda — nunca responda essa pergunta sem chamar essa função.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
 ]
 
 
