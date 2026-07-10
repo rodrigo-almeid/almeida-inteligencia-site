@@ -30,6 +30,7 @@
     .msg.bot{align-self:flex-start;background:var(--bg2);border:0.5px solid var(--border);color:#fff;border-bottom-left-radius:4px;}
     .msg.bot .msg-meta{display:flex;gap:8px;margin-top:8px;font-size:10px;color:var(--gray);}
     .msg.bot .msg-meta .intent-badge{background:rgba(61,219,130,.1);color:var(--green);padding:2px 8px;border-radius:4px;}
+    .msg.user .msg-meta{display:flex;justify-content:flex-end;margin-top:6px;font-size:10px;color:rgba(255,255,255,.5);}
     .msg.system{align-self:center;background:none;color:var(--gray);font-size:12px;text-align:center;padding:8px;}
     .msg.error{align-self:flex-start;background:rgba(226,75,74,.08);border:0.5px solid rgba(226,75,74,.3);color:var(--red);}
 
@@ -139,6 +140,10 @@ function scrollBottom() {
   el.scrollTop = el.scrollHeight;
 }
 
+function formatHora(date) {
+  return date.toLocaleTimeString('pt-BR', { hour12: false });
+}
+
 function addMsg(tipo, texto, meta) {
   const wel = document.getElementById('welcome');
   if (wel) wel.style.display = 'none';
@@ -146,7 +151,7 @@ function addMsg(tipo, texto, meta) {
   div.className = `msg ${tipo}`;
   div.textContent = texto;
 
-  if (meta && tipo === 'bot') {
+  if (meta && (tipo === 'bot' || tipo === 'user')) {
     const metaDiv = document.createElement('div');
     metaDiv.className = 'msg-meta';
     if (meta.intencao) {
@@ -154,6 +159,13 @@ function addMsg(tipo, texto, meta) {
       badge.className = 'intent-badge';
       badge.textContent = meta.intencao;
       metaDiv.appendChild(badge);
+    }
+    if (meta.hora) {
+      const horaSpan = document.createElement('span');
+      horaSpan.textContent = meta.duracaoMs != null
+        ? `${formatHora(meta.hora)} (${(meta.duracaoMs / 1000).toFixed(1)}s)`
+        : formatHora(meta.hora);
+      metaDiv.appendChild(horaSpan);
     }
     div.appendChild(metaDiv);
   }
@@ -189,7 +201,8 @@ async function enviar() {
   if (!texto) return;
 
   input.value = '';
-  addMsg('user', texto);
+  const inicio = Date.now();
+  addMsg('user', texto, { hora: new Date() });
 
   enviando = true;
   document.getElementById('btn-send').disabled = true;
@@ -198,6 +211,7 @@ async function enviar() {
   try {
     const res = await apiCall('POST', '/assistente/simulador/chat', { mensagem: texto });
     hideTyping();
+    const duracaoMs = Date.now() - inicio;
 
     if (!res || !res.ok) {
       const err = res ? await res.json().catch(() => ({})) : {};
@@ -206,7 +220,7 @@ async function enviar() {
     }
 
     const data = await res.json();
-    addMsg('bot', data.resposta || '(sem resposta)', { intencao: data.intencao });
+    addMsg('bot', data.resposta || '(sem resposta)', { intencao: data.intencao, hora: new Date(), duracaoMs });
   } catch (e) {
     hideTyping();
     addMsg('error', `Erro de conexao: ${e.message}`);
