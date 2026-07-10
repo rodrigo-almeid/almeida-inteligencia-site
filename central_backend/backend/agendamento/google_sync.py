@@ -38,19 +38,20 @@ async def criar_evento_google(config: models.AgendamentoConfig, appointment: mod
         access_token = await get_access_token(config)
         calendar_id = config.google_calendar_id or "primary"
 
-        client_obj = db.query(models.Client).filter(models.Client.id == appointment.client_id).first()
         service_obj = db.query(models.Service).filter(models.Service.id == appointment.service_id).first()
 
-        nome_cliente = client_obj.nome or client_obj.telefone if client_obj else "Cliente"
-        nome_servico = service_obj.nome if service_obj else "Agendamento"
+        nome_servico = service_obj.nome if service_obj else "Compromisso"
         duracao = service_obj.duracao_minutos if service_obj else 30
 
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
 
+        descricao_partes = [appointment.descricao] if appointment.descricao else []
+        descricao_partes.append("Agendado via assistente WhatsApp")
+
         event = {
-            "summary": f"{nome_servico} — {nome_cliente}",
-            "description": f"Agendamento via WhatsApp\nCliente: {nome_cliente}\nTelefone: {client_obj.telefone if client_obj else '—'}",
+            "summary": nome_servico,
+            "description": "\n\n".join(descricao_partes),
             "start": {"dateTime": start.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
             "end": {"dateTime": end.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
             "extendedProperties": {
@@ -117,9 +118,13 @@ async def atualizar_evento_google(config: models.AgendamentoConfig, appointment:
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
 
+        descricao_partes = [appointment.descricao] if appointment.descricao else []
+        descricao_partes.append("Agendado via assistente WhatsApp")
+
         patch = {
             "start": {"dateTime": start.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
             "end": {"dateTime": end.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
+            "description": "\n\n".join(descricao_partes),
         }
 
         async with httpx.AsyncClient(timeout=10) as client:

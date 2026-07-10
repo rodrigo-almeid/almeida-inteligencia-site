@@ -321,6 +321,7 @@ class Appointment(Base):
     expires_at = Column(DateTime, nullable=True)
     lembrete_enviado = Column(Boolean, default=False)
     google_event_id = Column(String, nullable=True)
+    descricao = Column(Text, nullable=True)
     criado_em = Column(DateTime, default=func.now())
 
     config_id = Column(Integer, ForeignKey("agendamento_config.id", ondelete="CASCADE"), nullable=False)

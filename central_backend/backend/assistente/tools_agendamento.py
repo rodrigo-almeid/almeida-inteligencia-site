@@ -1,16 +1,19 @@
 """Execução das tools de agendamento chamadas pelo llm_gateway — lógica movida
-de backend/agendamento/llm_gateway.py sem alterar o comportamento interno."""
+de backend/agendamento/llm_gateway.py sem alterar o comportamento interno,
+mais as tools de agenda pessoal (marcar direto, sem passo de confirmação
+separado, e editar o assunto de um compromisso já marcado)."""
 from datetime import datetime, timedelta
 
 from backend.core import models
 from backend.agendamento.slots import calcular_slots_livres
-from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google
+from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google, atualizar_evento_google
 from backend.assistente.adapters.base import ToolCall
 from backend.assistente.agenda_actions import montar_resumo_agenda
 
 NOMES_TOOLS = {
     "buscar_horarios_disponiveis", "pre_reservar_horario", "confirmar_agendamento",
     "cancelar_agendamento", "reagendar_agendamento", "consultar_agenda",
+    "marcar_compromisso", "atualizar_compromisso",
 }
 
 
@@ -20,6 +23,10 @@ async def executar(tool_call: ToolCall, config: models.AgendamentoConfig, client
 
     if name == "buscar_horarios_disponiveis":
         return _buscar_horarios(args, config, db)
+    if name == "marcar_compromisso":
+        return await _marcar_direto(args, config, client, db)
+    if name == "atualizar_compromisso":
+        return await _atualizar_assunto(args, config, client, db)
     if name == "pre_reservar_horario":
         return _pre_reservar(args, config, client, db)
     if name == "confirmar_agendamento":
@@ -46,24 +53,106 @@ def _buscar_horarios(args, config, db) -> str:
         return f"Erro ao buscar horários: {str(e)}"
 
 
+def _achar_conflito(config, data_hora, db):
+    """Compromisso confirmado/pré-reservado (não expirado) já ocupando esse horário exato."""
+    existente = db.query(models.Appointment).filter(
+        models.Appointment.config_id == config.id,
+        models.Appointment.data_hora == data_hora,
+        models.Appointment.status.in_(["confirmado", "pre_reservado"]),
+    ).first()
+
+    if existente and existente.status == "pre_reservado" and existente.expires_at and existente.expires_at < datetime.utcnow():
+        existente.status = "expirado"
+        db.commit()
+        return None
+
+    return existente
+
+
+async def _marcar_direto(args, config, client, db) -> str:
+    """Marca o compromisso já confirmado, sem passo de confirmação separado —
+    reporta conflito de horário em vez de criar em cima de outro compromisso."""
+    service_id = args.get("service_id", 0)
+    data_hora_str = args.get("data_hora", "")
+    descricao = args.get("descricao") or None
+
+    try:
+        data_hora = datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
+    except Exception:
+        return "Não consegui entender a data/hora pedida."
+
+    conflito = _achar_conflito(config, data_hora, db)
+    if conflito:
+        servico_conflito = db.query(models.Service).filter(models.Service.id == conflito.service_id).first()
+        nome_conflito = servico_conflito.nome if servico_conflito else "um compromisso"
+        return (
+            f"Conflito de agenda: já existe {nome_conflito} marcado pra "
+            f"{data_hora.strftime('%d/%m/%Y às %H:%M')}. Sugira outro horário."
+        )
+
+    servico = db.query(models.Service).filter(models.Service.id == service_id).first()
+    nome_servico = servico.nome if servico else "Compromisso"
+
+    appt = models.Appointment(
+        config_id=config.id, client_id=client.id, service_id=service_id,
+        data_hora=data_hora, status="confirmado", descricao=descricao,
+    )
+    db.add(appt)
+    db.commit()
+    db.refresh(appt)
+
+    await criar_evento_google(config, appt, db)
+
+    texto = f"{nome_servico} marcado pra {data_hora.strftime('%d/%m/%Y às %H:%M')}."
+    if descricao:
+        texto += f" Assunto: {descricao}."
+    return texto
+
+
+async def _atualizar_assunto(args, config, client, db) -> str:
+    """Atualiza a descrição/assunto de um compromisso já marcado, localizado
+    por data/hora (ou o próximo compromisso ativo, se não especificado)."""
+    descricao = args.get("descricao", "")
+    data_hora_str = args.get("data_hora")
+
+    query = db.query(models.Appointment).filter(
+        models.Appointment.config_id == config.id,
+        models.Appointment.client_id == client.id,
+        models.Appointment.status.in_(["confirmado", "pre_reservado"]),
+    )
+
+    appt = None
+    if data_hora_str:
+        try:
+            data_hora = datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
+            appt = query.filter(models.Appointment.data_hora == data_hora).first()
+        except Exception:
+            appt = None
+    if not appt:
+        appt = query.filter(models.Appointment.data_hora >= datetime.utcnow()).order_by(models.Appointment.data_hora).first()
+
+    if not appt:
+        return "Não encontrei nenhum compromisso pra atualizar o assunto."
+
+    appt.descricao = descricao
+    db.commit()
+
+    await atualizar_evento_google(config, appt, db)
+
+    servico = db.query(models.Service).filter(models.Service.id == appt.service_id).first()
+    nome_servico = servico.nome if servico else "Compromisso"
+    return f"Assunto de {nome_servico} ({appt.data_hora.strftime('%d/%m %H:%M')}) atualizado pra: {descricao}"
+
+
 def _pre_reservar(args, config, client, db) -> str:
     service_id = args.get("service_id", 0)
     data_hora_str = args.get("data_hora", "")
     try:
         data_hora = datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
-        existente = db.query(models.Appointment).filter(
-            models.Appointment.config_id == config.id,
-            models.Appointment.data_hora == data_hora,
-            models.Appointment.status.in_(["confirmado", "pre_reservado"]),
-        ).first()
-
-        if existente and existente.status == "pre_reservado" and existente.expires_at and existente.expires_at < datetime.utcnow():
-            existente.status = "expirado"
-            db.commit()
-            existente = None
+        existente = _achar_conflito(config, data_hora, db)
 
         if existente:
-            return "Este horário já está ocupado. Sugira outro horário ao cliente."
+            return "Este horário já está ocupado. Sugira outro horário."
 
         appt = models.Appointment(
             config_id=config.id, client_id=client.id, service_id=service_id,
@@ -77,9 +166,8 @@ def _pre_reservar(args, config, client, db) -> str:
         servico = db.query(models.Service).filter(models.Service.id == service_id).first()
         nome_servico = servico.nome if servico else "Serviço"
         return (
-            f"Pré-reserva criada (ID: {appt.id}). "
-            f"{nome_servico} em {data_hora.strftime('%d/%m/%Y às %H:%M')}. "
-            f"Peça ao cliente para confirmar. A reserva expira em 5 minutos."
+            f"Pré-reserva criada. {nome_servico} em {data_hora.strftime('%d/%m/%Y às %H:%M')}. "
+            f"Peça confirmação. A reserva expira em 5 minutos."
         )
     except Exception as e:
         return f"Erro na pré-reserva: {str(e)}"
@@ -99,13 +187,13 @@ async def _confirmar(args, config, client, db) -> str:
     if appt.expires_at and appt.expires_at < datetime.utcnow():
         appt.status = "expirado"
         db.commit()
-        return "A pré-reserva expirou. O cliente precisa escolher um novo horário."
+        return "A pré-reserva expirou. Escolha um novo horário."
 
     appt.status = "confirmado"
     appt.expires_at = None
     db.commit()
     await criar_evento_google(config, appt, db)
-    return f"Agendamento #{appt.id} confirmado com sucesso para {appt.data_hora.strftime('%d/%m/%Y às %H:%M')}!"
+    return f"Compromisso confirmado com sucesso para {appt.data_hora.strftime('%d/%m/%Y às %H:%M')}!"
 
 
 async def _cancelar(config, client, db) -> str:
@@ -116,7 +204,7 @@ async def _cancelar(config, client, db) -> str:
         models.Appointment.data_hora >= datetime.utcnow(),
     ).order_by(models.Appointment.data_hora).first()
     if not appt:
-        return "Nenhum agendamento ativo encontrado para este cliente."
+        return "Nenhum agendamento ativo encontrado."
 
     await cancelar_evento_google(config, appt, db)
     appt.status = "cancelado"
@@ -137,19 +225,30 @@ async def _reagendar(args, config, client, db) -> str:
         if not appt:
             return "Nenhum agendamento ativo encontrado para reagendar."
 
+        conflito = _achar_conflito(config, nova_dt, db)
+        if conflito:
+            return f"Conflito de agenda: já existe algo marcado pra {nova_dt.strftime('%d/%m/%Y às %H:%M')}. Sugira outro horário."
+
+        descricao_antiga = appt.descricao
+        status_antigo = appt.status
         await cancelar_evento_google(config, appt, db)
         appt.status = "cancelado"
+
         novo = models.Appointment(
             config_id=config.id, client_id=client.id, service_id=appt.service_id,
-            data_hora=nova_dt, status="pre_reservado",
-            expires_at=datetime.utcnow() + timedelta(minutes=5),
+            data_hora=nova_dt, status=status_antigo, descricao=descricao_antiga,
+            expires_at=(datetime.utcnow() + timedelta(minutes=5)) if status_antigo == "pre_reservado" else None,
         )
         db.add(novo)
         db.commit()
         db.refresh(novo)
+
+        if status_antigo == "confirmado":
+            await criar_evento_google(config, novo, db)
+            return f"Compromisso remarcado pra {nova_dt.strftime('%d/%m/%Y às %H:%M')}."
         return (
-            f"Agendamento anterior cancelado. Nova pré-reserva (ID: {novo.id}) "
-            f"para {nova_dt.strftime('%d/%m/%Y às %H:%M')}. Peça confirmação ao cliente."
+            f"Agendamento anterior cancelado. Nova pré-reserva para "
+            f"{nova_dt.strftime('%d/%m/%Y às %H:%M')}. Peça confirmação."
         )
     except Exception as e:
         return f"Erro ao reagendar: {str(e)}"

@@ -32,8 +32,33 @@ AGENDAMENTO_TOOLS_SCHEMA = [
         },
     },
     {
+        "name": "marcar_compromisso",
+        "description": "Marca um compromisso JÁ CONFIRMADO na hora, sem precisar de um segundo passo de confirmação do usuário. Use essa função sempre que o pedido de agendamento já for direto e claro (ex: 'marca uma reunião às 14', 'marca dentista amanhã de manhã'). Se já existir algo marcado nesse exato horário, a função retorna o conflito em vez de marcar — nesse caso, avise o usuário do conflito e sugira outro horário, não tente marcar de novo sem perguntar.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "service_id": {"type": "integer", "description": "ID do tipo de compromisso"},
+                "data_hora": {"type": "string", "description": "Data e hora no formato YYYY-MM-DD HH:MM"},
+                "descricao": {"type": "string", "description": "Assunto/observação do compromisso, se o usuário mencionou (opcional)"},
+            },
+            "required": ["service_id", "data_hora"],
+        },
+    },
+    {
+        "name": "atualizar_compromisso",
+        "description": "Atualiza o assunto/descrição de um compromisso já marcado (ex: 'coloca o assunto X na reunião das 14'). Localiza o compromisso pela data/hora informada, ou pelo próximo compromisso ativo se a hora não for clara.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "descricao": {"type": "string", "description": "Novo assunto/descrição do compromisso"},
+                "data_hora": {"type": "string", "description": "Data e hora do compromisso a atualizar, formato YYYY-MM-DD HH:MM (opcional — se não informado, usa o próximo compromisso ativo)"},
+            },
+            "required": ["descricao"],
+        },
+    },
+    {
         "name": "pre_reservar_horario",
-        "description": "Faz uma pré-reserva de 5 minutos para o horário escolhido pelo usuário, antes da confirmação final.",
+        "description": "Segura um horário por 5 minutos SEM confirmar ainda. Só use se o usuário pedir explicitamente pra 'segurar'/'ver antes de confirmar' um horário — pedidos diretos de marcar devem usar marcar_compromisso, não essa função.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -45,7 +70,7 @@ AGENDAMENTO_TOOLS_SCHEMA = [
     },
     {
         "name": "confirmar_agendamento",
-        "description": "Confirma um compromisso pré-reservado depois que o usuário disser que sim, pode marcar.",
+        "description": "Confirma um compromisso pré-reservado por pre_reservar_horario, depois que o usuário disser que sim, pode marcar.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -64,7 +89,7 @@ AGENDAMENTO_TOOLS_SCHEMA = [
     },
     {
         "name": "reagendar_agendamento",
-        "description": "Muda o próximo compromisso ativo para uma nova data/hora.",
+        "description": "Muda o próximo compromisso ativo para uma nova data/hora, mantendo o mesmo assunto e status (se já estava confirmado, o novo horário também já fica confirmado — sem pedir confirmação de novo).",
         "parameters": {
             "type": "object",
             "properties": {

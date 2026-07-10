@@ -112,6 +112,8 @@ migrations = [
     "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_channel_expiry TIMESTAMP",
     "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_sync_token VARCHAR",
     "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_ativo BOOLEAN DEFAULT FALSE",
+    # Agenda pessoal — marcar direto sem passo de confirmação, e assunto/descrição livre
+    "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS descricao TEXT",
 ]
 for sql in migrations:
     try:
