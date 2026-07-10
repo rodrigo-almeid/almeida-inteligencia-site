@@ -109,7 +109,12 @@ async def oauth_callback(
         ).first()
 
         if not config:
-            return RedirectResponse("/assistente-painel/?google=error&msg=config_not_found")
+            # Conectar o Google Calendar não deveria depender de o usuário ter
+            # salvo antes a aba de catálogo/negócio — cria a config vazia aqui,
+            # igual o llm_gateway já faz na primeira mensagem processada.
+            config = models.AgendamentoConfig(user_id=user_id, ativo=False)
+            db.add(config)
+            db.flush()
 
         config.google_calendar_token = encrypt_key(refresh_token)
         config.google_calendar_id = calendar_id

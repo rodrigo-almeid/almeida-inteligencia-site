@@ -32,6 +32,82 @@ class TestGoogleCalendarOAuth:
         assert res.status_code == 401
 
 
+class TestGoogleCalendarCallback:
+    """POST-fusão: o callback precisa funcionar mesmo se o usuário nunca
+    salvou a aba de catálogo/negócio antes (sem AgendamentoConfig prévia) —
+    regressão do bug real encontrado em produção (config_not_found)."""
+
+    def _mock_google_http(self, mock_client_cls):
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {"access_token": "fake-access", "refresh_token": "fake-refresh"}
+
+        cal_response = MagicMock()
+        cal_response.status_code = 200
+        cal_response.json.return_value = {"id": "dono@gmail.com"}
+
+        mock_instance = AsyncMock()
+        mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+        mock_instance.__aexit__ = AsyncMock(return_value=False)
+        mock_instance.post = AsyncMock(return_value=token_response)
+        mock_instance.get = AsyncMock(return_value=cal_response)
+        mock_client_cls.return_value = mock_instance
+
+    def test_callback_cria_config_automaticamente_se_nao_existir(self, client, user, db):
+        assert db.query(AgendamentoConfig).filter(AgendamentoConfig.user_id == user.id).first() is None
+        state = encrypt_key(str(user.id))
+
+        with patch("backend.agendamento.routers.google_calendar.httpx.AsyncClient") as mock_client_cls, \
+             patch("backend.agendamento.routers.google_calendar.setup_watch_channel", new_callable=AsyncMock):
+            self._mock_google_http(mock_client_cls)
+            res = client.get(
+                f"/agendamento/google/callback?code=fake-code&state={state}",
+                follow_redirects=False,
+            )
+
+        assert res.status_code in (302, 307)
+        assert "google=ok" in res.headers["location"]
+
+        config = db.query(AgendamentoConfig).filter(AgendamentoConfig.user_id == user.id).first()
+        assert config is not None
+        assert config.google_calendar_ativo is True
+        assert config.google_calendar_id == "dono@gmail.com"
+
+    def test_callback_atualiza_config_existente(self, client, user, agendamento_config, db):
+        state = encrypt_key(str(user.id))
+
+        with patch("backend.agendamento.routers.google_calendar.httpx.AsyncClient") as mock_client_cls, \
+             patch("backend.agendamento.routers.google_calendar.setup_watch_channel", new_callable=AsyncMock):
+            self._mock_google_http(mock_client_cls)
+            res = client.get(
+                f"/agendamento/google/callback?code=fake-code&state={state}",
+                follow_redirects=False,
+            )
+
+        assert res.status_code in (302, 307)
+        assert "google=ok" in res.headers["location"]
+
+        total = db.query(AgendamentoConfig).filter(AgendamentoConfig.user_id == user.id).count()
+        assert total == 1  # não duplica a config já existente
+        db.refresh(agendamento_config)
+        assert agendamento_config.google_calendar_ativo is True
+
+    def test_callback_com_erro_do_google_redireciona(self, client):
+        res = client.get("/agendamento/google/callback?error=access_denied", follow_redirects=False)
+        assert res.status_code in (302, 307)
+        assert "google=error" in res.headers["location"]
+
+    def test_callback_sem_code_redireciona(self, client):
+        res = client.get("/agendamento/google/callback", follow_redirects=False)
+        assert res.status_code in (302, 307)
+        assert "missing_params" in res.headers["location"]
+
+    def test_callback_state_invalido_redireciona(self, client):
+        res = client.get("/agendamento/google/callback?code=x&state=lixo-invalido", follow_redirects=False)
+        assert res.status_code in (302, 307)
+        assert "invalid_state" in res.headers["location"]
+
+
 class TestGoogleCalendarDisconnect:
     def test_disconnect_success(self, client, auth_headers, agendamento_config, db):
         agendamento_config.google_calendar_token = encrypt_key("fake-refresh-token")
