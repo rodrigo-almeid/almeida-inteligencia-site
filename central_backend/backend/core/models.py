@@ -228,6 +228,7 @@ class AssistenteConfig(Base):
     numero_autorizado = Column(String, nullable=True)
     webhook_secret = Column(String, nullable=True)
     ativo = Column(Boolean, default=False)
+    usar_tool_calling = Column(Boolean, default=False)
 
     nome_assistente = Column(String, nullable=True, default="Goku")
     personalidade = Column(String, nullable=True)
@@ -245,17 +246,6 @@ class AgendamentoConfig(Base):
     __tablename__ = "agendamento_config"
 
     id = Column(Integer, primary_key=True, index=True)
-    whatsapp_token = Column(String, nullable=True)
-    whatsapp_phone_id = Column(String, nullable=True)
-    whatsapp_verify_token = Column(String, nullable=True)
-    gemini_api_key = Column(String, nullable=True)
-    groq_api_key = Column(String, nullable=True)
-    ollama_url = Column(String, nullable=True)
-    ollama_model = Column(String, nullable=True)
-    prioridade_llms = Column(String, nullable=True, default='["gemini","groq","ollama"]')
-    gemini_ativo = Column(Boolean, default=False)
-    groq_ativo = Column(Boolean, default=False)
-    ollama_ativo = Column(Boolean, default=False)
     catalogo_prompt = Column(Text, nullable=True)
     mensagem_midia_bloqueada = Column(String, nullable=True, default="Desculpe, no momento só consigo atender mensagens de texto.")
     mensagem_contingencia = Column(String, nullable=True, default="Olá! No momento estamos com instabilidade no atendimento automático. Tente novamente em alguns minutos.")

@@ -1,0 +1,152 @@
+"""Execução das tools de agendamento chamadas pelo llm_gateway — lógica movida
+de backend/agendamento/llm_gateway.py sem alterar o comportamento interno."""
+from datetime import datetime, timedelta
+
+from backend.core import models
+from backend.agendamento.slots import calcular_slots_livres
+from backend.agendamento.google_sync import criar_evento_google, cancelar_evento_google
+from backend.assistente.adapters.base import ToolCall
+
+NOMES_TOOLS = {
+    "buscar_horarios_disponiveis", "pre_reservar_horario", "confirmar_agendamento",
+    "cancelar_agendamento", "reagendar_agendamento",
+}
+
+
+async def executar(tool_call: ToolCall, config: models.AgendamentoConfig, client: models.Client, db) -> str:
+    name = tool_call.name
+    args = tool_call.arguments
+
+    if name == "buscar_horarios_disponiveis":
+        return _buscar_horarios(args, config, db)
+    if name == "pre_reservar_horario":
+        return _pre_reservar(args, config, client, db)
+    if name == "confirmar_agendamento":
+        return await _confirmar(args, config, client, db)
+    if name == "cancelar_agendamento":
+        return await _cancelar(config, client, db)
+    if name == "reagendar_agendamento":
+        return await _reagendar(args, config, client, db)
+    return f"Função '{name}' não reconhecida."
+
+
+def _buscar_horarios(args, config, db) -> str:
+    data_str = args.get("data", "")
+    service_id = args.get("service_id", 0)
+    try:
+        dia = datetime.strptime(data_str, "%Y-%m-%d").date()
+        slots = calcular_slots_livres(config.id, service_id, dia, db)
+        if slots:
+            return f"Horários disponíveis em {data_str}: {', '.join(slots)}"
+        return f"Nenhum horário disponível em {data_str}."
+    except Exception as e:
+        return f"Erro ao buscar horários: {str(e)}"
+
+
+def _pre_reservar(args, config, client, db) -> str:
+    service_id = args.get("service_id", 0)
+    data_hora_str = args.get("data_hora", "")
+    try:
+        data_hora = datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
+        existente = db.query(models.Appointment).filter(
+            models.Appointment.config_id == config.id,
+            models.Appointment.data_hora == data_hora,
+            models.Appointment.status.in_(["confirmado", "pre_reservado"]),
+        ).first()
+
+        if existente and existente.status == "pre_reservado" and existente.expires_at and existente.expires_at < datetime.utcnow():
+            existente.status = "expirado"
+            db.commit()
+            existente = None
+
+        if existente:
+            return "Este horário já está ocupado. Sugira outro horário ao cliente."
+
+        appt = models.Appointment(
+            config_id=config.id, client_id=client.id, service_id=service_id,
+            data_hora=data_hora, status="pre_reservado",
+            expires_at=datetime.utcnow() + timedelta(minutes=5),
+        )
+        db.add(appt)
+        db.commit()
+        db.refresh(appt)
+
+        servico = db.query(models.Service).filter(models.Service.id == service_id).first()
+        nome_servico = servico.nome if servico else "Serviço"
+        return (
+            f"Pré-reserva criada (ID: {appt.id}). "
+            f"{nome_servico} em {data_hora.strftime('%d/%m/%Y às %H:%M')}. "
+            f"Peça ao cliente para confirmar. A reserva expira em 5 minutos."
+        )
+    except Exception as e:
+        return f"Erro na pré-reserva: {str(e)}"
+
+
+async def _confirmar(args, config, client, db) -> str:
+    appt_id = args.get("appointment_id", 0)
+    appt = db.query(models.Appointment).filter(
+        models.Appointment.id == appt_id,
+        models.Appointment.config_id == config.id,
+        models.Appointment.client_id == client.id,
+    ).first()
+    if not appt:
+        return "Agendamento não encontrado."
+    if appt.status != "pre_reservado":
+        return f"Agendamento não pode ser confirmado (status: {appt.status})."
+    if appt.expires_at and appt.expires_at < datetime.utcnow():
+        appt.status = "expirado"
+        db.commit()
+        return "A pré-reserva expirou. O cliente precisa escolher um novo horário."
+
+    appt.status = "confirmado"
+    appt.expires_at = None
+    db.commit()
+    await criar_evento_google(config, appt, db)
+    return f"Agendamento #{appt.id} confirmado com sucesso para {appt.data_hora.strftime('%d/%m/%Y às %H:%M')}!"
+
+
+async def _cancelar(config, client, db) -> str:
+    appt = db.query(models.Appointment).filter(
+        models.Appointment.config_id == config.id,
+        models.Appointment.client_id == client.id,
+        models.Appointment.status.in_(["confirmado", "pre_reservado"]),
+        models.Appointment.data_hora >= datetime.utcnow(),
+    ).order_by(models.Appointment.data_hora).first()
+    if not appt:
+        return "Nenhum agendamento ativo encontrado para este cliente."
+
+    await cancelar_evento_google(config, appt, db)
+    appt.status = "cancelado"
+    db.commit()
+    return f"Agendamento de {appt.data_hora.strftime('%d/%m/%Y às %H:%M')} cancelado com sucesso."
+
+
+async def _reagendar(args, config, client, db) -> str:
+    nova_str = args.get("nova_data_hora", "")
+    try:
+        nova_dt = datetime.strptime(nova_str, "%Y-%m-%d %H:%M")
+        appt = db.query(models.Appointment).filter(
+            models.Appointment.config_id == config.id,
+            models.Appointment.client_id == client.id,
+            models.Appointment.status.in_(["confirmado", "pre_reservado"]),
+            models.Appointment.data_hora >= datetime.utcnow(),
+        ).order_by(models.Appointment.data_hora).first()
+        if not appt:
+            return "Nenhum agendamento ativo encontrado para reagendar."
+
+        await cancelar_evento_google(config, appt, db)
+        appt.status = "cancelado"
+        novo = models.Appointment(
+            config_id=config.id, client_id=client.id, service_id=appt.service_id,
+            data_hora=nova_dt, status="pre_reservado",
+            expires_at=datetime.utcnow() + timedelta(minutes=5),
+        )
+        db.add(novo)
+        db.commit()
+        db.refresh(novo)
+        return (
+            f"Agendamento anterior cancelado. Nova pré-reserva (ID: {novo.id}) "
+            f"para {nova_dt.strftime('%d/%m/%Y às %H:%M')}. Peça confirmação ao cliente."
+        )
+    except Exception as e:
+        return f"Erro ao reagendar: {str(e)}"

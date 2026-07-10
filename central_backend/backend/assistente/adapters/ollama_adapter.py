@@ -1,9 +1,9 @@
 import httpx
 import json
-from .base import LlmResponse, ToolCall, TOOLS_SCHEMA
+from .base import LlmResponse, ToolCall
 
 
-def _build_ollama_tools():
+def _build_ollama_tools(tools_schema: list) -> list:
     return [
         {
             "type": "function",
@@ -13,11 +13,11 @@ def _build_ollama_tools():
                 "parameters": t["parameters"],
             },
         }
-        for t in TOOLS_SCHEMA
+        for t in tools_schema
     ]
 
 
-async def call(messages: list[dict], system_prompt: str, url: str, model: str, timeout: float = 15.0) -> LlmResponse:
+async def call(messages: list[dict], system_prompt: str, url: str, model: str, tools_schema: list = None, timeout: float = 15.0) -> LlmResponse:
     ollama_messages = [{"role": "system", "content": system_prompt}]
     for m in messages:
         ollama_messages.append({"role": m["role"], "content": m["content"]})
@@ -25,10 +25,11 @@ async def call(messages: list[dict], system_prompt: str, url: str, model: str, t
     body = {
         "model": model,
         "messages": ollama_messages,
-        "tools": _build_ollama_tools(),
         "stream": False,
         "options": {"temperature": 0.3},
     }
+    if tools_schema:
+        body["tools"] = _build_ollama_tools(tools_schema)
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

@@ -44,6 +44,19 @@ async def _gerar_ollama(url: str, model: str, messages: list) -> str:
         return res.json()["message"]["content"]
 
 
+def _decifrar_provedor(p: dict) -> dict:
+    """api_key em provedores_llm é salva cifrada (Fernet) desde a fusão com o
+    agendamento. Decifra com fallback pro valor bruto — cobre linhas gravadas
+    antes dessa mudança, que ainda estão em texto plano."""
+    if isinstance(p, dict) and p.get("api_key"):
+        from backend.agendamento.crypto import decrypt_key
+        try:
+            return {**p, "api_key": decrypt_key(p["api_key"])}
+        except Exception:
+            return p
+    return p
+
+
 def _get_provedores(config) -> list[dict]:
     if config and hasattr(config, 'provedores_llm') and config.provedores_llm:
         raw = config.provedores_llm
@@ -53,7 +66,8 @@ def _get_provedores(config) -> list[dict]:
             except (json.JSONDecodeError, TypeError):
                 raw = []
         if isinstance(raw, list):
-            return [p for p in raw if (p.get("ativo", True) if isinstance(p, dict) else getattr(p, "ativo", True))]
+            ativos = [p for p in raw if (p.get("ativo", True) if isinstance(p, dict) else getattr(p, "ativo", True))]
+            return [_decifrar_provedor(p) for p in ativos]
     return _provedores_legado(config)
 
 

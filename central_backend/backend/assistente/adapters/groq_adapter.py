@@ -1,9 +1,9 @@
 import httpx
 import json
-from .base import LlmResponse, ToolCall, TOOLS_SCHEMA
+from .base import LlmResponse, ToolCall
 
 
-def _build_openai_tools():
+def _build_openai_tools(tools_schema: list) -> list:
     return [
         {
             "type": "function",
@@ -13,11 +13,11 @@ def _build_openai_tools():
                 "parameters": t["parameters"],
             },
         }
-        for t in TOOLS_SCHEMA
+        for t in tools_schema
     ]
 
 
-async def call(messages: list[dict], system_prompt: str, api_key: str, timeout: float = 8.0) -> LlmResponse:
+async def call(messages: list[dict], system_prompt: str, api_key: str, tools_schema: list = None, timeout: float = 8.0) -> LlmResponse:
     oai_messages = [{"role": "system", "content": system_prompt}]
     for m in messages:
         oai_messages.append({"role": m["role"], "content": m["content"]})
@@ -25,11 +25,12 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, timeout: 
     body = {
         "model": "llama-3.1-8b-instant",
         "messages": oai_messages,
-        "tools": _build_openai_tools(),
-        "tool_choice": "auto",
         "max_tokens": 1024,
         "temperature": 0.3,
     }
+    if tools_schema:
+        body["tools"] = _build_openai_tools(tools_schema)
+        body["tool_choice"] = "auto"
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

@@ -92,6 +92,19 @@ migrations = [
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR",
     # Agendamento — sincronização com Google Calendar (coluna existia só no model, faltava a migration)
     "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS google_event_id VARCHAR",
+    # Fusão Assistente + Agendamento — cérebro único (tool-calling), credenciais de IA unificadas
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS usar_tool_calling BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS whatsapp_token",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS whatsapp_phone_id",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS whatsapp_verify_token",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS gemini_api_key",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS groq_api_key",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS ollama_url",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS ollama_model",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS prioridade_llms",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS gemini_ativo",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS groq_ativo",
+    "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS ollama_ativo",
 ]
 for sql in migrations:
     try:

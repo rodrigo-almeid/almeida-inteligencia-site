@@ -18,7 +18,7 @@ class ToolCall:
     arguments: dict = field(default_factory=dict)
 
 
-TOOLS_SCHEMA = [
+AGENDAMENTO_TOOLS_SCHEMA = [
     {
         "name": "buscar_horarios_disponiveis",
         "description": "Busca horários disponíveis para agendamento em uma data específica. Use quando o cliente quiser agendar.",
@@ -71,6 +71,34 @@ TOOLS_SCHEMA = [
                 "nova_data_hora": {"type": "string", "description": "Nova data e hora no formato YYYY-MM-DD HH:MM"},
             },
             "required": ["nova_data_hora"],
+        },
+    },
+]
+
+
+FINANCEIRO_TOOLS_SCHEMA = [
+    {
+        "name": "registrar_gasto",
+        "description": "Registra um gasto ou receita financeira relatada pelo cliente (ex: 'gastei 50 no mercado', 'recebi 500 de salário').",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "descricao": {"type": "string", "description": "O que foi o gasto/receita"},
+                "valor": {"type": "number", "description": "Valor em reais"},
+                "forma_pagamento": {"type": "string", "description": "debito|credito|pix|dinheiro|vale_alimentacao"},
+                "natureza": {"type": "string", "description": "despesa ou receita"},
+                "status": {"type": "string", "description": "paga ou pendente"},
+                "vencimento": {"type": "string", "description": "Data de vencimento YYYY-MM-DD, se pendente"},
+            },
+            "required": ["descricao", "valor", "forma_pagamento"],
+        },
+    },
+    {
+        "name": "consultar_financas",
+        "description": "Consulta o resumo financeiro do mês atual (receitas, despesas, saldo, contas pendentes). Use quando o cliente perguntar sobre gastos, saldo ou contas.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
         },
     },
 ]

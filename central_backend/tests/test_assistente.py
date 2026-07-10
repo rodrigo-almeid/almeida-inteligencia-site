@@ -7,6 +7,7 @@ from backend.core.models import AssistenteConfig, Conta, CompraSupermercado
 from backend.assistente.routers.webhook import (
     salvar_registro_financeiro, salvar_compra_mercado_de_texto, _eh_compra_de_mercado,
 )
+from backend.agendamento.crypto import decrypt_key
 
 
 CONFIG_BASE = {
@@ -236,7 +237,7 @@ class TestMascaramentoDeChaves:
         config = db.query(AssistenteConfig).first()
         assert config.evolution_api_key == CONFIG_BASE["evolution_api_key"]
         provedores_salvos = json.loads(config.provedores_llm)
-        assert provedores_salvos[0]["api_key"] == "AIzaSyREALKEY1234567890"
+        assert decrypt_key(provedores_salvos[0]["api_key"]) == "AIzaSyREALKEY1234567890"
 
     def test_validar_com_chaves_mascaradas_usa_valores_reais(self, client, auth_headers):
         """Regressão: /assistente/validar não pode testar com o valor mascarado
@@ -306,7 +307,7 @@ class TestMascaramentoDeChaves:
         config = db.query(AssistenteConfig).first()
         assert config.evolution_api_key == "nova-evolution-key"
         provedores_salvos = json.loads(config.provedores_llm)
-        assert provedores_salvos[0]["api_key"] == "AIzaSyNOVACHAVE000000"
+        assert decrypt_key(provedores_salvos[0]["api_key"]) == "AIzaSyNOVACHAVE000000"
 
 
 class TestDesconectar:

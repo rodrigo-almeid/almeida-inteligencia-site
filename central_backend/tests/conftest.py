@@ -195,25 +195,40 @@ def conta(db, user):
 
 @pytest.fixture
 def agendamento_config(db, user):
-    """Config de agendamento do usuário principal."""
-    from backend.agendamento.crypto import encrypt_key
+    """Config de negócio de agendamento do usuário principal (catálogo, mensagens,
+    Google Calendar) — credenciais de WhatsApp/IA vivem em AssistenteConfig."""
     cfg = AgendamentoConfig(
         user_id=user.id,
-        whatsapp_token=encrypt_key("test-wa-token"),
-        whatsapp_phone_id="123456789",
-        whatsapp_verify_token="verify-test",
-        gemini_api_key=encrypt_key("test-gemini-key"),
-        groq_api_key=encrypt_key("test-groq-key"),
-        ollama_url="http://localhost:11434",
-        ollama_model="llama3",
-        prioridade_llms='["gemini","groq","ollama"]',
-        gemini_ativo=True,
-        groq_ativo=True,
-        ollama_ativo=False,
         catalogo_prompt="Somos o Salão Teste. Corte R$40.",
         mensagem_midia_bloqueada="Só texto, por favor.",
         mensagem_contingencia="Estamos indisponíveis.",
         ativo=True,
+    )
+    db.add(cfg)
+    db.commit()
+    db.refresh(cfg)
+    return cfg
+
+
+@pytest.fixture
+def assistente_config(db, user):
+    """Config do assistente unificado (WhatsApp Evolution + IA), com tool-calling
+    ligado — usada pelos testes do llm_gateway/adapters."""
+    import json
+    cfg = AssistenteConfig(
+        user_id=user.id,
+        evolution_url="http://evolution-api:8080",
+        evolution_api_key="test-api-key",
+        evolution_instance="goku-test",
+        numero_autorizado="5543999211099",
+        webhook_secret="test-secret",
+        provedores_llm=json.dumps([
+            {"tipo": "gemini", "api_key": "test-gemini-key", "ativo": True},
+        ]),
+        nome_assistente="Goku",
+        tom_voz="casual",
+        ativo=True,
+        usar_tool_calling=True,
     )
     db.add(cfg)
     db.commit()

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from backend.core import models, schemas
 from backend.core.database import get_db
 from backend.core.security import get_current_user
+from backend.agendamento.crypto import encrypt_key, decrypt_key
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
@@ -313,12 +314,28 @@ def _provedores_atuais(config) -> list:
         return []
 
 
+def _decifrar_com_fallback(valor: Optional[str]) -> Optional[str]:
+    """Decripta uma api_key salva em provedores_llm. Cai pro valor bruto se não
+    for um token Fernet válido — cobre linhas gravadas antes da chave passar a
+    ser cifrada (dado legado em texto plano continua funcionando)."""
+    if not valor:
+        return valor
+    try:
+        return decrypt_key(valor)
+    except Exception:
+        return valor
+
+
+def _mask_key_provedor(cifra: Optional[str]) -> Optional[str]:
+    return _mask_key(_decifrar_com_fallback(cifra))
+
+
 def _chave_atual_provedor(config, tipo: str) -> Optional[str]:
-    """API key atualmente salva pra um tipo de provedor — busca em provedores_llm
-    primeiro, cai pro campo legado (gemini_api_key/groq_api_key) se não achar."""
+    """API key atualmente salva pra um tipo de provedor (já decifrada) — busca em
+    provedores_llm primeiro, cai pro campo legado (gemini_api_key/groq_api_key) se não achar."""
     for p in _provedores_atuais(config):
         if p.get("tipo") == tipo and p.get("api_key"):
-            return p.get("api_key")
+            return _decifrar_com_fallback(p.get("api_key"))
     if tipo == "gemini":
         return getattr(config, "gemini_api_key", None)
     if tipo == "groq":
@@ -327,7 +344,7 @@ def _chave_atual_provedor(config, tipo: str) -> Optional[str]:
 
 
 def _merge_provedores_secrets(config, novos_provedores: list) -> list:
-    """Preserva a api_key real quando o valor recebido é a versão mascarada
+    """Preserva a api_key real (cifrada) quando o valor recebido é a versão mascarada
     (ou seja, o painel reenviou o campo sem o usuário ter alterado a chave)."""
     existentes_por_tipo: dict = {}
     for p in _provedores_atuais(config):
@@ -342,7 +359,7 @@ def _merge_provedores_secrets(config, novos_provedores: list) -> list:
         candidatos = existentes_por_tipo.get(tipo, [])
         antigo = candidatos[idx] if idx < len(candidatos) else None
         indices_usados[tipo] = idx + 1
-        if antigo and p.get("api_key") and p.get("api_key") == _mask_key(antigo.get("api_key")):
+        if antigo and p.get("api_key") and p.get("api_key") == _mask_key_provedor(antigo.get("api_key")):
             p["api_key"] = antigo.get("api_key")
         resultado.append(p)
     return resultado
@@ -357,18 +374,35 @@ def _config_to_response(config):
             provedores = json.loads(data["provedores_llm"])
             for p in provedores:
                 if isinstance(p, dict) and p.get("api_key"):
-                    p["api_key"] = _mask_key(p["api_key"])
+                    p["api_key"] = _mask_key_provedor(p["api_key"])
             data["provedores_llm"] = provedores
         except (json.JSONDecodeError, TypeError):
             data["provedores_llm"] = None
     return schemas.AssistenteConfigResponse(**data)
 
 
-def _serialize_provedores(payload_dict: dict) -> dict:
+def _serialize_provedores(payload_dict: dict, config=None) -> dict:
+    """Serializa provedores_llm pra JSON, cifrando toda api_key que seja um valor
+    novo (não o que já estava salvo — evita recifrar o que _merge_provedores_secrets
+    já preservou como cifra existente)."""
     if "provedores_llm" in payload_dict and payload_dict["provedores_llm"] is not None:
-        payload_dict["provedores_llm"] = json.dumps(
-            [p.model_dump() if hasattr(p, 'model_dump') else p for p in payload_dict["provedores_llm"]]
-        )
+        cifras_por_tipo: dict = {}
+        for p in (_provedores_atuais(config) if config else []):
+            cifras_por_tipo.setdefault(p.get("tipo"), []).append(p.get("api_key"))
+        usados: dict = {}
+        serializados = []
+        for np in payload_dict["provedores_llm"]:
+            item = np.model_dump() if hasattr(np, "model_dump") else dict(np)
+            tipo = item.get("tipo")
+            idx = usados.get(tipo, 0)
+            usados[tipo] = idx + 1
+            candidatas = cifras_por_tipo.get(tipo, [])
+            cifra_atual = candidatas[idx] if idx < len(candidatas) else None
+            api_key = item.get("api_key")
+            if api_key and api_key != cifra_atual:
+                item["api_key"] = encrypt_key(api_key)
+            serializados.append(item)
+        payload_dict["provedores_llm"] = json.dumps(serializados)
     return payload_dict
 
 
@@ -429,7 +463,7 @@ def atualizar_config(
     if payload_dict.get("evolution_api_key") == _mask_key(config.evolution_api_key):
         payload_dict["evolution_api_key"] = config.evolution_api_key
 
-    data = _serialize_provedores(payload_dict)
+    data = _serialize_provedores(payload_dict, config)
     for key, value in data.items():
         if value is not None:
             setattr(config, key, value)

@@ -68,6 +68,7 @@
     tag: 'Assistente',
     ativo: 'console',
     items: [
+      { id: 'dashboard', href: '/assistente-painel/dashboard.html', icon: 'dashboard', label: 'Dashboard' },
       { id: 'config', href: '/assistente-painel/', icon: 'assistente_config', label: 'Configuração' },
       { id: 'console', href: '/assistente-painel/console.html', icon: 'console', label: 'Console' },
     ],
@@ -97,12 +98,12 @@
   <div class="chat-messages" id="messages">
     <div class="welcome" id="welcome">
       <div class="welcome-icon">🐉</div>
-      <h2>Console de Simulacao</h2>
-      <p>Teste o assistente sem precisar do WhatsApp. As mensagens passam pelo mesmo fluxo de processamento (deteccao de intencao, registro de gastos, consultas financeiras).</p>
+      <h2>Console de Simulação</h2>
+      <p>Teste o assistente sem precisar do WhatsApp — cobre tanto finanças quanto agendamento (quando o tool-calling está ligado na aba IA). As mensagens passam pelo mesmo fluxo de processamento do webhook real.</p>
       <div class="examples">
-        <button class="example-btn" onclick="enviarExemplo('gastei 45 reais no almoco')">💬 "gastei 45 reais no almoco"</button>
-        <button class="example-btn" onclick="enviarExemplo('quanto eu gastei esse mes?')">📊 "quanto eu gastei esse mes?"</button>
-        <button class="example-btn" onclick="enviarExemplo('conta de luz 180 vence dia 10')">📋 "conta de luz 180 vence dia 10"</button>
+        <button class="example-btn" onclick="enviarExemplo('gastei 45 reais no almoco')">💬 "gastei 45 reais no almoço"</button>
+        <button class="example-btn" onclick="enviarExemplo('quanto eu gastei esse mes?')">📊 "quanto eu gastei esse mês?"</button>
+        <button class="example-btn" onclick="enviarExemplo('quero marcar um corte amanha as 15h')">✂️ "quero marcar um corte amanhã às 15h"</button>
         <button class="example-btn" onclick="enviarExemplo('oi, tudo bem?')">👋 "oi, tudo bem?"</button>
       </div>
     </div>

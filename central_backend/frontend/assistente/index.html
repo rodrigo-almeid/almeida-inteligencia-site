@@ -7,30 +7,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/sidebar.css">
   <style>
-    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--border:rgba(61,219,130,0.12);}
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--blue:#7EB8FF;--border:rgba(61,219,130,0.12);}
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
 
-    .main{flex:1;padding:32px;overflow-y:auto;}
-    .page-header{margin-bottom:28px;}
+    .main{flex:1;padding:32px;overflow-y:auto;max-width:960px;}
+    .page-header{margin-bottom:20px;}
     .page-header h1{font-size:22px;font-weight:600;}
     .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
 
+    /* Abas de conteúdo — reaproveita o estilo visual de .filter-tabs/.ftab (usado como filtro em outras telas do site) para alternar seções desta página */
+    .tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;border-bottom:0.5px solid var(--border);padding-bottom:16px;}
+    .tab-btn{padding:7px 16px;border-radius:20px;font-size:13px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--gray-l);transition:all .2s;font-family:'Inter',sans-serif;}
+    .tab-btn.active{background:rgba(61,219,130,.12);color:var(--green);border-color:rgba(61,219,130,.3);}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
+
     .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
     .card h2{font-size:15px;font-weight:600;margin-bottom:16px;}
+    .card-title{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+    .card-title .provider-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+    .card-title .provider-dot.on{background:var(--green);} .card-title .provider-dot.off{background:var(--gray);}
 
     .form-group{margin-bottom:16px;}
     .form-group label{display:block;font-size:12px;color:var(--gray-l);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
-    .form-group input{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;}
+    .form-group input,.form-group textarea,.form-group select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;resize:vertical;}
     .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:rgba(61,219,130,.4);}
-    .form-group textarea,.form-group select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;color:#fff;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border .2s;resize:vertical;}
     .form-group select option{background:var(--bg2);color:#fff;}
     .form-group .hint{font-size:11px;color:var(--gray);margin-top:4px;}
+
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;resize:vertical;}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(61,219,130,.4);}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
 
     .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
     .toggle-row .tlabel{font-size:13px;}
     .toggle-row .tstatus{font-size:12px;color:var(--gray);}
-    .toggle{position:relative;width:44px;height:24px;cursor:pointer;}
+    .toggle-label{font-size:13px;color:var(--gray-l);}
+    .toggle{position:relative;width:44px;height:24px;cursor:pointer;flex-shrink:0;}
     .toggle input{opacity:0;width:0;height:0;}
     .toggle .slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:24px;transition:.3s;}
     .toggle .slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
@@ -40,9 +57,18 @@
     .btn{background:var(--green);color:var(--black);border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
     .btn:hover{opacity:.9;}
     .btn:disabled{opacity:.4;cursor:not-allowed;}
-    .btn-row{display:flex;gap:8px;margin-top:8px;}
+    .btn-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
     .btn-outline{background:transparent;color:var(--green);border:0.5px solid rgba(61,219,130,.3);border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
     .btn-outline:hover{background:rgba(61,219,130,.08);}
+    .btn-save{background:var(--green);color:var(--black);border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;margin-top:8px;}
+    .btn-save:hover{opacity:.85;}
+    .btn-test{background:none;border:0.5px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--gray-l);font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-test:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .btn-test.loading{opacity:.5;pointer-events:none;}
+    .test-result{font-size:12px;margin-top:6px;min-height:18px;}
+    .test-result.ok{color:var(--green);} .test-result.err{color:var(--red);}
+    .btn-add{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.85;}
 
     .status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;}
     .status-badge.online{background:rgba(61,219,130,.12);color:var(--green);}
@@ -52,12 +78,16 @@
 
     .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
     .toast.show{opacity:1;}
+    .toast.err{color:var(--red);}
 
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;}
     .overlay.active{display:flex;}
-    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:32px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto;}
-    .modal h3{font-size:18px;font-weight:600;margin-bottom:20px;}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:17px;font-weight:600;margin-bottom:20px;}
     .modal h3 span{color:var(--green);}
+    .modal .sub{font-size:12px;color:var(--gray);margin-bottom:16px;}
     .check-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border:0.5px solid var(--border);border-radius:10px;margin-bottom:8px;transition:border-color .3s;}
     .check-item.ok{border-color:rgba(61,219,130,0.4);}
     .check-item.fail{border-color:rgba(226,75,74,0.4);}
@@ -103,7 +133,43 @@
     .tipo-option .tipo-info .tipo-name{font-size:14px;font-weight:500;}
     .tipo-option .tipo-info .tipo-desc{font-size:11px;color:var(--gray);margin-top:2px;}
 
-    @media(max-width:640px){.main{padding:16px;padding-top:60px;}}
+    .grid-semana{display:flex;flex-direction:column;gap:10px;}
+    .dia-row{background:rgba(255,255,255,.03);border:0.5px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .dia-nome{font-size:14px;font-weight:600;min-width:100px;}
+    .dia-campos{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .dia-campos input{background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;font-size:13px;color:#fff;font-family:'Inter',sans-serif;outline:none;width:90px;text-align:center;transition:border-color .2s;}
+    .dia-campos input:focus{border-color:rgba(61,219,130,.4);}
+    .dia-campos span{color:var(--gray);font-size:13px;}
+
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:0.5px solid var(--border);}
+    td{padding:12px 12px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);vertical-align:middle;}
+    tr:hover td{background:rgba(255,255,255,.02);}
+    tr.clickable{cursor:pointer;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+    .badge.on{background:rgba(61,219,130,.15);color:var(--green);}
+    .badge.off{background:rgba(92,107,94,.15);color:var(--gray);}
+    .badge.confirmado{background:rgba(61,219,130,.15);color:var(--green);}
+    .badge.pre_reservado{background:rgba(245,166,35,.15);color:var(--yellow);}
+    .badge.cancelado{background:rgba(226,75,74,.15);color:var(--red);}
+    .badge.concluido{background:rgba(126,184,255,.15);color:var(--blue);}
+    .badge.expirado{background:rgba(92,107,94,.15);color:var(--gray);}
+    .icon-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--gray-l);transition:all .2s;font-size:12px;}
+    .icon-btn:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .icon-btn.del:hover{border-color:rgba(226,75,74,.4);color:var(--red);}
+    .empty{text-align:center;padding:32px 0;color:var(--gray);font-size:13px;}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+
+    .detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,.04);font-size:13px;}
+    .detail-row .label{color:var(--gray-l);} .detail-row .value{font-weight:500;}
+    .hist-title{font-size:13px;font-weight:600;margin-top:20px;margin-bottom:10px;}
+    .hist-item{padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,.04);font-size:12px;color:var(--gray-l);}
+    .hist-item .dt{color:#fff;font-weight:500;}
+    .btn-close{background:none;border:0.5px solid var(--border);border-radius:10px;padding:10px;width:100%;color:var(--gray-l);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:16px;transition:all .2s;}
+    .btn-close:hover{border-color:rgba(255,255,255,.2);color:#fff;}
+
+    @media(max-width:640px){.main{padding:16px;padding-top:60px;}.row2,.row3{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -113,6 +179,7 @@
     tag: 'Assistente',
     ativo: 'config',
     items: [
+      { id: 'dashboard', href: '/assistente-painel/dashboard.html', icon: 'dashboard', label: 'Dashboard' },
       { id: 'config', href: '/assistente-painel/', icon: 'assistente_config', label: 'Configuração' },
       { id: 'console', href: '/assistente-painel/console.html', icon: 'console', label: 'Console' },
     ],
@@ -131,80 +198,203 @@
   <div id="breadcrumb-root"></div>
   <div class="page-header">
     <h1>🐉 Goku — Assistente Virtual</h1>
-    <p>Configure a integração com o WhatsApp via Evolution API</p>
+    <p>Um bot só para WhatsApp: finanças e agendamento, na mesma conversa</p>
   </div>
 
-  <!-- Status -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <h2>Status</h2>
-      <span class="status-badge offline" id="status-badge">
-        <span class="dot"></span>
-        <span id="status-text">Desconectado</span>
-      </span>
-    </div>
-    <div class="toggle-row">
-      <div>
-        <div class="tlabel">Ativar assistente</div>
-        <div class="tstatus">Quando ativo, o Goku responde mensagens no WhatsApp</div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="whatsapp" onclick="mostrarTab('whatsapp')">WhatsApp</button>
+    <button class="tab-btn" data-tab="ia" onclick="mostrarTab('ia')">IA</button>
+    <button class="tab-btn" data-tab="agenda" onclick="mostrarTab('agenda')">E-mail / Agenda</button>
+    <button class="tab-btn" data-tab="horarios" onclick="mostrarTab('horarios')">Horários</button>
+    <button class="tab-btn" data-tab="servicos" onclick="mostrarTab('servicos')">Serviços</button>
+    <button class="tab-btn" data-tab="clientes" onclick="mostrarTab('clientes')">Clientes</button>
+    <button class="tab-btn" data-tab="personalidade" onclick="mostrarTab('personalidade')">Personalidade</button>
+  </div>
+
+  <!-- ── ABA: WhatsApp ── -->
+  <div class="tab-panel active" data-tab="whatsapp">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>Status</h2>
+        <span class="status-badge offline" id="status-badge">
+          <span class="dot"></span>
+          <span id="status-text">Desconectado</span>
+        </span>
       </div>
-      <label class="toggle">
-        <input type="checkbox" id="ativo">
-        <span class="slider"></span>
-      </label>
+      <div class="toggle-row">
+        <div>
+          <div class="tlabel">Ativar assistente</div>
+          <div class="tstatus">Quando ativo, o Goku responde mensagens no WhatsApp</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="ativo">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📱 Evolution API — WhatsApp</h2>
+      <div class="form-group">
+        <label>URL da Evolution API</label>
+        <input type="text" id="evolution_url" placeholder="http://evolution-api:8080">
+        <div class="hint">Endereço interno do container da Evolution API</div>
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" id="evolution_api_key" placeholder="sua-api-key-aqui">
+        <div class="hint">Chave de autenticação da Evolution API (AUTHENTICATION_API_KEY no .env)</div>
+      </div>
+      <div class="form-group">
+        <label>Nome da Instância</label>
+        <input type="text" id="evolution_instance" placeholder="goku">
+        <div class="hint">Nome da instância do WhatsApp na Evolution (será criada se não existir)</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-outline" onclick="verQRCode()">📷 Conectar WhatsApp (QR Code)</button>
+        <button class="btn-outline" onclick="verificarConexao()">🔄 Verificar Conexão</button>
+        <button class="btn-outline" onclick="desconectarWhatsapp()" style="color:var(--red);border-color:var(--red);">🔌 Desconectar</button>
+      </div>
+      <div id="whatsapp-connection-info" style="margin-top:12px;font-size:12px;color:var(--gray);"></div>
+    </div>
+
+    <div class="btn-row"><button class="btn" onclick="salvar()">Salvar Configurações</button></div>
+  </div>
+
+  <!-- ── ABA: IA ── -->
+  <div class="tab-panel" data-tab="ia">
+    <div class="card">
+      <div class="toggle-row">
+        <div>
+          <div class="tlabel">Usar tool-calling (cérebro único)</div>
+          <div class="tstatus">Quando ligado, o mesmo modelo decide entre agendar um horário ou registrar/consultar finanças. Desligado, mantém o comportamento anterior (só finanças, sem agendamento).</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="usar_tool_calling">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="margin-bottom:0;">Provedores de IA</h2>
+        <button class="btn" style="padding:8px 16px;font-size:12px;" onclick="adicionarProvedor()">+ Adicionar</button>
+      </div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">Arraste para reordenar a prioridade. O sistema tenta o primeiro da lista e faz fallback para os seguintes. Essas credenciais são usadas tanto para finanças quanto para agendamento.</p>
+      <div id="provedores-list"></div>
+      <div id="no-provedores" style="text-align:center;padding:20px;color:var(--gray);font-size:13px;display:none;">
+        Nenhum provedor configurado. Clique em "+ Adicionar" para começar.
+      </div>
+    </div>
+
+    <div class="btn-row"><button class="btn" onclick="salvar()">Salvar Configurações</button></div>
+  </div>
+
+  <!-- ── ABA: E-mail / Agenda ── -->
+  <div class="tab-panel" data-tab="agenda">
+    <div class="card">
+      <div class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Google Calendar
+      </div>
+      <div id="gcal-status">
+        <div id="gcal-disconnected">
+          <p style="font-size:13px;color:var(--gray-l);margin-bottom:12px;">Conecte a conta Google que vai ser usada para sincronizar os agendamentos com o Google Calendar. Eventos criados ou cancelados no WhatsApp aparecem no calendário, e vice-versa.</p>
+          <button class="btn-test" onclick="conectarGoogle()" style="background:rgba(61,219,130,.1);border-color:rgba(61,219,130,.3);color:var(--green);">Conectar Google Calendar</button>
+        </div>
+        <div id="gcal-connected" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <span class="provider-dot on"></span>
+            <span style="font-size:13px;color:var(--green);">Conectado</span>
+            <span style="font-size:12px;color:var(--gray-l);" id="gcal-calendar-id"></span>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Sincronização ativa</span>
+            <label class="toggle"><input type="checkbox" id="gcal-ativo" onchange="toggleGcal()"><span class="slider"></span></label>
+          </div>
+          <button class="btn-test" onclick="desconectarGoogle()" style="border-color:rgba(226,75,74,.3);color:var(--red);">Desconectar</button>
+          <div class="test-result" id="result-gcal"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Módulo de Agendamento</div>
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-weight:600;">Ativo (habilita as ferramentas de agendamento pro assistente)</span>
+        <label class="toggle"><input type="checkbox" id="agenda-ativo"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Catálogo e Regras de Negócio</div>
+      <div class="field">
+        <label>Catálogo de Preços e Instruções</label>
+        <textarea id="catalogo-prompt" rows="8" placeholder="Ex: Somos o Salão Beauty Hair. Horário de funcionamento: Seg-Sáb 09h-18h. Serviços: Corte masculino R$40, Corte feminino R$60..."></textarea>
+      </div>
+      <div class="field">
+        <label>Mensagem para Mídia Bloqueada (áudio/imagem, quando não é nota fiscal)</label>
+        <input id="msg-midia" placeholder="Desculpe, no momento só consigo atender mensagens de texto.">
+      </div>
+      <div class="field">
+        <label>Mensagem de Contingência (todas as IAs fora do ar)</label>
+        <input id="msg-contingencia" placeholder="Olá! Estamos com instabilidade. Tente novamente em alguns minutos.">
+      </div>
+    </div>
+
+    <div class="btn-row"><button class="btn" onclick="salvarAgenda()">Salvar Configurações de Agenda</button></div>
+  </div>
+
+  <!-- ── ABA: Horários ── -->
+  <div class="tab-panel" data-tab="horarios">
+    <div class="card">
+      <div class="card-title">Horários de Funcionamento</div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">Defina os horários de atendimento para cada dia da semana</p>
+      <div class="grid-semana" id="grid-semana"></div>
+      <div class="btn-row"><button class="btn-save" onclick="salvarHorarios()">Salvar Horários</button></div>
     </div>
   </div>
 
-  <!-- Evolution API -->
-  <div class="card">
-    <h2>📱 Evolution API — WhatsApp</h2>
-    <div class="form-group">
-      <label>URL da Evolution API</label>
-      <input type="text" id="evolution_url" placeholder="http://evolution-api:8080">
-      <div class="hint">Endereço interno do container da Evolution API</div>
+  <!-- ── ABA: Serviços ── -->
+  <div class="tab-panel" data-tab="servicos">
+    <div class="section-header">
+      <span class="card-title" style="margin-bottom:0;">Serviços Oferecidos</span>
+      <button class="btn-add" onclick="abrirModalServico()">+ Novo Serviço</button>
     </div>
-    <div class="form-group">
-      <label>API Key</label>
-      <input type="password" id="evolution_api_key" placeholder="sua-api-key-aqui">
-      <div class="hint">Chave de autenticação da Evolution API (AUTHENTICATION_API_KEY no .env)</div>
-    </div>
-    <div class="form-group">
-      <label>Nome da Instância</label>
-      <input type="text" id="evolution_instance" placeholder="goku">
-      <div class="hint">Nome da instância do WhatsApp na Evolution (será criada se não existir)</div>
-    </div>
-    <div class="btn-row" style="margin-top:16px;">
-      <button class="btn-outline" onclick="verQRCode()">📷 Conectar WhatsApp (QR Code)</button>
-      <button class="btn-outline" onclick="verificarConexao()">🔄 Verificar Conexão</button>
-      <button class="btn-outline" onclick="desconectarWhatsapp()" style="color:var(--red);border-color:var(--red);">🔌 Desconectar</button>
-    </div>
-    <div id="whatsapp-connection-info" style="margin-top:12px;font-size:12px;color:var(--gray);"></div>
-  </div>
-
-  <!-- Provedores LLM -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="margin-bottom:0;">Provedores de IA</h2>
-      <button class="btn" style="padding:8px 16px;font-size:12px;" onclick="adicionarProvedor()">+ Adicionar</button>
-    </div>
-    <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">Arraste para reordenar a prioridade. O sistema tenta o primeiro da lista e faz fallback para os seguintes.</p>
-    <div id="provedores-list"></div>
-    <div id="no-provedores" style="text-align:center;padding:20px;color:var(--gray);font-size:13px;display:none;">
-      Nenhum provedor configurado. Clique em "+ Adicionar" para começar.
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>Descrição</th><th>Duração</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="servicos-tabela-body"></tbody>
+      </table>
+      <div class="empty" id="servicos-empty-msg" style="display:none">Nenhum serviço cadastrado.</div>
     </div>
   </div>
 
-  <!-- Personalidade -->
-  <div class="card">
-    <h2>🐉 Personalidade do Assistente</h2>
-    <div class="form-group">
-      <label>Nome do Assistente</label>
-      <input type="text" id="nome_assistente" placeholder="Goku" value="Goku">
-      <div class="hint">Como o assistente vai se apresentar nas conversas</div>
+  <!-- ── ABA: Clientes ── -->
+  <div class="tab-panel" data-tab="clientes">
+    <div class="card-title">Clientes</div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">Cadastrados automaticamente via WhatsApp (no modo pessoal, é você mesmo)</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>Telefone</th><th>Cadastrado em</th></tr></thead>
+        <tbody id="clientes-tabela-body"></tbody>
+      </table>
+      <div class="empty" id="clientes-empty-msg" style="display:none">Nenhum cliente cadastrado ainda.</div>
     </div>
-    <div class="form-group">
-      <label>Tom de Voz</label>
-      <div class="select-wrap">
+  </div>
+
+  <!-- ── ABA: Personalidade ── -->
+  <div class="tab-panel" data-tab="personalidade">
+    <div class="card">
+      <h2>🐉 Personalidade do Assistente</h2>
+      <div class="form-group">
+        <label>Nome do Assistente</label>
+        <input type="text" id="nome_assistente" placeholder="Goku" value="Goku">
+        <div class="hint">Como o assistente vai se apresentar nas conversas</div>
+      </div>
+      <div class="form-group">
+        <label>Tom de Voz</label>
         <select id="tom_voz">
           <option value="casual">Casual — amigável e descontraído</option>
           <option value="formal">Formal — profissional e educado</option>
@@ -212,31 +402,28 @@
           <option value="humoristico">Humorístico — divertido e leve</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>Personalidade</label>
+        <textarea id="personalidade" rows="3" placeholder="Ex: Seja direto e objetivo. Use emojis com moderação. Sempre que possível, dê dicas de economia."></textarea>
+        <div class="hint">Descreva como o assistente deve se comportar nas conversas</div>
+      </div>
+      <div class="form-group">
+        <label>Instruções Extras</label>
+        <textarea id="instrucoes_extras" rows="3" placeholder="Ex: Quando eu perguntar sobre mercado, sempre pergunte a forma de pagamento. Classifique meus gastos de fast food como 'lazer'."></textarea>
+        <div class="hint">Regras específicas que o assistente deve seguir</div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Personalidade</label>
-      <textarea id="personalidade" rows="3" placeholder="Ex: Seja direto e objetivo. Use emojis com moderação. Sempre que possível, dê dicas de economia."></textarea>
-      <div class="hint">Descreva como o assistente deve se comportar nas conversas</div>
-    </div>
-    <div class="form-group">
-      <label>Instruções Extras</label>
-      <textarea id="instrucoes_extras" rows="3" placeholder="Ex: Quando eu perguntar sobre mercado, sempre pergunte a forma de pagamento. Classifique meus gastos de fast food como 'lazer'."></textarea>
-      <div class="hint">Regras específicas que o assistente deve seguir</div>
-    </div>
-  </div>
 
-  <!-- Segurança -->
-  <div class="card">
-    <h2>Segurança</h2>
-    <div class="form-group">
-      <label>Número Autorizado</label>
-      <input type="text" id="numero_autorizado" placeholder="5543999211099">
-      <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número, sem espaços ou traços)</div>
+    <div class="card">
+      <h2>Segurança</h2>
+      <div class="form-group">
+        <label>Número Autorizado</label>
+        <input type="text" id="numero_autorizado" placeholder="5543999211099">
+        <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número, sem espaços ou traços)</div>
+      </div>
     </div>
-  </div>
 
-  <div class="btn-row">
-    <button class="btn" onclick="salvar()">Salvar Configurações</button>
+    <div class="btn-row"><button class="btn" onclick="salvar()">Salvar Configurações</button></div>
   </div>
 </div>
 
@@ -303,13 +490,48 @@
   </div>
 </div>
 
+<!-- Modal Serviço -->
+<div class="modal-backdrop" id="modal-servico">
+  <div class="modal">
+    <h3 id="servico-modal-title">Novo Serviço</h3>
+    <input type="hidden" id="servico-edit-id">
+    <div class="field"><label>Nome</label><input id="servico-nome" placeholder="Ex: Corte masculino"></div>
+    <div class="field"><label>Descrição</label><textarea id="servico-desc" rows="2" placeholder="Descrição opcional"></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Duração (minutos)</label><input type="number" id="servico-duracao" placeholder="30" min="5"></div>
+      <div class="field"><label>Preço (R$)</label><input type="number" id="servico-preco" placeholder="50.00" step="0.01" min="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalServico()">Cancelar</button>
+      <button class="btn-save" onclick="salvarServico()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalhe Cliente -->
+<div class="modal-backdrop" id="modal-cliente" onclick="if(event.target===this)fecharModalCliente()">
+  <div class="modal">
+    <h3 id="cli-detail-nome">—</h3>
+    <div class="sub" id="cli-detail-telefone">—</div>
+    <div class="detail-row"><span class="label">Cadastrado em</span><span class="value" id="cli-detail-criado">—</span></div>
+    <div class="hist-title">Histórico de Agendamentos</div>
+    <div id="cli-detail-hist"></div>
+    <button class="btn-close" onclick="fecharModalCliente()">Fechar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const API = window.location.origin;
+const API_AGENDA = '/central/agendamento';
 let token = localStorage.getItem('token') || localStorage.getItem('central_token');
 let configExiste = false;
+let configExisteAgenda = false;
 let provedores = [];
+const carregados = new Set();
+
+const DIAS = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
 
 const TIPOS_LLM = {
   gemini: { nome: 'Google Gemini', icon: '✦', campos: [
@@ -324,11 +546,11 @@ const TIPOS_LLM = {
   ]},
 };
 
-function toast(msg) {
+function toast(msg, tipo) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
+  el.className = `toast show ${tipo === 'err' ? 'err' : ''}`;
+  setTimeout(() => el.className = 'toast', 2500);
 }
 
 async function apiCall(method, path, body) {
@@ -342,7 +564,35 @@ async function apiCall(method, path, body) {
   return res;
 }
 
-// ── Provedores ──
+async function apiCallAgenda(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API_AGENDA}${path}`, opts);
+  if (res.status === 401) { logout(); return null; }
+  return res;
+}
+
+// ── Abas ──
+
+const INIT_TAB = {
+  horarios: carregarHorarios,
+  servicos: carregarServicos,
+  clientes: carregarClientes,
+};
+
+function mostrarTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tab === id));
+  if (!carregados.has(id) && INIT_TAB[id]) {
+    carregados.add(id);
+    INIT_TAB[id]();
+  }
+}
+
+// ── Provedores (IA) ──
 
 function renderProvedores() {
   const container = document.getElementById('provedores-list');
@@ -410,8 +660,6 @@ function removerProvedor(idx) {
   provedores.splice(idx, 1);
   renderProvedores();
 }
-
-// ── Drag & Drop ──
 
 let dragIdx = null;
 
@@ -536,7 +784,7 @@ async function desconectarWhatsapp() {
   atualizarStatus(false);
 }
 
-// ── Config ──
+// ── Config (Assistente — WhatsApp/IA/Personalidade) ──
 
 async function carregarConfig() {
   const res = await apiCall('GET', '/assistente/config');
@@ -552,13 +800,10 @@ async function carregarConfig() {
     document.getElementById('personalidade').value = data.personalidade || '';
     document.getElementById('instrucoes_extras').value = data.instrucoes_extras || '';
     document.getElementById('ativo').checked = data.ativo;
+    document.getElementById('usar_tool_calling').checked = !!data.usar_tool_calling;
     atualizarStatus(data.ativo);
 
-    if (data.provedores_llm && data.provedores_llm.length) {
-      provedores = data.provedores_llm;
-    } else {
-      provedores = [];
-    }
+    provedores = (data.provedores_llm && data.provedores_llm.length) ? data.provedores_llm : [];
     renderProvedores();
 
     if (data.evolution_url && data.ativo) {
@@ -601,6 +846,7 @@ function getPayload() {
     tom_voz: document.getElementById('tom_voz').value || 'casual',
     instrucoes_extras: document.getElementById('instrucoes_extras').value || null,
     ativo: document.getElementById('ativo').checked,
+    usar_tool_calling: document.getElementById('usar_tool_calling').checked,
   };
 }
 
@@ -669,7 +915,7 @@ async function confirmarSalvar() {
     atualizarStatus(payloadPendente.ativo);
     toast('Configurações salvas!');
   } else {
-    toast('Erro ao salvar');
+    toast('Erro ao salvar', 'err');
   }
   payloadPendente = null;
 }
@@ -686,10 +932,246 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); fecharModalQR(); }
 });
 
+// ── Config (Agenda — catálogo/Google/mensagens) ──
+
+async function carregarAgendaConfig() {
+  const res = await apiCallAgenda('GET', '/config');
+  if (res && res.ok) {
+    configExisteAgenda = true;
+    const c = await res.json();
+    document.getElementById('catalogo-prompt').value = c.catalogo_prompt || '';
+    document.getElementById('msg-midia').value = c.mensagem_midia_bloqueada || '';
+    document.getElementById('msg-contingencia').value = c.mensagem_contingencia || '';
+    document.getElementById('agenda-ativo').checked = c.ativo;
+
+    if (c.google_calendar_conectado) {
+      document.getElementById('gcal-disconnected').style.display = 'none';
+      document.getElementById('gcal-connected').style.display = '';
+      document.getElementById('gcal-calendar-id').textContent = c.google_calendar_id || '';
+      document.getElementById('gcal-ativo').checked = c.google_calendar_ativo;
+    } else {
+      document.getElementById('gcal-disconnected').style.display = '';
+      document.getElementById('gcal-connected').style.display = 'none';
+    }
+  }
+}
+
+async function salvarAgenda() {
+  const body = {
+    catalogo_prompt: document.getElementById('catalogo-prompt').value || null,
+    mensagem_midia_bloqueada: document.getElementById('msg-midia').value || null,
+    mensagem_contingencia: document.getElementById('msg-contingencia').value || null,
+    ativo: document.getElementById('agenda-ativo').checked,
+  };
+
+  const res = await apiCallAgenda(configExisteAgenda ? 'PUT' : 'POST', '/config', body);
+  if (res && res.ok) {
+    configExisteAgenda = true;
+    toast('Configurações de agenda salvas!');
+  } else {
+    toast('Erro ao salvar', 'err');
+  }
+}
+
+async function conectarGoogle() {
+  const res = await apiCallAgenda('GET', '/google/auth-url');
+  if (res && res.ok) {
+    const data = await res.json();
+    window.location.href = data.url;
+  } else {
+    toast('Erro ao conectar Google. Salve as configurações de agenda primeiro.', 'err');
+  }
+}
+
+async function desconectarGoogle() {
+  if (!confirm('Desconectar Google Calendar? Os agendamentos no banco serão mantidos.')) return;
+  const res = await apiCallAgenda('POST', '/google/disconnect');
+  if (res && res.ok) {
+    toast('Google Calendar desconectado');
+    carregarAgendaConfig();
+  } else {
+    toast('Erro ao desconectar', 'err');
+  }
+}
+
+async function toggleGcal() {
+  const ativo = document.getElementById('gcal-ativo').checked;
+  await apiCallAgenda('PUT', '/config', { google_calendar_ativo: ativo });
+}
+
+// ── Horários ──
+
+function renderGridHorarios(horarios) {
+  const grid = document.getElementById('grid-semana');
+  grid.innerHTML = DIAS.map((nome, i) => {
+    const h = horarios.find(x => x.dia_semana === i);
+    const ativo = h ? h.ativo : (i < 6);
+    const inicio = h ? h.hora_inicio : '09:00';
+    const fim = h ? h.hora_fim : '18:00';
+    return `<div class="dia-row">
+      <div class="dia-nome">${nome}</div>
+      <div class="dia-campos">
+        <input type="time" id="inicio-${i}" value="${inicio}">
+        <span>até</span>
+        <input type="time" id="fim-${i}" value="${fim}">
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="dia-ativo-${i}" ${ativo ? 'checked' : ''}>
+        <span class="slider"></span>
+      </label>
+    </div>`;
+  }).join('');
+}
+
+async function carregarHorarios() {
+  const res = await apiCallAgenda('GET', '/horarios');
+  if (res && res.ok) renderGridHorarios(await res.json());
+  else renderGridHorarios([]);
+}
+
+async function salvarHorarios() {
+  const horarios = DIAS.map((_, i) => ({
+    dia_semana: i,
+    hora_inicio: document.getElementById(`inicio-${i}`).value,
+    hora_fim: document.getElementById(`fim-${i}`).value,
+    ativo: document.getElementById(`dia-ativo-${i}`).checked,
+  }));
+
+  const res = await apiCallAgenda('POST', '/horarios', horarios);
+  if (res && res.ok) { toast('Horários salvos!'); carregarHorarios(); }
+  else toast('Erro ao salvar horários', 'err');
+}
+
+// ── Serviços ──
+
+let servicosCache = [];
+
+async function carregarServicos() {
+  const res = await apiCallAgenda('GET', '/servicos');
+  if (res && res.ok) { servicosCache = await res.json(); renderServicos(); }
+}
+
+function renderServicos() {
+  const body = document.getElementById('servicos-tabela-body');
+  const empty = document.getElementById('servicos-empty-msg');
+  if (!servicosCache.length) { body.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  body.innerHTML = servicosCache.map(s => `<tr>
+    <td style="font-weight:500">${s.nome}</td>
+    <td style="color:var(--gray-l)">${s.descricao || '—'}</td>
+    <td>${s.duracao_minutos} min</td>
+    <td>${s.preco != null ? 'R$ '+s.preco.toFixed(2) : '—'}</td>
+    <td><span class="badge ${s.ativo?'on':'off'}">${s.ativo?'Ativo':'Inativo'}</span></td>
+    <td>
+      <button class="icon-btn" onclick="editarServico(${s.id})" title="Editar">✎</button>
+      <button class="icon-btn del" onclick="deletarServico(${s.id})" title="Excluir">✕</button>
+    </td>
+  </tr>`).join('');
+}
+
+function abrirModalServico(s) {
+  document.getElementById('servico-modal-title').textContent = s ? 'Editar Serviço' : 'Novo Serviço';
+  document.getElementById('servico-edit-id').value = s ? s.id : '';
+  document.getElementById('servico-nome').value = s ? s.nome : '';
+  document.getElementById('servico-desc').value = s ? (s.descricao || '') : '';
+  document.getElementById('servico-duracao').value = s ? s.duracao_minutos : '';
+  document.getElementById('servico-preco').value = s ? (s.preco || '') : '';
+  document.getElementById('modal-servico').classList.add('show');
+}
+
+function fecharModalServico() { document.getElementById('modal-servico').classList.remove('show'); }
+
+function editarServico(id) {
+  const s = servicosCache.find(x => x.id === id);
+  if (s) abrirModalServico(s);
+}
+
+async function salvarServico() {
+  const id = document.getElementById('servico-edit-id').value;
+  const body = {
+    nome: document.getElementById('servico-nome').value,
+    descricao: document.getElementById('servico-desc').value || null,
+    duracao_minutos: parseInt(document.getElementById('servico-duracao').value) || 30,
+    preco: parseFloat(document.getElementById('servico-preco').value) || null,
+    ativo: true,
+  };
+
+  const res = await apiCallAgenda(id ? 'PUT' : 'POST', id ? `/servicos/${id}` : '/servicos', body);
+  if (res && res.ok) { toast('Serviço salvo!'); fecharModalServico(); carregarServicos(); }
+  else toast('Erro ao salvar serviço', 'err');
+}
+
+async function deletarServico(id) {
+  if (!confirm('Excluir este serviço?')) return;
+  const res = await apiCallAgenda('DELETE', `/servicos/${id}`);
+  if (res && res.ok) { toast('Serviço excluído'); carregarServicos(); }
+  else toast('Erro ao excluir', 'err');
+}
+
+// ── Clientes ──
+
+async function carregarClientes() {
+  const res = await apiCallAgenda('GET', '/clients');
+  if (!res || !res.ok) { document.getElementById('clientes-empty-msg').style.display = ''; return; }
+  renderClientes(await res.json());
+}
+
+function renderClientes(clients) {
+  const body = document.getElementById('clientes-tabela-body');
+  const empty = document.getElementById('clientes-empty-msg');
+  if (!clients.length) { body.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  body.innerHTML = clients.map(c => {
+    const dt = c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : '—';
+    return `<tr class="clickable" onclick="verDetalheCliente(${c.id})">
+      <td style="font-weight:500">${c.nome || '—'}</td>
+      <td>${c.telefone}</td>
+      <td style="color:var(--gray-l)">${dt}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function verDetalheCliente(id) {
+  const res = await apiCallAgenda('GET', `/clients/${id}`);
+  if (!res || !res.ok) return;
+  const data = await res.json();
+
+  document.getElementById('cli-detail-nome').textContent = data.nome || 'Sem nome';
+  document.getElementById('cli-detail-telefone').textContent = data.telefone;
+  document.getElementById('cli-detail-criado').textContent = data.criado_em ? new Date(data.criado_em).toLocaleDateString('pt-BR') : '—';
+
+  const hist = data.agendamentos || [];
+  document.getElementById('cli-detail-hist').innerHTML = hist.length
+    ? hist.map(a => {
+        const dt = new Date(a.data_hora);
+        return `<div class="hist-item">
+          <span class="dt">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+          <span class="badge ${a.status}">${a.status.replace('_',' ')}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--gray);font-size:12px;padding:8px 0;">Nenhum agendamento registrado.</div>';
+
+  document.getElementById('modal-cliente').classList.add('show');
+}
+
+function fecharModalCliente() { document.getElementById('modal-cliente').classList.remove('show'); }
+
+// ── Google OAuth callback / boot ──
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('google') === 'ok') {
+  setTimeout(() => toast('Google Calendar conectado com sucesso!'), 500);
+  history.replaceState(null, '', window.location.pathname);
+} else if (urlParams.get('google') === 'error') {
+  setTimeout(() => toast('Erro ao conectar Google Calendar: ' + (urlParams.get('msg') || 'desconhecido'), 'err'), 500);
+  history.replaceState(null, '', window.location.pathname);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    document.getElementById('user-email').textContent = payload.sub || '—';
+    const emailEl = document.getElementById('user-email');
+    if (emailEl) emailEl.textContent = payload.sub || '—';
   } catch {}
 });
 
@@ -697,6 +1179,8 @@ if (!token) {
   window.location.href = '/';
 } else {
   carregarConfig();
+  carregarAgendaConfig();
+  if (urlParams.get('google')) mostrarTab('agenda');
 }
 </script>
 </body>

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.database import SessionLocal
-from backend.agendamento.whatsapp import enviar_mensagem
+from backend.assistente.whatsapp import enviar_mensagem
 from backend.agendamento.google_sync import sync_from_google, setup_watch_channel
 
 
@@ -48,6 +48,12 @@ def enviar_lembretes():
             if not config or not config.ativo:
                 continue
 
+            assistente_cfg = db.query(models.AssistenteConfig).filter(
+                models.AssistenteConfig.user_id == config.user_id,
+            ).first()
+            if not assistente_cfg or not assistente_cfg.ativo or not assistente_cfg.evolution_url:
+                continue
+
             client = db.query(models.Client).filter(
                 models.Client.id == appt.client_id,
             ).first()
@@ -68,12 +74,18 @@ def enviar_lembretes():
 
             try:
                 asyncio.get_event_loop().run_until_complete(
-                    enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, client.telefone, texto)
+                    enviar_mensagem(
+                        assistente_cfg.evolution_url, assistente_cfg.evolution_api_key,
+                        assistente_cfg.evolution_instance, client.telefone, texto,
+                    )
                 )
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 loop.run_until_complete(
-                    enviar_mensagem(config.whatsapp_token, config.whatsapp_phone_id, client.telefone, texto)
+                    enviar_mensagem(
+                        assistente_cfg.evolution_url, assistente_cfg.evolution_api_key,
+                        assistente_cfg.evolution_instance, client.telefone, texto,
+                    )
                 )
                 loop.close()
 

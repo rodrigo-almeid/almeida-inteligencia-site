@@ -1,6 +1,6 @@
 # Central Sistemas — Almeida Inteligência
 
-Plataforma modular para automação de processos pessoais e profissionais: gestão financeira, agendamento inteligente via WhatsApp com IA, assistente virtual, cofre de credenciais e mais.
+Plataforma modular para automação de processos pessoais e profissionais: gestão financeira, assistente virtual de WhatsApp (finanças + agendamento inteligente com IA), cofre de credenciais e mais.
 
 ---
 
@@ -10,12 +10,11 @@ Plataforma modular para automação de processos pessoais e profissionais: gest�
 - [Módulos](#módulos)
   - [Portal Administrativo](#1-portal-administrativo)
   - [Automação Financeira](#2-automação-financeira)
-  - [Agendamento Inteligente](#3-agendamento-inteligente)
-  - [Assistente Virtual (Goku)](#4-assistente-virtual-goku)
-  - [Gerenciador de Credenciais](#5-gerenciador-de-credenciais)
-  - [Classificador de E-mails](#6-classificador-de-e-mails)
-  - [Controle de Combustível](#7-controle-de-combustível)
-  - [Controle de Mercado](#8-controle-de-mercado)
+  - [Assistente Virtual (Goku)](#3-assistente-virtual-goku)
+  - [Gerenciador de Credenciais](#4-gerenciador-de-credenciais)
+  - [Classificador de E-mails](#5-classificador-de-e-mails)
+  - [Controle de Combustível](#6-controle-de-combustível)
+  - [Controle de Mercado](#7-controle-de-mercado)
 - [Integrações entre Módulos](#integrações-entre-módulos)
 - [Instalação e Execução](#instalação-e-execução)
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
@@ -36,13 +35,12 @@ FastAPI (Python 3.11)
 │   ├── combustivel/   → Abastecimentos e cálculo de consumo
 │   ├── mercado/       → Compras de supermercado com itens
 │   ├── credenciais/   → Cofre de senhas criptografadas
-│   ├── assistente/    → Chatbot WhatsApp (Goku) com Gemini/Groq
-│   └── agendamento/   → Agendamento via WhatsApp com IA e Google Calendar
+│   ├── assistente/    → Bot único de WhatsApp (Goku): finanças multi-LLM + tool-calling de agendamento
+│   └── agendamento/   → Sub-recursos de agendamento (horários/serviços/clientes/Google Calendar) — sem webhook próprio
 ├── frontend/
 │   ├── financeiro/    → Dashboard financeiro, contas, combustível, mercado
 │   ├── credenciais/   → Cofre de senhas
-│   ├── assistente/    → Painel de configuração do Goku
-│   └── agendamento/   → Painel de agendamento (serviços, horários, clientes)
+│   └── assistente/    → Painel único do Goku, com abas (WhatsApp/IA/Agenda/Horários/Serviços/Clientes/Personalidade)
 ├── seed.py            → Inicialização do banco (perfis + admin)
 ├── Dockerfile
 └── requirements.txt
@@ -108,61 +106,27 @@ Gestão financeira completa com contas, categorias, recorrências automáticas e
 
 ---
 
-### 3. Agendamento Inteligente
+### 3. Assistente Virtual (Goku)
 
-Sistema de agendamento de serviços via WhatsApp com IA conversacional, cálculo de disponibilidade e sincronização com Google Calendar.
+Bot único de WhatsApp (Evolution API/Baileys, self-hosted — a Meta Cloud API foi removida) que cobre finanças pessoais **e** agendamento de serviços na mesma conversa. Historicamente eram dois módulos separados (Agendamento Inteligente via Meta, nunca usado em produção; Assistente/Goku via Evolution, em uso real) — foram fundidos: o canal Evolution sobrevive e a arquitetura de tool-calling do agendamento foi generalizada para cobrir também as ações financeiras.
 
 **O que faz:**
-- Recebe mensagens via WhatsApp Business API
-- Usa LLM (Gemini → Groq → Ollama, por prioridade com fallback) para entender o pedido
-- LLM pode chamar **tools** para executar ações:
-  - `buscar_horarios_disponiveis` — calcula slots livres baseado em horários + serviço + agendamentos existentes
-  - `pre_reservar_horario` — bloqueia horário por 5 minutos
-  - `confirmar_agendamento` — confirma e sincroniza com Google Calendar
-  - `cancelar_agendamento` — cancela e remove do Google Calendar
-  - `reagendar_agendamento` — altera data/hora
-- Cadastro de serviços (nome, duração, preço)
-- Cadastro de horários de funcionamento (dia da semana + faixa horária)
-- Clientes identificados automaticamente pelo número de telefone
-- Histórico de conversas (sliding window de 6 mensagens)
-- Dashboard com KPIs (conversas do dia, agendamentos confirmados, próximos horários)
-- Métricas de LLM (provider, tokens, latência, erros)
+- Usa LLM (Gemini → Groq → Ollama, por prioridade com fallback) pra entender a mensagem — credenciais únicas em `AssistenteConfig.provedores_llm` (cifradas com Fernet)
+- **Tool-calling opcional** (`usar_tool_calling`, por config) — quando ligado, o LLM chama diretamente uma tool em vez de passar por classificação manual de intenção:
+  - `registrar_gasto`, `consultar_financas` — ações financeiras
+  - `buscar_horarios_disponiveis`, `pre_reservar_horario`, `confirmar_agendamento`, `cancelar_agendamento`, `reagendar_agendamento` — ações de agendamento (só oferecidas se `AgendamentoConfig.ativo=True`)
+- **Fluxo legado** (flag desligada, padrão) — `detectar_intencao()` classifica em `financeiro_registro`/`financeiro_consulta`/`chat` e roteia manualmente em Python
+- **OCR de notas fiscais e loop de campo faltante** (`RegistroPendente`) ficam **fora** do tool-calling em ambos os casos — são máquinas de estado determinísticas, sempre ativas
+- **Registro automático** — cria lançamentos no módulo Financeiro; se for mercado (foto ou texto), cria em Mercado em vez de uma conta genérica
+- **Agendamento** — cadastro de serviços/horários, clientes identificados pelo `numero_autorizado` (bot é pessoal, sem clientes externos), sincronização com Google Calendar
+- **Personalidade configurável** — nome do assistente, tom de voz, personalidade, instruções extras
+- **Segurança** — webhook autenticado por `webhook_secret` próprio (query param), só processa mensagens do número autorizado
 
 **Ciclo de vida do agendamento:**
 ```
 pre_reservado (5 min TTL) → confirmado → concluido
                                        → cancelado
 ```
-
-**Tarefas agendadas (cron):**
-| Tarefa | Intervalo | Descrição |
-|--------|-----------|-----------|
-| Limpar pré-reservas expiradas | 1 min | Remove agendamentos não confirmados |
-| Enviar lembretes | 30 min | WhatsApp de lembrete para clientes |
-| Sincronizar Google Calendar | 15 min | Busca alterações externas |
-| Renovar canais push | 12h | Renova push notifications do Google |
-
-**Rotas:** `/agendamento/config`, `/agendamento/horarios`, `/agendamento/servicos`, `/agendamento/clients`, `/agendamento/appointments`, `/agendamento/stats`, `/agendamento/webhook`, `/agendamento/google/*`  
-**Código:** `backend/agendamento/` (routers, llm_gateway, whatsapp, google_sync, slots, cron, adapters/)  
-**Frontend:** `frontend/agendamento/` (index, config, horarios, servicos, clientes)
-
----
-
-### 4. Assistente Virtual (Goku)
-
-Chatbot pessoal via WhatsApp que usa IA para interpretar mensagens, registrar gastos, processar notas fiscais por foto e consultar finanças.
-
-**O que faz:**
-- **Detecção de intenção** — classifica a mensagem automaticamente:
-  - `financeiro_registro` → registra gasto ("gastei 50 no almoço")
-  - `financeiro_consulta` → retorna resumo financeiro do mês
-  - `image` → processa foto de nota fiscal via OCR
-  - `chat` → conversa livre
-- **OCR de notas fiscais** — envia foto → Gemini extrai dados estruturados (estabelecimento, itens, valores, forma de pagamento)
-- **Registro automático** — cria lançamentos no módulo Financeiro; se for mercado (foto ou texto — ex. "gastei 45 no mercado no pix"), cria em Mercado em vez de uma conta genérica
-- **Personalidade configurável** — nome do assistente, tom de voz, personalidade, instruções extras
-- **Segurança** — webhook autenticado por `webhook_secret` próprio (query param), e só processa mensagens do número de WhatsApp autorizado
-- **Fallback** — se Gemini falhar, tenta Groq automaticamente
 
 **Fluxo de nota fiscal:**
 ```
@@ -173,17 +137,26 @@ Foto no WhatsApp → Download da imagem → Gemini Vision (OCR)
 → Responde: "Nota registrada! Mercado X | R$ 150,50"
 ```
 
-**WhatsApp:** Evolution API (Baileys, self-hosted) — conexão por QR Code, sem aprovação da Meta  
-**Configurações:** nome_assistente, personalidade, tom_voz, instrucoes_extras, numero_autorizado  
-**Rotas:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/desconectar`, `/assistente/webhook/resync`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT)  
-**Código:** `backend/assistente/` (routers, gemini.py, whatsapp.py)  
-**Frontend:** `frontend/assistente/index.html` (painel de configuração)
+**Tarefas agendadas (cron):**
+| Tarefa | Intervalo | Descrição |
+|--------|-----------|-----------|
+| Limpar pré-reservas expiradas | 1 min | Remove agendamentos não confirmados |
+| Enviar lembretes | 30 min | WhatsApp de lembrete via Evolution API |
+| Sincronizar Google Calendar | 15 min | Busca alterações externas |
+| Renovar canais push | 12h | Renova push notifications do Google |
+
+**WhatsApp:** Evolution API (Baileys, self-hosted) — conexão por QR Code, sem aprovação da Meta; canal único do sistema  
+**Configurações:** nome_assistente, personalidade, tom_voz, instrucoes_extras, numero_autorizado, usar_tool_calling  
+**Rotas do bot:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/desconectar`, `/assistente/webhook/resync`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT — único webhook de WhatsApp do sistema), `/assistente/simulador/*`  
+**Rotas de agendamento (sub-recursos, sem webhook próprio):** `/agendamento/config`, `/agendamento/horarios`, `/agendamento/servicos`, `/agendamento/clients`, `/agendamento/appointments`, `/agendamento/stats`, `/agendamento/google/*`  
+**Código:** `backend/assistente/` (routers, llm_gateway.py, adapters/, tools_agendamento.py, tools_financeiro.py, finance_actions.py, gemini.py, whatsapp.py) + `backend/agendamento/` (routers de sub-recursos, slots.py, google_sync.py, crypto.py, cron.py)  
+**Frontend:** `frontend/assistente/` (index.html — painel único com abas WhatsApp/IA/E-mail-Agenda/Horários/Serviços/Clientes/Personalidade; dashboard.html; console.html)
 
 **Cuidado com reconexões repetidas:** o WhatsApp pode remover o aparelho vinculado (log da Evolution API: `conflict`/`device_removed`) se a instância for reconectada várias vezes seguidas em pouco tempo — mais comum em números novos. Use `/assistente/webhook/resync` pra atualizar o webhook sem tocar na conexão, e `/assistente/desconectar` (botão "🔌 Desconectar" no painel) se a sessão travar num loop de reconexão.
 
 ---
 
-### 5. Gerenciador de Credenciais
+### 4. Gerenciador de Credenciais
 
 Cofre digital para armazenar senhas e dados pessoais com criptografia Fernet.
 
@@ -209,7 +182,7 @@ Cofre digital para armazenar senhas e dados pessoais com criptografia Fernet.
 
 ---
 
-### 6. Classificador de E-mails
+### 5. Classificador de E-mails
 
 Sistema de triagem e classificação automática de e-mails usando Machine Learning, com extração via IMAP e interface de inbox completa.
 
@@ -247,7 +220,7 @@ Sistema de triagem e classificação automática de e-mails usando Machine Learn
 
 ---
 
-### 7. Controle de Combustível
+### 6. Controle de Combustível
 
 Registro de abastecimentos com cálculos automáticos de consumo e integração financeira.
 
@@ -270,7 +243,7 @@ Registro de abastecimentos com cálculos automáticos de consumo e integração 
 
 ---
 
-### 8. Controle de Mercado
+### 7. Controle de Mercado
 
 Registro de compras de supermercado com itens detalhados.
 
@@ -302,12 +275,9 @@ Portal Administrativo (cadastro + perfis RBAC)
 ┌─────────────────┐   gasto por texto           │
 │   Assistente    │ ───ou nota fiscal──────────►│
 │   Virtual       │                              │
-│   (Goku)        │ ──nota de mercado──────────►│ Controle de Mercado
-└─────────────────┘                              │
-                                                 │
-┌─────────────────┐                              │
-│   Agendamento   │   (futuro: faturamento) ────┘
-│   Inteligente   │
+│   (Goku) —      │ ──nota de mercado──────────►│ Controle de Mercado
+│   finanças +    │
+│   agendamento   │   (futuro: faturamento) ────┘
 └─────────────────┘
 
 ┌─────────────────┐
@@ -374,8 +344,9 @@ docker run -p 8000:8000 --env-file .env central-sistemas
 | Combustível | `http://localhost:8000/financeiro/combustivel.html` |
 | Mercado | `http://localhost:8000/financeiro/mercado.html` |
 | Credenciais | `http://localhost:8000/credenciais/` |
-| Assistente (config) | `http://localhost:8000/assistente-painel/` |
-| Agendamento (config) | `http://localhost:8000/agendamento-painel/` |
+| Assistente (dashboard) | `http://localhost:8000/assistente-painel/dashboard.html` |
+| Assistente (config, com abas) | `http://localhost:8000/assistente-painel/` |
+| Assistente (console) | `http://localhost:8000/assistente-painel/console.html` |
 
 ### Usuário admin padrão
 
@@ -446,46 +417,47 @@ central_backend/
 │   │       ├── pessoas.py     # CRUD /pessoas/
 │   │       └── csv.py         # GET /exportar-csv
 │   │
-│   ├── assistente/
+│   ├── assistente/             # Bot único de WhatsApp (finanças + agendamento)
 │   │   ├── routers/
-│   │   │   ├── config.py      # CRUD /assistente/config
-│   │   │   └── webhook.py     # Webhook WhatsApp + roteamento por intenção
-│   │   ├── gemini.py          # Chat, detecção de intenção, OCR
-│   │   └── whatsapp.py        # Envio de mensagens + download de mídia
+│   │   │   ├── config.py      # CRUD /assistente/config (cifra provedores_llm)
+│   │   │   ├── webhook.py     # Webhook único — imagem / RegistroPendente / tool-calling / legado
+│   │   │   └── simulador.py   # Console de simulação
+│   │   ├── llm_gateway.py     # Orquestrador único de tool-calling (financeiro + agendamento)
+│   │   ├── adapters/          # Gemini/Groq/Ollama com function-calling nativo
+│   │   │   ├── base.py        # LlmResponse, ToolCall, AGENDAMENTO_TOOLS_SCHEMA, FINANCEIRO_TOOLS_SCHEMA
+│   │   │   ├── gemini_adapter.py
+│   │   │   ├── groq_adapter.py
+│   │   │   └── ollama_adapter.py
+│   │   ├── tools_agendamento.py # Execução das 5 tools de agendamento contra o banco
+│   │   ├── tools_financeiro.py  # Execução das tools financeiras (registrar_gasto, consultar_financas)
+│   │   ├── finance_actions.py   # Lógica pura financeira (reusada pelo fluxo legado e pelas tools)
+│   │   ├── gemini.py           # Motor sem tool-calling: chat livre, detecção de intenção, OCR (fluxo legado)
+│   │   └── whatsapp.py         # Envio de mensagens + download de mídia (Evolution API)
 │   │
-│   ├── agendamento/
+│   ├── agendamento/             # Sub-recursos de agendamento — SEM webhook próprio
 │   │   ├── routers/
-│   │   │   ├── config.py      # Configuração geral
+│   │   │   ├── config.py      # Config de negócio (catálogo, mensagens, Google Calendar)
 │   │   │   ├── horarios.py    # Horários de funcionamento
 │   │   │   ├── servicos.py    # CRUD de serviços
 │   │   │   ├── clients.py     # Lista de clientes
 │   │   │   ├── appointments.py # Agendamentos + slots disponíveis
 │   │   │   ├── dashboard_stats.py # KPIs
-│   │   │   ├── webhook.py     # Webhook WhatsApp
 │   │   │   └── google_calendar.py # OAuth + sync Google
-│   │   ├── llm_gateway.py     # Orquestrador LLM com tool calling
-│   │   ├── whatsapp.py        # API WhatsApp
 │   │   ├── google_sync.py     # Sincronização Google Calendar
 │   │   ├── slots.py           # Cálculo de horários disponíveis
-│   │   ├── cron.py            # Tarefas agendadas (APScheduler)
-│   │   ├── crypto.py          # Criptografia de chaves de API
-│   │   └── adapters/
-│   │       ├── base.py        # Interface LlmResponse
-│   │       ├── gemini_adapter.py
-│   │       ├── groq_adapter.py
-│   │       └── ollama_adapter.py
+│   │   ├── cron.py            # Tarefas agendadas (APScheduler) — lembretes via Evolution API
+│   │   └── crypto.py          # Criptografia Fernet (reusada por assistente/config.py)
 │   │
 │   └── main.py                # App FastAPI + registro de routers + scheduler
 │
 ├── frontend/
 │   ├── shared/                 # sidebar.js + sidebar.css — menu lateral e breadcrumb
-│   │                           # compartilhados por financeiro/agendamento/assistente/credenciais
+│   │                           # compartilhados por financeiro/assistente/credenciais
 │   │                           # (servido via mount /shared no main.py). email_classifier/
 │   │                           # NÃO usa esse componente — é uma base de código à parte.
 │   ├── financeiro/            # Dashboard, contas, combustível, mercado
-│   ├── credenciais/           # Cofre de senhas
-│   ├── assistente/            # Config do Goku
-│   └── agendamento/           # Painel de agendamento
+│   ├── credenciais/            # Cofre de senhas
+│   └── assistente/             # Painel único (index.html com abas, dashboard.html, console.html)
 │
 ├── tests/                     # Testes automatizados
 ├── seed.py                    # Inicialização do banco
@@ -591,13 +563,14 @@ email_classifier/
 | `GET` | `/assistente/connection-state` | JWT | Estado da conexão com o WhatsApp |
 | `POST` | `/assistente/desconectar` | JWT | Encerrar sessão do WhatsApp (logout ou apaga instância travada) |
 | `POST` | `/assistente/webhook/resync` | JWT | Reconfigurar webhook na Evolution API sem gerar QR Code |
-| `POST` | `/assistente/webhook?secret=...` | Segredo por URL | Webhook Evolution API (WhatsApp) |
+| `POST` | `/assistente/webhook?secret=...` | Segredo por URL | Webhook único — Evolution API (WhatsApp), cobre finanças e agendamento |
+| `POST` | `/assistente/simulador/chat` | JWT | Simular mensagem (console) |
+| `DELETE` | `/assistente/simulador/historico` | JWT | Limpar histórico do simulador |
 
-### Agendamento Inteligente
+Sub-recursos de agendamento (mesmo bot, sem webhook próprio):
 | Método | Rota | Auth | Descrição |
 |--------|------|:----:|-----------|
-| `GET/POST/PUT` | `/agendamento/config` | JWT | Configuração |
-| `POST` | `/agendamento/config/testar-llm` | JWT | Testar LLM |
+| `GET/POST/PUT` | `/agendamento/config` | JWT | Config de negócio (catálogo, mensagens, Google Calendar) |
 | `GET/POST` | `/agendamento/horarios` | JWT | Horários |
 | `GET/POST/PUT/DELETE` | `/agendamento/servicos` | JWT | Serviços |
 | `GET` | `/agendamento/clients` | JWT | Clientes |
@@ -605,7 +578,6 @@ email_classifier/
 | `GET` | `/agendamento/appointments/slots` | JWT | Slots disponíveis |
 | `PUT` | `/agendamento/appointments/{id}/status` | JWT | Alterar status |
 | `GET` | `/agendamento/stats` | JWT | KPIs |
-| `GET/POST` | `/agendamento/webhook` | — | Webhook WhatsApp |
 | `GET` | `/agendamento/google/auth-url` | JWT | URL OAuth Google |
 | `GET` | `/agendamento/google/callback` | — | Callback OAuth |
 | `POST` | `/agendamento/google/disconnect` | JWT | Desconectar Google |
@@ -623,7 +595,7 @@ email_classifier/
 | Criptografia | Fernet (cryptography) |
 | Frontend | HTML5 + TailwindCSS + Chart.js |
 | IA / LLM | Google Gemini 2.0 Flash, Groq LLaMA 3.3 70B, Ollama |
-| WhatsApp | Meta Cloud API v21.0 (Agendamento) + Evolution API/Baileys self-hosted (Assistente) |
+| WhatsApp | Evolution API/Baileys self-hosted — canal único (Meta Cloud API removida) |
 | Calendário | Google Calendar API v3 (google-auth + google-auth-oauthlib) |
 | HTTP Client | httpx |
 | Relatórios | openpyxl (Excel) + ReportLab (PDF) |

@@ -1,9 +1,9 @@
 import httpx
 import json
-from .base import LlmResponse, ToolCall, TOOLS_SCHEMA
+from .base import LlmResponse, ToolCall
 
 
-def _build_gemini_tools():
+def _build_gemini_tools(tools_schema: list) -> list:
     return [{
         "function_declarations": [
             {
@@ -11,7 +11,7 @@ def _build_gemini_tools():
                 "description": t["description"],
                 "parameters": t["parameters"],
             }
-            for t in TOOLS_SCHEMA
+            for t in tools_schema
         ]
     }]
 
@@ -24,15 +24,16 @@ def _build_contents(messages: list[dict]) -> list[dict]:
     return contents
 
 
-async def call(messages: list[dict], system_prompt: str, api_key: str, timeout: float = 8.0) -> LlmResponse:
+async def call(messages: list[dict], system_prompt: str, api_key: str, tools_schema: list = None, timeout: float = 8.0) -> LlmResponse:
     contents = _build_contents(messages)
 
     body = {
         "contents": contents,
-        "tools": _build_gemini_tools(),
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1024},
     }
+    if tools_schema:
+        body["tools"] = _build_gemini_tools(tools_schema)
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

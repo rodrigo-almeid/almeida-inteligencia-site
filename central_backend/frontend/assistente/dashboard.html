@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agendamento — Dashboard</title>
+  <title>Assistente — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/sidebar.css">
   <style>
@@ -64,18 +64,16 @@
 <body>
 <script>
   window.SIDEBAR_CONFIG = {
-    tag: 'Agendamento',
+    tag: 'Assistente',
     ativo: 'dashboard',
     items: [
-      { id: 'dashboard', href: '/agendamento-painel/', icon: 'dashboard', label: 'Dashboard' },
-      { id: 'config', href: '/agendamento-painel/config.html', icon: 'config', label: 'Configuracoes' },
-      { id: 'servicos', href: '/agendamento-painel/servicos.html', icon: 'servicos', label: 'Servicos' },
-      { id: 'horarios', href: '/agendamento-painel/horarios.html', icon: 'horarios', label: 'Horarios' },
-      { id: 'clientes', href: '/agendamento-painel/clientes.html', icon: 'clientes', label: 'Clientes' },
+      { id: 'dashboard', href: '/assistente-painel/dashboard.html', icon: 'dashboard', label: 'Dashboard' },
+      { id: 'config', href: '/assistente-painel/', icon: 'assistente_config', label: 'Configuração' },
+      { id: 'console', href: '/assistente-painel/console.html', icon: 'console', label: 'Console' },
     ],
     breadcrumb: [
       { label: 'Portal', href: 'https://almeidainteligencia.com.br/dashboard/' },
-      { label: 'Agendamento', href: '/agendamento-painel/' },
+      { label: 'Assistente', href: '/assistente-painel/' },
       { label: 'Dashboard' },
     ],
   };
@@ -88,8 +86,8 @@
   <div id="breadcrumb-root"></div>
   <div class="page-header">
     <div>
-      <h1>Agendamento Inteligente</h1>
-      <p>Dashboard de agendamentos e controle de LLMs</p>
+      <h1>🐉 Goku — Assistente Virtual</h1>
+      <p>Agendamentos e atividade do assistente unificado</p>
     </div>
     <div class="date-nav">
       <button onclick="mudarDia(-1)">&lsaquo;</button>
@@ -99,10 +97,10 @@
   </div>
 
   <div class="kpi-grid">
-    <div class="kpi"><div class="label">Conversas Hoje</div><div class="valor green" id="kpi-conversas">0</div><div class="sub">sessoes ativas</div></div>
+    <div class="kpi"><div class="label">Conversas Hoje</div><div class="valor green" id="kpi-conversas">0</div><div class="sub">sessões ativas</div></div>
     <div class="kpi"><div class="label">Agendamentos Hoje</div><div class="valor blue" id="kpi-agendamentos">0</div><div class="sub">confirmados</div></div>
-    <div class="kpi"><div class="label">Total no Mes</div><div class="valor" id="kpi-mes">0</div><div class="sub">confirmados + concluidos</div></div>
-    <div class="kpi"><div class="label">LLM Ativa</div><div class="valor yellow" id="kpi-llm">—</div><div class="sub">ultimo provider usado</div></div>
+    <div class="kpi"><div class="label">Total no Mês</div><div class="valor" id="kpi-mes">0</div><div class="sub">confirmados + concluídos</div></div>
+    <div class="kpi"><div class="label">LLM Ativa</div><div class="valor yellow" id="kpi-llm">—</div><div class="sub">último provider usado</div></div>
   </div>
 
   <div class="section-header">
@@ -112,20 +110,20 @@
   <div class="filter-tabs">
     <button class="ftab active" onclick="filtrarStatus(this,'')">Todos</button>
     <button class="ftab" onclick="filtrarStatus(this,'confirmado')">Confirmados</button>
-    <button class="ftab" onclick="filtrarStatus(this,'pre_reservado')">Pre-reservados</button>
+    <button class="ftab" onclick="filtrarStatus(this,'pre_reservado')">Pré-reservados</button>
     <button class="ftab" onclick="filtrarStatus(this,'cancelado')">Cancelados</button>
-    <button class="ftab" onclick="filtrarStatus(this,'concluido')">Concluidos</button>
+    <button class="ftab" onclick="filtrarStatus(this,'concluido')">Concluídos</button>
   </div>
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>Horario</th>
+          <th>Horário</th>
           <th>Cliente</th>
-          <th>Servico</th>
+          <th>Serviço</th>
           <th>Status</th>
-          <th>Acoes</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody id="tabela-body"></tbody>
@@ -134,7 +132,7 @@
   </div>
 
   <div class="section-header" style="margin-top:32px;">
-    <span class="section-title">Proximos Agendamentos</span>
+    <span class="section-title">Próximos Agendamentos</span>
   </div>
   <div id="proximos-list" style="font-size:13px;color:var(--gray-l);"></div>
 </div>
@@ -143,8 +141,7 @@
 
 <script>
 const API = '/central/agendamento';
-const TOKEN = localStorage.getItem('central_token');
-const EMAIL = localStorage.getItem('central_email');
+const TOKEN = localStorage.getItem('token') || localStorage.getItem('central_token');
 const HEADERS = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
 
 let dataAtual = new Date();
@@ -170,7 +167,7 @@ function filtrarStatus(el, s) {
 }
 
 async function carregarTudo() {
-  const meses = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   document.getElementById('date-label').textContent = `${dataAtual.getDate()} ${meses[dataAtual.getMonth()]} ${dataAtual.getFullYear()}`;
 
   try {
@@ -193,9 +190,9 @@ async function carregarTudo() {
         ? prox.map(a => {
             const dt = new Date(a.data_hora);
             const svc = servicos[a.service_id];
-            return `<div style="padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,.04);">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — ${svc ? svc.nome : 'Servico #'+a.service_id}</div>`;
+            return `<div style="padding:6px 0;border-bottom:0.5px solid rgba(255,255,255,.04);">${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — ${svc ? svc.nome : 'Serviço #'+a.service_id}</div>`;
           }).join('')
-        : '<span style="color:var(--gray)">Nenhum proximo agendamento.</span>';
+        : '<span style="color:var(--gray)">Nenhum próximo agendamento.</span>';
     }
 
     if (servicosRes.ok) {
@@ -258,12 +255,12 @@ async function alterarStatus(id, novoStatus) {
       method: 'PUT', headers: HEADERS,
     });
     if (res.ok) {
-      toast(`Status alterado para ${novoStatus}`, 'ok');
+      toast('Status alterado para ' + novoStatus, 'ok');
       carregarTudo();
     } else {
       toast('Erro ao alterar status', 'err');
     }
-  } catch(e) { toast('Erro de conexao', 'err'); }
+  } catch(e) { toast('Erro de conexão', 'err'); }
 }
 
 function toast(msg, tipo) {
@@ -273,7 +270,11 @@ function toast(msg, tipo) {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
-carregarTudo();
+if (!TOKEN) {
+  window.location.href = '/';
+} else {
+  carregarTudo();
+}
 </script>
 </body>
 </html>

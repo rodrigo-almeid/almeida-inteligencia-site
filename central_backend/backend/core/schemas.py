@@ -208,6 +208,7 @@ class AssistenteConfigCreate(BaseModel):
     provedores_llm: Optional[List[AssistenteProvedorLLM]] = None
     numero_autorizado: Optional[str] = None
     ativo: bool = False
+    usar_tool_calling: bool = False
     nome_assistente: Optional[str] = "Goku"
     personalidade: Optional[str] = None
     tom_voz: Optional[str] = "casual"
@@ -223,6 +224,7 @@ class AssistenteConfigResponse(ORMBase):
     provedores_llm: Optional[List[AssistenteProvedorLLM]] = None
     numero_autorizado: Optional[str]
     ativo: bool
+    usar_tool_calling: bool = False
     nome_assistente: Optional[str]
     personalidade: Optional[str]
     tom_voz: Optional[str]
@@ -237,17 +239,6 @@ class AssistenteConfigResponse(ORMBase):
 from datetime import datetime
 
 class AgendamentoConfigCreate(BaseModel):
-    whatsapp_token: Optional[str] = None
-    whatsapp_phone_id: Optional[str] = None
-    whatsapp_verify_token: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    groq_api_key: Optional[str] = None
-    ollama_url: Optional[str] = None
-    ollama_model: Optional[str] = None
-    prioridade_llms: Optional[str] = '["gemini","groq","ollama"]'
-    gemini_ativo: bool = False
-    groq_ativo: bool = False
-    ollama_ativo: bool = False
     catalogo_prompt: Optional[str] = None
     mensagem_midia_bloqueada: Optional[str] = None
     mensagem_contingencia: Optional[str] = None
@@ -256,16 +247,6 @@ class AgendamentoConfigCreate(BaseModel):
 
 class AgendamentoConfigResponse(ORMBase):
     id: int
-    whatsapp_phone_id: Optional[str]
-    whatsapp_verify_token: Optional[str]
-    gemini_api_key_masked: Optional[str] = None
-    groq_api_key_masked: Optional[str] = None
-    ollama_url: Optional[str]
-    ollama_model: Optional[str]
-    prioridade_llms: Optional[str]
-    gemini_ativo: bool
-    groq_ativo: bool
-    ollama_ativo: bool
     catalogo_prompt: Optional[str]
     mensagem_midia_bloqueada: Optional[str]
     mensagem_contingencia: Optional[str]
@@ -344,9 +325,3 @@ class LlmLogResponse(ORMBase):
     erro: Optional[str]
     criado_em: Optional[datetime]
     config_id: int
-
-class TestarLlmRequest(BaseModel):
-    provider: str
-    api_key: Optional[str] = None
-    ollama_url: Optional[str] = None
-    ollama_model: Optional[str] = None
