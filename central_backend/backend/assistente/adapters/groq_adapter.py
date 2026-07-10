@@ -23,7 +23,7 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, tools_sch
         oai_messages.append({"role": m["role"], "content": m["content"]})
 
     body = {
-        "model": "llama-3.1-8b-instant",
+        "model": "llama-3.3-70b-versatile",
         "messages": oai_messages,
         "max_tokens": 1024,
         "temperature": 0.3,
@@ -74,7 +74,7 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, tools_sch
             tool_calls=tool_calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
         )
 
     except httpx.TimeoutException:
