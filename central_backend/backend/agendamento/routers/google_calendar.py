@@ -59,65 +59,72 @@ async def oauth_callback(
     db: Session = Depends(get_db),
 ):
     if error:
-        return RedirectResponse(f"/agendamento-painel/config.html?google=error&msg={error}")
+        return RedirectResponse(f"/assistente-painel/?google=error&msg={error}")
 
     if not code or not state:
-        return RedirectResponse("/agendamento-painel/config.html?google=error&msg=missing_params")
+        return RedirectResponse("/assistente-painel/?google=error&msg=missing_params")
 
     try:
         user_id = int(decrypt_key(state))
     except Exception:
-        return RedirectResponse("/agendamento-painel/config.html?google=error&msg=invalid_state")
+        return RedirectResponse("/assistente-painel/?google=error&msg=invalid_state")
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID")
-    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-    redirect_uri = _get_redirect_uri(request)
+    try:
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        redirect_uri = _get_redirect_uri(request)
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        token_res = await client.post(GOOGLE_TOKEN_URL, data={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": redirect_uri,
-        })
+        async with httpx.AsyncClient(timeout=15) as client:
+            token_res = await client.post(GOOGLE_TOKEN_URL, data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+            })
 
-    if token_res.status_code != 200:
-        return RedirectResponse(f"/agendamento-painel/config.html?google=error&msg=token_exchange_failed")
+        if token_res.status_code != 200:
+            print(f"[gcal] token exchange falhou: {token_res.status_code} {token_res.text[:300]}")
+            return RedirectResponse("/assistente-painel/?google=error&msg=token_exchange_failed")
 
-    token_data = token_res.json()
-    refresh_token = token_data.get("refresh_token")
-    access_token = token_data.get("access_token")
+        token_data = token_res.json()
+        refresh_token = token_data.get("refresh_token")
+        access_token = token_data.get("access_token")
 
-    if not refresh_token:
-        return RedirectResponse("/agendamento-painel/config.html?google=error&msg=no_refresh_token")
+        if not refresh_token:
+            return RedirectResponse("/assistente-painel/?google=error&msg=no_refresh_token")
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        cal_res = await client.get(
-            f"{GOOGLE_CALENDAR_API}/calendars/primary",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            cal_res = await client.get(
+                f"{GOOGLE_CALENDAR_API}/calendars/primary",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
 
-    calendar_id = "primary"
-    if cal_res.status_code == 200:
-        calendar_id = cal_res.json().get("id", "primary")
+        calendar_id = "primary"
+        if cal_res.status_code == 200:
+            calendar_id = cal_res.json().get("id", "primary")
 
-    config = db.query(models.AgendamentoConfig).filter(
-        models.AgendamentoConfig.user_id == user_id
-    ).first()
+        config = db.query(models.AgendamentoConfig).filter(
+            models.AgendamentoConfig.user_id == user_id
+        ).first()
 
-    if not config:
-        return RedirectResponse("/agendamento-painel/config.html?google=error&msg=config_not_found")
+        if not config:
+            return RedirectResponse("/assistente-painel/?google=error&msg=config_not_found")
 
-    config.google_calendar_token = encrypt_key(refresh_token)
-    config.google_calendar_id = calendar_id
-    config.google_calendar_ativo = True
-    db.commit()
+        config.google_calendar_token = encrypt_key(refresh_token)
+        config.google_calendar_id = calendar_id
+        config.google_calendar_ativo = True
+        db.commit()
 
-    base_url = os.getenv("APP_BASE_URL", str(request.base_url).rstrip("/"))
-    await setup_watch_channel(config, db, base_url)
+        base_url = os.getenv("APP_BASE_URL", str(request.base_url).rstrip("/"))
+        await setup_watch_channel(config, db, base_url)
 
-    return RedirectResponse("/agendamento-painel/config.html?google=ok")
+        return RedirectResponse("/assistente-painel/?google=ok")
+    except Exception as e:
+        import traceback
+        print(f"[gcal] Erro inesperado no callback OAuth: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        return RedirectResponse("/assistente-painel/?google=error&msg=erro_interno")
 
 
 @router.post("/disconnect")
