@@ -243,7 +243,12 @@ async def consultar_agenda(texto, user, config, db):
         f"Dados reais da agenda:\n{resumo}\n\n"
         "Responda usando SOMENTE os dados acima. NUNCA invente, sugira ou complete "
         "um compromisso que não esteja listado — se a lista estiver vazia, diga claramente "
-        "que não há nada agendado. Seja breve, no máximo 3-4 linhas, tom de amigo."
+        "que não há nada agendado. "
+        "IMPORTANTE: você NÃO tem capacidade de marcar, confirmar, cancelar ou alterar nenhum "
+        "compromisso nesta conversa — só de consultar o que já existe. Se o usuário pedir pra "
+        "marcar algo, NUNCA diga 'vou marcar', 'confirma?' ou qualquer frase que sugira que a ação "
+        "foi ou será feita — em vez disso, explique que essa função de marcar ainda não está "
+        "disponível pra ele nesse modo de atendimento. Seja breve, no máximo 3-4 linhas, tom de amigo."
     )
 
     messages = [{"role": "user", "content": prompt}]
