@@ -68,6 +68,9 @@ def _montar_system_prompt(assistente_config, agendamento_config, db: Session) ->
             f"\n\n{agendamento_config.catalogo_prompt or ''}\n\n"
             f"### Agenda — tipos de compromisso disponíveis:\n{servicos_texto}\n\n"
             f"### Regras de agendamento:\n"
+            f"- Só chame funções de agendamento quando o usuário pedir explicitamente pra marcar, "
+            f"cancelar, reagendar ou consultar horário/compromisso. Numa saudação ou conversa geral "
+            f"('oi', 'tudo bem?', etc.), NÃO chame nenhuma função — só responda normalmente.\n"
             f"- NUNCA invente horários. Use a função buscar_horarios_disponiveis para consultar.\n"
             f"- Ao marcar, use pre_reservar_horario e peça confirmação antes de finalizar.\n"
             f"- Pode cancelar ou reagendar usando as funções disponíveis.\n"
@@ -131,8 +134,11 @@ async def processar_mensagem(texto: str, assistente_config: models.AssistenteCon
             messages.append({"role": "assistant", "content": llm_resp.content or ""})
             messages.append({"role": "user", "content": f"[Resultado da função]: {result_text}"})
 
+            # Sem tools_schema aqui de propósito: essa 2ª chamada é só pra transformar
+            # o resultado já executado em texto natural — reoferecer as tools deixava
+            # o modelo tentado a chamar outra função em vez de responder em texto.
             start2 = time.time()
-            llm_resp2 = await _call_provider(tipo, p, messages, system_prompt, tools_schema)
+            llm_resp2 = await _call_provider(tipo, p, messages, system_prompt, None)
             latency2 = int((time.time() - start2) * 1000)
 
             db.add(models.LlmLog(
@@ -143,7 +149,9 @@ async def processar_mensagem(texto: str, assistente_config: models.AssistenteCon
             ))
             db.commit()
 
-            resposta = llm_resp2.content if not llm_resp2.error else result_text
+            if llm_resp2.error:
+                print(f"[assistente] {tipo} falhou na 2ª chamada (humanização): {llm_resp2.error}")
+            resposta = llm_resp2.content if (not llm_resp2.error and llm_resp2.content) else result_text
         else:
             resposta = llm_resp.content
 
