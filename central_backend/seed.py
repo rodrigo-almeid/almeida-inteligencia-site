@@ -105,6 +105,13 @@ migrations = [
     "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS gemini_ativo",
     "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS groq_ativo",
     "ALTER TABLE agendamento_config DROP COLUMN IF EXISTS ollama_ativo",
+    # Agendamento — Google Calendar (colunas existiam só no model desde sempre, nunca tiveram migration)
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_token TEXT",
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_id VARCHAR",
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_channel_id VARCHAR",
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_channel_expiry TIMESTAMP",
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_sync_token VARCHAR",
+    "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_ativo BOOLEAN DEFAULT FALSE",
 ]
 for sql in migrations:
     try:
