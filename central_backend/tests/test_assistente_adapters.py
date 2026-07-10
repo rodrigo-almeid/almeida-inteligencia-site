@@ -120,12 +120,62 @@ class TestGroqAdapter:
             "choices": [{"message": {"content": conteudo}}],
         })
         with _patch_client("backend.assistente.adapters.groq_adapter.httpx.AsyncClient", resp):
-            result = await groq_adapter.call([{"role": "user", "content": "marca dentista às 14"}], "system", "fake-key")
+            result = await groq_adapter.call(
+                [{"role": "user", "content": "marca dentista às 14"}], "system", "fake-key",
+                tools_schema=AGENDAMENTO_TOOLS_SCHEMA,
+            )
 
         assert result.content == ""  # descarta a alegação não verificada, não só a tag
         assert len(result.tool_calls) == 1
         assert result.tool_calls[0].name == "marcar_compromisso"
         assert result.tool_calls[0].arguments == {"data_hora": "2026-07-10 14:00", "service_id": 1}
+
+    @pytest.mark.asyncio
+    async def test_call_extrai_tool_call_sem_tags_de_abertura(self):
+        """Variação vista em produção: sem <function=...>, só 'nome>{...}'."""
+        resp = _mock_response(json_data={
+            "choices": [{"message": {"content": 'atualizar_compromisso>{"descricao": "testes automatizados", "data_hora": "2026-07-11 14:00"}'}}],
+        })
+        with _patch_client("backend.assistente.adapters.groq_adapter.httpx.AsyncClient", resp):
+            result = await groq_adapter.call(
+                [{"role": "user", "content": "atualiza o assunto"}], "system", "fake-key",
+                tools_schema=AGENDAMENTO_TOOLS_SCHEMA,
+            )
+
+        assert result.content == ""
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0].name == "atualizar_compromisso"
+        assert result.tool_calls[0].arguments == {"descricao": "testes automatizados", "data_hora": "2026-07-11 14:00"}
+
+    @pytest.mark.asyncio
+    async def test_call_extrai_tool_call_so_nome_sem_argumentos(self):
+        """Variação vista em produção: só o nome da função, nem chaves tem."""
+        resp = _mock_response(json_data={
+            "choices": [{"message": {"content": "cancelar_agendamento"}}],
+        })
+        with _patch_client("backend.assistente.adapters.groq_adapter.httpx.AsyncClient", resp):
+            result = await groq_adapter.call(
+                [{"role": "user", "content": "cancela a reunião"}], "system", "fake-key",
+                tools_schema=AGENDAMENTO_TOOLS_SCHEMA,
+            )
+
+        assert result.content == ""
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0].name == "cancelar_agendamento"
+        assert result.tool_calls[0].arguments == {}
+
+    @pytest.mark.asyncio
+    async def test_call_sem_tools_schema_nao_tenta_extrair(self):
+        """A 2ª chamada (humanização) não passa tools_schema de propósito —
+        não deve tentar extrair nada, mesmo que o texto pareça uma chamada."""
+        resp = _mock_response(json_data={
+            "choices": [{"message": {"content": "cancelar_agendamento"}}],
+        })
+        with _patch_client("backend.assistente.adapters.groq_adapter.httpx.AsyncClient", resp):
+            result = await groq_adapter.call([{"role": "user", "content": "oi"}], "system", "fake-key", tools_schema=None)
+
+        assert result.content == "cancelar_agendamento"
+        assert result.tool_calls == []
 
 
 class TestOllamaAdapter:
@@ -154,24 +204,59 @@ class TestExtrairToolCallsDeTexto:
 
     def test_sem_padrao_retorna_conteudo_original(self):
         from backend.assistente.adapters.base import extrair_tool_calls_de_texto
-        texto, calls = extrair_tool_calls_de_texto("Olá! Como posso ajudar?")
+        texto, calls = extrair_tool_calls_de_texto("Olá! Como posso ajudar?", AGENDAMENTO_TOOLS_SCHEMA)
         assert texto == "Olá! Como posso ajudar?"
         assert calls == []
 
     def test_conteudo_vazio_nao_quebra(self):
         from backend.assistente.adapters.base import extrair_tool_calls_de_texto
-        texto, calls = extrair_tool_calls_de_texto("")
+        texto, calls = extrair_tool_calls_de_texto("", AGENDAMENTO_TOOLS_SCHEMA)
         assert texto == ""
+        assert calls == []
+
+    def test_sem_tools_schema_nao_extrai_nada(self):
+        """Sem tools_schema (2ª chamada de humanização) — não tenta detectar,
+        mesmo que o texto pareça uma chamada de função."""
+        from backend.assistente.adapters.base import extrair_tool_calls_de_texto
+        conteudo = '<function=cancelar_agendamento>{}</function>'
+        texto, calls = extrair_tool_calls_de_texto(conteudo, None)
+        assert texto == conteudo
         assert calls == []
 
     def test_extrai_e_descarta_texto_ao_redor(self):
         from backend.assistente.adapters.base import extrair_tool_calls_de_texto
         conteudo = 'Já tem algo marcado! <function=cancelar_agendamento>{}</function>'
-        texto, calls = extrair_tool_calls_de_texto(conteudo)
+        texto, calls = extrair_tool_calls_de_texto(conteudo, AGENDAMENTO_TOOLS_SCHEMA)
         assert texto == ""
         assert len(calls) == 1
         assert calls[0].name == "cancelar_agendamento"
         assert calls[0].arguments == {}
+
+    def test_extrai_sem_tags_de_abertura_ou_fechamento(self):
+        """Variação vista em produção: 'nome>{...}' sem <function= nem </function>."""
+        from backend.assistente.adapters.base import extrair_tool_calls_de_texto
+        conteudo = 'atualizar_compromisso>{"descricao": "testes automatizados", "data_hora": "2026-07-11 14:00"}'
+        texto, calls = extrair_tool_calls_de_texto(conteudo, AGENDAMENTO_TOOLS_SCHEMA)
+        assert texto == ""
+        assert len(calls) == 1
+        assert calls[0].name == "atualizar_compromisso"
+        assert calls[0].arguments == {"descricao": "testes automatizados", "data_hora": "2026-07-11 14:00"}
+
+    def test_extrai_nome_sozinho_sem_chaves(self):
+        """Variação vista em produção: só o nome, nem chaves tem."""
+        from backend.assistente.adapters.base import extrair_tool_calls_de_texto
+        texto, calls = extrair_tool_calls_de_texto("cancelar_agendamento", AGENDAMENTO_TOOLS_SCHEMA)
+        assert texto == ""
+        assert len(calls) == 1
+        assert calls[0].name == "cancelar_agendamento"
+        assert calls[0].arguments == {}
+
+    def test_nome_desconhecido_nao_e_tratado_como_chamada(self):
+        """Palavra solta que não é nome de tool nenhuma — texto normal, não mexe."""
+        from backend.assistente.adapters.base import extrair_tool_calls_de_texto
+        texto, calls = extrair_tool_calls_de_texto("obrigado", AGENDAMENTO_TOOLS_SCHEMA)
+        assert texto == "obrigado"
+        assert calls == []
 
     def test_multiplas_chamadas_no_mesmo_texto(self):
         from backend.assistente.adapters.base import extrair_tool_calls_de_texto
@@ -179,7 +264,7 @@ class TestExtrairToolCallsDeTexto:
             '<function=buscar_horarios_disponiveis>{"data": "2026-07-10", "service_id": 1}</function>'
             '<function=consultar_agenda>{}</function>'
         )
-        texto, calls = extrair_tool_calls_de_texto(conteudo)
+        texto, calls = extrair_tool_calls_de_texto(conteudo, AGENDAMENTO_TOOLS_SCHEMA)
         assert len(calls) == 2
         assert calls[0].name == "buscar_horarios_disponiveis"
         assert calls[1].name == "consultar_agenda"
@@ -187,6 +272,6 @@ class TestExtrairToolCallsDeTexto:
     def test_json_invalido_na_chamada_nao_quebra(self):
         from backend.assistente.adapters.base import extrair_tool_calls_de_texto
         conteudo = '<function=marcar_compromisso>{invalido}</function>'
-        texto, calls = extrair_tool_calls_de_texto(conteudo)
+        texto, calls = extrair_tool_calls_de_texto(conteudo, AGENDAMENTO_TOOLS_SCHEMA)
         assert len(calls) == 1
         assert calls[0].arguments == {}

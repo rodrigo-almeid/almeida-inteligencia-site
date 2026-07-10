@@ -21,34 +21,55 @@ class ToolCall:
 
 
 # Alguns modelos Llama (via Groq/Ollama) às vezes "escrevem" a chamada de
-# função como texto pseudo-XML em vez de usar o campo estruturado tool_calls
-# da API — visto em produção com llama-3.1-8b-instant (Groq). Sem tratar isso,
-# o texto cru (com uma "resposta" inventada pelo modelo, sem a função ter sido
-# executada de verdade) ia direto pro usuário como se fosse a resposta real.
-_FUNCTION_CALL_PATTERN = re.compile(r"<function=([\w-]+)>(\{.*?\})</function>", re.DOTALL)
+# função como texto em vez de usar o campo estruturado tool_calls da API —
+# visto em produção com llama-3.1-8b-instant (Groq), em formatos variados e
+# nem sempre bem-formados: `<function=nome>{...}</function>` (completo),
+# `nome>{...}` (sem as tags) e até só `nome` sozinho (sem chaves nenhuma).
+# Sem tratar isso, o texto cru (com uma "resposta" inventada pelo modelo,
+# sem a função ter sido executada de verdade) ia direto pro usuário como se
+# fosse a resposta real.
+_FUNCTION_CALL_PATTERN = re.compile(r"(?:<function=)?([a-zA-Z_][\w-]*)>\s*(\{.*?\})\s*(?:</function>)?", re.DOTALL)
 
 
-def extrair_tool_calls_de_texto(content: str) -> tuple:
+def extrair_tool_calls_de_texto(content: str, tools_schema: list = None) -> tuple:
     """Retorna (texto_sem_a_chamada, [ToolCall, ...]) — lista vazia se o
     conteúdo não tiver nenhuma chamada de função em formato de texto.
+
+    Exige `tools_schema` (a lista de tools oferecidas nessa chamada) — sem
+    tools oferecidas, não há chamada legítima possível, então não tenta
+    detectar nada (evita falso-positivo na 2ª chamada de humanização, que é
+    feita de propósito sem tools_schema).
 
     Quando encontra uma chamada, descarta TODO o texto ao redor (não só a
     tag) — esse texto foi escrito pelo modelo antes de saber o resultado
     real da função, então qualquer alegação nele (ex: "você já tem
     compromisso nesse horário") é invenção, não fato."""
-    if not content:
+    if not content or not tools_schema:
         return content, []
+
+    nomes_validos = {t["name"] for t in tools_schema}
+
     matches = _FUNCTION_CALL_PATTERN.findall(content)
-    if not matches:
-        return content, []
     tool_calls = []
     for nome, args_json in matches:
+        if nome not in nomes_validos:
+            continue
         try:
             args = json.loads(args_json)
         except json.JSONDecodeError:
             args = {}
         tool_calls.append(ToolCall(name=nome, arguments=args))
-    return "", tool_calls
+
+    if tool_calls:
+        return "", tool_calls
+
+    # Caso degenerado: o conteúdo inteiro é só o nome de uma função conhecida,
+    # sem chaves nem argumento nenhum (ex: só "cancelar_agendamento").
+    nome_bare = content.strip()
+    if nome_bare in nomes_validos:
+        return "", [ToolCall(name=nome_bare, arguments={})]
+
+    return content, []
 
 
 AGENDAMENTO_TOOLS_SCHEMA = [

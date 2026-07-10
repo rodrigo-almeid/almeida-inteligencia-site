@@ -57,7 +57,7 @@ async def call(messages: list[dict], system_prompt: str, url: str, model: str, t
         tokens_out = data.get("eval_count", 0)
 
         content = msg.get("content", "") or ""
-        content, tool_calls_no_texto = extrair_tool_calls_de_texto(content)
+        content, tool_calls_no_texto = extrair_tool_calls_de_texto(content, tools_schema)
         if tool_calls_no_texto:
             print(f"[ollama_adapter] modelo emitiu tool call como texto em vez de tool_calls estruturado: {tool_calls_no_texto}")
             tool_calls.extend(tool_calls_no_texto)
