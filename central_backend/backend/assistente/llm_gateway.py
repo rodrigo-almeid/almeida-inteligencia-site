@@ -151,6 +151,9 @@ async def processar_mensagem(texto: str, assistente_config: models.AssistenteCon
 
             if llm_resp2.error:
                 print(f"[assistente] {tipo} falhou na 2ª chamada (humanização): {llm_resp2.error}")
+            elif not llm_resp2.content:
+                print(f"[assistente] {tipo} devolveu conteúdo vazio na 2ª chamada (sem erro) — "
+                      f"tool_calls={llm_resp2.tool_calls!r}, usando texto cru da função como resposta")
             resposta = llm_resp2.content if (not llm_resp2.error and llm_resp2.content) else result_text
         else:
             resposta = llm_resp.content
