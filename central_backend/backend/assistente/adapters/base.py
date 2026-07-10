@@ -21,23 +21,23 @@ class ToolCall:
 AGENDAMENTO_TOOLS_SCHEMA = [
     {
         "name": "buscar_horarios_disponiveis",
-        "description": "Busca horários disponíveis para agendamento em uma data específica. Use quando o cliente quiser agendar.",
+        "description": "Busca horários livres na agenda numa data específica. Use quando o usuário quiser marcar uma reunião, compromisso ou consulta.",
         "parameters": {
             "type": "object",
             "properties": {
                 "data": {"type": "string", "description": "Data no formato YYYY-MM-DD"},
-                "service_id": {"type": "integer", "description": "ID do serviço desejado"},
+                "service_id": {"type": "integer", "description": "ID do tipo de compromisso desejado"},
             },
             "required": ["data", "service_id"],
         },
     },
     {
         "name": "pre_reservar_horario",
-        "description": "Faz uma pré-reserva de 5 minutos para o horário escolhido pelo cliente.",
+        "description": "Faz uma pré-reserva de 5 minutos para o horário escolhido pelo usuário, antes da confirmação final.",
         "parameters": {
             "type": "object",
             "properties": {
-                "service_id": {"type": "integer", "description": "ID do serviço"},
+                "service_id": {"type": "integer", "description": "ID do tipo de compromisso"},
                 "data_hora": {"type": "string", "description": "Data e hora no formato YYYY-MM-DD HH:MM"},
             },
             "required": ["service_id", "data_hora"],
@@ -45,18 +45,18 @@ AGENDAMENTO_TOOLS_SCHEMA = [
     },
     {
         "name": "confirmar_agendamento",
-        "description": "Confirma um agendamento pré-reservado após o cliente dizer sim.",
+        "description": "Confirma um compromisso pré-reservado depois que o usuário disser que sim, pode marcar.",
         "parameters": {
             "type": "object",
             "properties": {
-                "appointment_id": {"type": "integer", "description": "ID do agendamento pré-reservado"},
+                "appointment_id": {"type": "integer", "description": "ID do compromisso pré-reservado"},
             },
             "required": ["appointment_id"],
         },
     },
     {
         "name": "cancelar_agendamento",
-        "description": "Cancela o agendamento ativo do cliente. Use quando o cliente quiser desmarcar.",
+        "description": "Cancela o próximo compromisso ativo. Use quando o usuário quiser desmarcar.",
         "parameters": {
             "type": "object",
             "properties": {},
@@ -64,7 +64,7 @@ AGENDAMENTO_TOOLS_SCHEMA = [
     },
     {
         "name": "reagendar_agendamento",
-        "description": "Reagenda o agendamento ativo do cliente para nova data/hora.",
+        "description": "Muda o próximo compromisso ativo para uma nova data/hora.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -75,7 +75,7 @@ AGENDAMENTO_TOOLS_SCHEMA = [
     },
     {
         "name": "consultar_agenda",
-        "description": "Consulta os compromissos confirmados ou pré-reservados dos próximos dias. Use sempre que o cliente perguntar o que tem agendado, se tem algo marcado, ou pedir a agenda — nunca responda essa pergunta sem chamar essa função.",
+        "description": "Consulta os compromissos confirmados ou pré-reservados dos próximos dias. Use sempre que o usuário perguntar o que tem agendado, se tem algo marcado, ou pedir a agenda — nunca responda essa pergunta sem chamar essa função.",
         "parameters": {
             "type": "object",
             "properties": {},
@@ -87,7 +87,7 @@ AGENDAMENTO_TOOLS_SCHEMA = [
 FINANCEIRO_TOOLS_SCHEMA = [
     {
         "name": "registrar_gasto",
-        "description": "Registra um gasto ou receita financeira relatada pelo cliente (ex: 'gastei 50 no mercado', 'recebi 500 de salário').",
+        "description": "Registra um gasto ou receita financeira relatada pelo usuário (ex: 'gastei 50 no mercado', 'recebi 500 de salário').",
         "parameters": {
             "type": "object",
             "properties": {
@@ -103,7 +103,7 @@ FINANCEIRO_TOOLS_SCHEMA = [
     },
     {
         "name": "consultar_financas",
-        "description": "Consulta o resumo financeiro do mês atual (receitas, despesas, saldo, contas pendentes). Use quando o cliente perguntar sobre gastos, saldo ou contas.",
+        "description": "Consulta o resumo financeiro do mês atual (receitas, despesas, saldo, contas pendentes). Use quando o usuário perguntar sobre gastos, saldo ou contas.",
         "parameters": {
             "type": "object",
             "properties": {},

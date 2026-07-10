@@ -120,6 +120,23 @@ class TestProcessarMensagemFinanceiro:
         assert resposta == "Seu saldo está positivo!"
 
 
+class TestSystemPromptComServicoSemPreco:
+    @pytest.mark.asyncio
+    async def test_nao_quebra_quando_servico_nao_tem_preco(self, db, user, assistente_config, agendamento_config):
+        """Regressão: agenda pessoal (reunião, compromisso) normalmente não tem
+        preço — Service.preco=None não pode derrubar a montagem do system prompt."""
+        from backend.core.models import Service
+        agendamento_config.ativo = True
+        db.add(Service(nome="Reunião", duracao_minutos=60, preco=None, ativo=True, config_id=agendamento_config.id))
+        db.commit()
+
+        chamada = _resp(content="Oi! Como posso ajudar?")
+        with patch("backend.assistente.llm_gateway.gemini_adapter.call", new=AsyncMock(return_value=chamada)):
+            resposta = await llm_gateway.processar_mensagem("oi", assistente_config, user, db)
+
+        assert resposta == "Oi! Como posso ajudar?"
+
+
 class TestFallbackEntreProviders:
     @pytest.mark.asyncio
     async def test_fallback_para_proximo_provider_em_erro(self, db, user):

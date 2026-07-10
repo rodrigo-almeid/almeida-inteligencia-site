@@ -57,16 +57,19 @@ def _montar_system_prompt(assistente_config, agendamento_config, db: Session) ->
         servicos = db.query(models.Service).filter(
             models.Service.config_id == agendamento_config.id, models.Service.ativo == True,
         ).all()
-        servicos_texto = "\n".join(
-            f"- ID:{s.id} | {s.nome} | {s.duracao_minutos}min | R${s.preco:.2f}" for s in servicos
-        ) if servicos else "Nenhum serviço cadastrado."
+
+        def _linha_servico(s):
+            preco_txt = f" | R${s.preco:.2f}" if s.preco is not None else ""
+            return f"- ID:{s.id} | {s.nome} | {s.duracao_minutos}min{preco_txt}"
+
+        servicos_texto = "\n".join(_linha_servico(s) for s in servicos) if servicos else "Nenhum tipo de compromisso cadastrado."
 
         prompt += (
             f"\n\n{agendamento_config.catalogo_prompt or ''}\n\n"
-            f"### Agendamento — serviços disponíveis:\n{servicos_texto}\n\n"
+            f"### Agenda — tipos de compromisso disponíveis:\n{servicos_texto}\n\n"
             f"### Regras de agendamento:\n"
             f"- NUNCA invente horários. Use a função buscar_horarios_disponiveis para consultar.\n"
-            f"- Ao agendar, use pre_reservar_horario e peça confirmação ao cliente.\n"
+            f"- Ao marcar, use pre_reservar_horario e peça confirmação antes de finalizar.\n"
             f"- Pode cancelar ou reagendar usando as funções disponíveis.\n"
             f"- Data de hoje: {datetime.utcnow().strftime('%Y-%m-%d')}"
         )
