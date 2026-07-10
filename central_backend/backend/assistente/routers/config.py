@@ -169,6 +169,24 @@ async def validar_configuracoes(
     return {"resultados": resultados, "todos_ok": all(r["ok"] for r in resultados)}
 
 
+@router.get("/ollama/modelos")
+async def listar_modelos_ollama(
+    url: str,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Proxeia /api/tags do servidor Ollama informado — evita CORS no navegador
+    e mantém a URL do Ollama fora do JS exposto ao cliente."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(f"{url.rstrip('/')}/api/tags")
+        if res.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Ollama retornou {res.status_code}")
+        modelos = [m["name"] for m in res.json().get("models", [])]
+        return {"modelos": modelos}
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Não foi possível conectar ao Ollama: {str(e)}")
+
+
 @router.get("/qrcode")
 async def get_qrcode(
     db: Session = Depends(get_db),

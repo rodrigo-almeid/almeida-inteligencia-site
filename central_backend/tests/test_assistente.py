@@ -310,6 +310,43 @@ class TestMascaramentoDeChaves:
         assert decrypt_key(provedores_salvos[0]["api_key"]) == "AIzaSyNOVACHAVE000000"
 
 
+class TestListarModelosOllama:
+    def test_lista_modelos_com_sucesso(self, client, auth_headers):
+        ollama_response = MagicMock()
+        ollama_response.status_code = 200
+        ollama_response.json.return_value = {"models": [{"name": "goku:latest"}, {"name": "goku:ss1"}]}
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.get = AsyncMock(return_value=ollama_response)
+            mock_client.return_value = mock_instance
+
+            res = client.get("/assistente/ollama/modelos?url=http://localhost:11434", headers=auth_headers)
+
+        assert res.status_code == 200
+        assert res.json()["modelos"] == ["goku:latest", "goku:ss1"]
+
+    def test_lista_modelos_ollama_indisponivel(self, client, auth_headers):
+        import httpx as httpx_module
+
+        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.get = AsyncMock(side_effect=httpx_module.ConnectError("recusado"))
+            mock_client.return_value = mock_instance
+
+            res = client.get("/assistente/ollama/modelos?url=http://localhost:11434", headers=auth_headers)
+
+        assert res.status_code == 502
+
+    def test_lista_modelos_sem_auth(self, client):
+        res = client.get("/assistente/ollama/modelos?url=http://localhost:11434")
+        assert res.status_code == 401
+
+
 class TestDesconectar:
     def test_desconectar_com_sessao_ativa_faz_logout(self, client, auth_headers):
         client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)

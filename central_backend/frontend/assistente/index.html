@@ -542,7 +542,7 @@ const TIPOS_LLM = {
   ]},
   ollama: { nome: 'Ollama (Local)', icon: '🖥️', campos: [
     { key: 'url', label: 'URL do Servidor', type: 'text', placeholder: 'http://localhost:11434', hint: 'Endereço onde o Ollama está rodando' },
-    { key: 'modelo', label: 'Modelo', type: 'text', placeholder: 'glm4:latest', hint: 'Nome do modelo (ex: llama3, mistral, glm4:latest)' }
+    { key: 'modelo', label: 'Modelo', type: 'select-ollama', placeholder: '', hint: 'Clique em 🔄 para listar os modelos instalados nesse servidor' }
   ]},
 };
 
@@ -608,14 +608,32 @@ function renderProvedores() {
   container.innerHTML = provedores.map((p, i) => {
     const info = TIPOS_LLM[p.tipo];
     if (!info) return '';
-    const campos = info.campos.map(c => `
+    const campos = info.campos.map(c => {
+      if (c.type === 'select-ollama') {
+        const valorAtual = p[c.key] || '';
+        const opcaoAtual = valorAtual ? `<option value="${valorAtual}" selected>${valorAtual}</option>` : `<option value="">(nenhum modelo selecionado)</option>`;
+        return `
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>${c.label}</label>
+            <div style="display:flex; gap:6px;">
+              <select id="modelo-select-${i}" style="flex:1;" onchange="provedores[${i}]['${c.key}']=this.value">
+                ${opcaoAtual}
+              </select>
+              <button type="button" class="btn-test" style="flex-shrink:0;" onclick="buscarModelosOllama(${i})" title="Buscar modelos instalados">🔄</button>
+            </div>
+            <div class="hint">${c.hint}</div>
+          </div>
+        `;
+      }
+      return `
       <div class="form-group" style="margin-bottom:8px;">
         <label>${c.label}</label>
         <input type="${c.type}" value="${p[c.key] || ''}" placeholder="${c.placeholder}"
                onchange="provedores[${i}]['${c.key}']=this.value">
         <div class="hint">${c.hint}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     return `
       <div class="prov-card" draggable="true" data-idx="${i}"
@@ -638,6 +656,36 @@ function renderProvedores() {
       </div>
     `;
   }).join('');
+}
+
+async function buscarModelosOllama(i) {
+  const p = provedores[i];
+  if (!p.url) { toast('Preencha a URL do Ollama antes de buscar', 'err'); return; }
+  const select = document.getElementById(`modelo-select-${i}`);
+  select.innerHTML = `<option>Buscando...</option>`;
+  try {
+    const res = await apiCall('GET', `/assistente/ollama/modelos?url=${encodeURIComponent(p.url)}`);
+    if (!res || !res.ok) {
+      const err = res ? await res.json().catch(() => ({})) : {};
+      toast(err.detail || 'Não foi possível conectar ao Ollama', 'err');
+      select.innerHTML = `<option value="${p.modelo || ''}">${p.modelo || '(nenhum modelo selecionado)'}</option>`;
+      return;
+    }
+    const data = await res.json();
+    if (!data.modelos.length) {
+      toast('Nenhum modelo instalado nesse servidor Ollama', 'err');
+      select.innerHTML = `<option value="">(nenhum modelo instalado)</option>`;
+      return;
+    }
+    select.innerHTML = data.modelos.map(m => `<option value="${m}" ${m === p.modelo ? 'selected' : ''}>${m}</option>`).join('');
+    if (!data.modelos.includes(p.modelo)) {
+      provedores[i].modelo = data.modelos[0];
+    }
+    toast(`${data.modelos.length} modelo(s) encontrado(s)`, 'ok');
+  } catch (e) {
+    toast('Erro ao buscar modelos: ' + e.message, 'err');
+    select.innerHTML = `<option value="${p.modelo || ''}">${p.modelo || '(nenhum modelo selecionado)'}</option>`;
+  }
 }
 
 function adicionarProvedor() {
