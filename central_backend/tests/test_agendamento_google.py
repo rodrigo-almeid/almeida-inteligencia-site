@@ -217,6 +217,40 @@ class TestGoogleSyncFunctions:
         db.refresh(agendamento_appointment)
         assert agendamento_appointment.google_event_id == "google-event-123"
 
+    @pytest.mark.asyncio
+    async def test_criar_evento_nao_mistura_utc_com_timezone_nomeado(self, db, agendamento_config, agendamento_appointment):
+        """Regressão de bug real de fuso: mandar 'Z' (UTC) junto com
+        timeZone: America/Sao_Paulo faz o Google reinterpretar o horário
+        errado — data_hora é sempre horário local, sem sufixo Z."""
+        from backend.agendamento.google_sync import criar_evento_google
+
+        agendamento_config.google_calendar_ativo = True
+        agendamento_config.google_calendar_token = encrypt_key("fake-refresh")
+        agendamento_config.google_calendar_id = "primary"
+        db.commit()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"id": "google-event-456"}
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {"access_token": "fake-access-token"}
+
+        with patch("backend.agendamento.google_sync.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
+            mock_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_instance.post = AsyncMock(side_effect=[token_response, mock_response])
+            mock_client.return_value = mock_instance
+
+            await criar_evento_google(agendamento_config, agendamento_appointment, db)
+
+            evento_enviado = mock_instance.post.call_args_list[1].kwargs["json"]
+
+        assert not evento_enviado["start"]["dateTime"].endswith("Z")
+        assert evento_enviado["start"]["timeZone"] == "America/Sao_Paulo"
+        assert evento_enviado["start"]["dateTime"] == agendamento_appointment.data_hora.isoformat()
+
 
 class TestConfigGoogleFields:
     def test_config_response_inclui_google(self, client, auth_headers, agendamento_config, db):

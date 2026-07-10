@@ -52,8 +52,8 @@ async def criar_evento_google(config: models.AgendamentoConfig, appointment: mod
         event = {
             "summary": nome_servico,
             "description": "\n\n".join(descricao_partes),
-            "start": {"dateTime": start.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
-            "end": {"dateTime": end.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
+            "start": {"dateTime": start.isoformat(), "timeZone": "America/Sao_Paulo"},
+            "end": {"dateTime": end.isoformat(), "timeZone": "America/Sao_Paulo"},
             "extendedProperties": {
                 "private": {"almeida_appointment_id": str(appointment.id)},
             },
@@ -122,8 +122,8 @@ async def atualizar_evento_google(config: models.AgendamentoConfig, appointment:
         descricao_partes.append("Agendado via assistente WhatsApp")
 
         patch = {
-            "start": {"dateTime": start.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
-            "end": {"dateTime": end.isoformat() + "Z", "timeZone": "America/Sao_Paulo"},
+            "start": {"dateTime": start.isoformat(), "timeZone": "America/Sao_Paulo"},
+            "end": {"dateTime": end.isoformat(), "timeZone": "America/Sao_Paulo"},
             "description": "\n\n".join(descricao_partes),
         }
 
