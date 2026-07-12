@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendamento — Calendário</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/sidebar.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/pt-br.global.min.js"></script>
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--blue:#7EB8FF;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+    .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+    .ftab{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--gray-l);transition:all .2s;font-family:'Inter',sans-serif;}
+    .ftab.active{background:rgba(61,219,130,.12);color:var(--green);border-color:rgba(61,219,130,.3);}
+
+    .btn{background:var(--green);color:var(--black);border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn:hover{opacity:.9;}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-outline{background:transparent;color:var(--green);border:0.5px solid rgba(61,219,130,.3);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-outline:hover{background:rgba(61,219,130,.08);}
+    .btn-danger{background:transparent;color:var(--red);border:0.5px solid rgba(226,75,74,.35);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-danger:hover{background:rgba(226,75,74,.1);}
+
+    .cal-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:20px;}
+
+    /* ── FullCalendar — reskin pro visual do site ── */
+    .fc{--fc-border-color:rgba(255,255,255,.08);--fc-page-bg-color:transparent;--fc-neutral-bg-color:rgba(255,255,255,.03);--fc-list-event-hover-bg-color:rgba(255,255,255,.04);--fc-today-bg-color:rgba(61,219,130,.06);font-family:'Inter',sans-serif;}
+    .fc .fc-toolbar-title{font-size:16px;font-weight:600;color:#fff;}
+    .fc .fc-button{background:transparent;border:0.5px solid var(--border);color:var(--gray-l);text-transform:capitalize;box-shadow:none !important;font-family:'Inter',sans-serif;font-size:12px;padding:6px 12px;}
+    .fc .fc-button:hover{border-color:rgba(61,219,130,.3);color:#fff;background:rgba(61,219,130,.06);}
+    .fc .fc-button-active,.fc .fc-button:disabled{background:rgba(61,219,130,.14) !important;color:var(--green) !important;border-color:rgba(61,219,130,.3) !important;opacity:1;}
+    .fc .fc-col-header-cell{background:rgba(255,255,255,.02);}
+    .fc .fc-col-header-cell-cushion,.fc .fc-daygrid-day-number{color:var(--gray-l);font-size:12px;text-decoration:none;}
+    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number{color:var(--green);font-weight:600;}
+    .fc .fc-event{border:none;font-size:11px;padding:1px 4px;cursor:pointer;}
+    .fc .fc-list-event:hover td{background:rgba(255,255,255,.04);}
+    .fc-theme-standard td, .fc-theme-standard th{border-color:rgba(255,255,255,.07);}
+    .fc .fc-scrollgrid{border-color:rgba(255,255,255,.07);}
+    .fc .fc-timegrid-slot-label-cushion,.fc .fc-list-day-text,.fc .fc-list-day-side-text{color:var(--gray-l);}
+
+    .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:var(--gray-l);}
+    .legend span{display:inline-flex;align-items:center;gap:6px;}
+    .legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:26px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:16px;font-weight:600;margin-bottom:18px;}
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select,.field textarea{width:100%;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(61,219,130,.4);}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;}
+    .modal-actions .btn-danger{margin-right:auto;}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:300;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{border-color:rgba(61,219,130,.4);color:var(--green);}
+    .toast.err{border-color:rgba(226,75,74,.4);color:var(--red);}
+
+    @media(max-width:640px){.main{padding:60px 16px 16px 16px;} .row2{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<script>
+  window.SIDEBAR_CONFIG = {
+    tag: 'Agendamento',
+    ativo: 'calendario',
+    items: [
+      { id: 'calendario', href: '/agendamento-painel/', icon: 'agenda', label: 'Calendário' },
+      { id: 'dashboard', href: '/assistente-painel/dashboard.html', icon: 'dashboard', label: 'Dashboard' },
+      { id: 'config', href: '/assistente-painel/', icon: 'assistente_config', label: 'Configuração' },
+    ],
+    breadcrumb: [
+      { label: 'Portal', href: 'https://almeidainteligencia.com.br/dashboard/' },
+      { label: 'Agendamento' },
+    ],
+  };
+</script>
+<script src="/shared/sidebar.js"></script>
+
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div id="breadcrumb-root"></div>
+  <div class="page-header">
+    <div>
+      <h1>📅 Agendamento — Calendário</h1>
+      <p>Todos os seus compromissos, sincronizados com o Google Calendar</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-outline" id="btn-sync" onclick="sincronizarAgora()">↻ Sincronizar agora</button>
+      <button class="btn" onclick="abrirCriar()">+ Novo Compromisso</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button class="ftab active" onclick="filtrarStatus(this,'')">Todos</button>
+      <button class="ftab" onclick="filtrarStatus(this,'confirmado')">Confirmados</button>
+      <button class="ftab" onclick="filtrarStatus(this,'pre_reservado')">Pré-reservados</button>
+      <button class="ftab" onclick="filtrarStatus(this,'concluido')">Concluídos</button>
+      <button class="ftab" onclick="filtrarStatus(this,'cancelado')">Cancelados</button>
+    </div>
+  </div>
+
+  <div class="cal-card">
+    <div id="calendar"></div>
+    <div class="legend">
+      <span><i style="background:var(--green);"></i>Confirmado</span>
+      <span><i style="background:var(--yellow);"></i>Pré-reservado</span>
+      <span><i style="background:var(--blue);"></i>Concluído</span>
+      <span><i style="background:var(--gray);"></i>Cancelado</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Criar/Editar Compromisso ── -->
+<div class="modal-backdrop" id="modalCompromisso">
+  <div class="modal">
+    <h3 id="modalTitulo">Novo Compromisso</h3>
+    <div class="field">
+      <label>Assunto</label>
+      <input type="text" id="f-descricao" placeholder="Ex: Reunião com o contador">
+    </div>
+    <div class="field">
+      <label>Tipo de compromisso</label>
+      <select id="f-servico"><option value="">Nenhum</option></select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Data e hora</label>
+        <input type="datetime-local" id="f-data-hora">
+      </div>
+      <div class="field">
+        <label>Duração (min)</label>
+        <input type="number" id="f-duracao" min="5" step="5" placeholder="30">
+      </div>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="f-status">
+        <option value="confirmado">Confirmado</option>
+        <option value="pre_reservado">Pré-reservado</option>
+        <option value="concluido">Concluído</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="btn-excluir" style="display:none;" onclick="excluirCompromisso()">Excluir</button>
+      <button class="btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn" onclick="salvarCompromisso()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/central/agendamento';
+const TOKEN = localStorage.getItem('token') || localStorage.getItem('central_token');
+const HEADERS = { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+
+const CORES_STATUS = { confirmado: 'var(--green)', pre_reservado: 'var(--yellow)', concluido: 'var(--blue)', cancelado: 'var(--gray)', expirado: 'var(--gray)' };
+const CORES_STATUS_HEX = { confirmado: '#3DDB82', pre_reservado: '#F5A623', concluido: '#7EB8FF', cancelado: '#5C6B5E', expirado: '#5C6B5E' };
+
+let servicos = [];
+let statusFiltro = '';
+let editandoId = null;
+let calendar;
+
+function toLocalISO(date) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+}
+
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function carregarServicos() {
+  try {
+    const res = await fetch(`${API}/servicos`, { headers: HEADERS });
+    if (res.ok) {
+      servicos = await res.json();
+      const sel = document.getElementById('f-servico');
+      sel.innerHTML = '<option value="">Nenhum</option>' + servicos.map(s => `<option value="${s.id}">${s.nome} (${s.duracao_minutos}min)</option>`).join('');
+    }
+  } catch (e) { console.error(e); }
+}
+
+document.getElementById('f-servico').addEventListener('change', (e) => {
+  const s = servicos.find(s => s.id == e.target.value);
+  if (s && !document.getElementById('f-duracao').value) {
+    document.getElementById('f-duracao').value = s.duracao_minutos;
+  }
+});
+
+function corDoEvento(status) {
+  return CORES_STATUS_HEX[status] || '#5C6B5E';
+}
+
+async function buscarEventos(fetchInfo, successCallback, failureCallback) {
+  try {
+    const inicio = formatDate(fetchInfo.start);
+    const fim = formatDate(fetchInfo.end);
+    let url = `${API}/appointments?inicio=${inicio}&fim=${fim}`;
+    if (statusFiltro) url += `&status=${statusFiltro}`;
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) { failureCallback(new Error('Erro ao buscar compromissos')); return; }
+    const appts = await res.json();
+    const eventos = appts.map(a => {
+      const inicioEvt = new Date(a.data_hora);
+      const duracao = a.duracao_minutos || a.servico_duracao_minutos || 30;
+      const fimEvt = new Date(inicioEvt.getTime() + duracao * 60000);
+      const titulo = a.servico_nome || a.descricao || 'Compromisso';
+      return {
+        id: String(a.id),
+        title: titulo,
+        start: inicioEvt,
+        end: fimEvt,
+        backgroundColor: corDoEvento(a.status),
+        borderColor: corDoEvento(a.status),
+        textColor: '#0A0F0A',
+        extendedProps: a,
+      };
+    });
+    successCallback(eventos);
+  } catch (e) {
+    failureCallback(e);
+  }
+}
+
+function filtrarStatus(el, s) {
+  statusFiltro = s;
+  document.querySelectorAll('.ftab').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  calendar.refetchEvents();
+}
+
+function abrirCriar(dataInicial) {
+  editandoId = null;
+  document.getElementById('modalTitulo').textContent = 'Novo Compromisso';
+  document.getElementById('f-descricao').value = '';
+  document.getElementById('f-servico').value = '';
+  document.getElementById('f-data-hora').value = toLocalISO(dataInicial || new Date());
+  document.getElementById('f-duracao').value = '';
+  document.getElementById('f-status').value = 'confirmado';
+  document.getElementById('btn-excluir').style.display = 'none';
+  document.getElementById('modalCompromisso').classList.add('show');
+}
+
+function abrirEditar(appt) {
+  editandoId = appt.id;
+  document.getElementById('modalTitulo').textContent = 'Editar Compromisso';
+  document.getElementById('f-descricao').value = appt.descricao || '';
+  document.getElementById('f-servico').value = appt.service_id || '';
+  document.getElementById('f-data-hora').value = toLocalISO(new Date(appt.data_hora));
+  document.getElementById('f-duracao').value = appt.duracao_minutos || '';
+  document.getElementById('f-status').value = appt.status;
+  document.getElementById('btn-excluir').style.display = '';
+  document.getElementById('modalCompromisso').classList.add('show');
+}
+
+function fecharModal() {
+  document.getElementById('modalCompromisso').classList.remove('show');
+}
+
+async function salvarCompromisso() {
+  const dataHoraStr = document.getElementById('f-data-hora').value;
+  if (!dataHoraStr) { toast('Preencha a data e hora', 'err'); return; }
+
+  const payload = {
+    data_hora: dataHoraStr,
+    service_id: document.getElementById('f-servico').value || null,
+    descricao: document.getElementById('f-descricao').value || null,
+    duracao_minutos: document.getElementById('f-duracao').value ? parseInt(document.getElementById('f-duracao').value) : null,
+    status: document.getElementById('f-status').value,
+  };
+
+  try {
+    const res = editandoId
+      ? await fetch(`${API}/appointments/${editandoId}`, { method: 'PUT', headers: HEADERS, body: JSON.stringify(payload) })
+      : await fetch(`${API}/appointments`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
+
+    if (res.ok) {
+      toast(editandoId ? 'Compromisso atualizado' : 'Compromisso criado', 'ok');
+      fecharModal();
+      calendar.refetchEvents();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast(err.detail || 'Erro ao salvar', 'err');
+    }
+  } catch (e) {
+    toast('Erro de conexão', 'err');
+  }
+}
+
+async function excluirCompromisso() {
+  if (!editandoId) return;
+  if (!confirm('Excluir este compromisso? Essa ação não pode ser desfeita.')) return;
+  try {
+    const res = await fetch(`${API}/appointments/${editandoId}`, { method: 'DELETE', headers: HEADERS });
+    if (res.ok) {
+      toast('Compromisso excluído', 'ok');
+      fecharModal();
+      calendar.refetchEvents();
+    } else {
+      toast('Erro ao excluir', 'err');
+    }
+  } catch (e) {
+    toast('Erro de conexão', 'err');
+  }
+}
+
+async function sincronizarAgora() {
+  const btn = document.getElementById('btn-sync');
+  btn.disabled = true;
+  btn.textContent = '↻ Sincronizando...';
+  try {
+    const res = await fetch(`${API}/google/sync-now`, { method: 'POST', headers: HEADERS });
+    if (res.ok) {
+      toast('Sincronizado com o Google Calendar', 'ok');
+      calendar.refetchEvents();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast(err.detail || 'Erro ao sincronizar', 'err');
+    }
+  } catch (e) {
+    toast('Erro de conexão', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↻ Sincronizar agora';
+  }
+}
+
+async function moverOuRedimensionar(info) {
+  const appt = info.event.extendedProps;
+  const novaDuracao = Math.round((info.event.end - info.event.start) / 60000);
+  const payload = {
+    data_hora: toLocalISO(info.event.start),
+    duracao_minutos: novaDuracao,
+  };
+  try {
+    const res = await fetch(`${API}/appointments/${appt.id}`, { method: 'PUT', headers: HEADERS, body: JSON.stringify(payload) });
+    if (res.ok) {
+      toast('Compromisso reagendado', 'ok');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast(err.detail || 'Não foi possível reagendar', 'err');
+      info.revert();
+    }
+  } catch (e) {
+    toast('Erro de conexão', 'err');
+    info.revert();
+  }
+}
+
+function toast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${tipo}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+if (!TOKEN) {
+  window.location.href = '/';
+} else {
+  carregarServicos();
+
+  const calendarEl = document.getElementById('calendar');
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: 'pt-br',
+    height: 'auto',
+    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+    initialView: 'dayGridMonth',
+    nowIndicator: true,
+    editable: true,
+    selectable: true,
+    eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+    events: buscarEventos,
+    dateClick: (info) => abrirCriar(info.date),
+    eventClick: (info) => abrirEditar(info.event.extendedProps),
+    eventDrop: moverOuRedimensionar,
+    eventResize: moverOuRedimensionar,
+  });
+  calendar.render();
+}
+</script>
+</body>
+</html>

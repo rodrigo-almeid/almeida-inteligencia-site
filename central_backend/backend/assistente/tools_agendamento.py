@@ -53,13 +53,17 @@ def _buscar_horarios(args, config, db) -> str:
         return f"Erro ao buscar horários: {str(e)}"
 
 
-def _achar_conflito(config, data_hora, db):
-    """Compromisso confirmado/pré-reservado (não expirado) já ocupando esse horário exato."""
-    existente = db.query(models.Appointment).filter(
+def _achar_conflito(config, data_hora, db, excluir_id=None):
+    """Compromisso confirmado/pré-reservado (não expirado) já ocupando esse horário exato.
+    `excluir_id` ignora o próprio compromisso — usado ao reagendar/editar."""
+    query = db.query(models.Appointment).filter(
         models.Appointment.config_id == config.id,
         models.Appointment.data_hora == data_hora,
         models.Appointment.status.in_(["confirmado", "pre_reservado"]),
-    ).first()
+    )
+    if excluir_id is not None:
+        query = query.filter(models.Appointment.id != excluir_id)
+    existente = query.first()
 
     if existente and existente.status == "pre_reservado" and existente.expires_at and existente.expires_at < datetime.utcnow():
         existente.status = "expirado"

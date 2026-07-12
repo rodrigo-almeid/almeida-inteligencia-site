@@ -156,6 +156,25 @@ async def disconnect_google(
     return {"ok": True, "mensagem": "Google Calendar desconectado."}
 
 
+@router.post("/sync-now")
+async def sync_now(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Sincronização manual sob demanda (botão 'Sincronizar agora' no calendário) —
+    mesma função usada pelo cron de 15min e pelo webhook de push do Google."""
+    config = db.query(models.AgendamentoConfig).filter(
+        models.AgendamentoConfig.user_id == current_user.id
+    ).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Configuração não encontrada.")
+    if not config.google_calendar_ativo:
+        raise HTTPException(status_code=400, detail="Google Calendar não está conectado.")
+
+    await sync_from_google(config, db)
+    return {"ok": True}
+
+
 @router.post("/webhook")
 async def google_webhook(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     channel_id = request.headers.get("X-Goog-Channel-ID")

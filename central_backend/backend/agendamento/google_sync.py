@@ -41,7 +41,7 @@ async def criar_evento_google(config: models.AgendamentoConfig, appointment: mod
         service_obj = db.query(models.Service).filter(models.Service.id == appointment.service_id).first()
 
         nome_servico = service_obj.nome if service_obj else "Compromisso"
-        duracao = service_obj.duracao_minutos if service_obj else 30
+        duracao = appointment.duracao_minutos or (service_obj.duracao_minutos if service_obj else 30)
 
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
@@ -113,7 +113,7 @@ async def atualizar_evento_google(config: models.AgendamentoConfig, appointment:
         calendar_id = config.google_calendar_id or "primary"
 
         service_obj = db.query(models.Service).filter(models.Service.id == appointment.service_id).first()
-        duracao = service_obj.duracao_minutos if service_obj else 30
+        duracao = appointment.duracao_minutos or (service_obj.duracao_minutos if service_obj else 30)
 
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
@@ -206,6 +206,12 @@ async def sync_from_google(config: models.AgendamentoConfig, db: Session):
                 new_dt = datetime.fromisoformat(start_str.replace("Z", "+00:00")).replace(tzinfo=None)
                 summary = event.get("summary", "Evento Google Calendar")
 
+                duracao_evento = None
+                end_str = event.get("end", {}).get("dateTime", "")
+                if end_str:
+                    end_dt = datetime.fromisoformat(end_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                    duracao_evento = max(1, int((end_dt - new_dt).total_seconds() // 60))
+
                 default_client = db.query(models.Client).filter(
                     models.Client.config_id == config.id,
                     models.Client.telefone == "google_calendar",
@@ -220,7 +226,8 @@ async def sync_from_google(config: models.AgendamentoConfig, db: Session):
                 new_appt = models.Appointment(
                     config_id=config.id, client_id=default_client.id,
                     data_hora=new_dt, status="confirmado",
-                    google_event_id=event_id,
+                    google_event_id=event_id, descricao=summary,
+                    duracao_minutos=duracao_evento,
                 )
                 db.add(new_appt)
                 print(f"[gcal] Novo appointment criado de evento Google: {summary}")

@@ -122,6 +122,8 @@ migrations = [
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_instrucoes_extras VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ollama_url VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ollama_model VARCHAR",
+    # Calendário visual do Agendamento — duração própria do compromisso (fallback pro Service quando null)
+    "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS duracao_minutos INTEGER",
 ]
 for sql in migrations:
     try:

@@ -314,10 +314,29 @@ class AppointmentResponse(ORMBase):
     expires_at: Optional[datetime]
     lembrete_enviado: bool
     google_event_id: Optional[str] = None
+    descricao: Optional[str] = None
+    duracao_minutos: Optional[int] = None
     criado_em: Optional[datetime]
     config_id: int
     client_id: int
     service_id: Optional[int]
+    cliente_nome: Optional[str] = None
+    servico_nome: Optional[str] = None
+    servico_duracao_minutos: Optional[int] = None
+
+class AppointmentCreate(BaseModel):
+    data_hora: datetime
+    service_id: Optional[int] = None
+    descricao: Optional[str] = None
+    duracao_minutos: Optional[int] = None
+    status: str = "confirmado"
+
+class AppointmentUpdate(BaseModel):
+    data_hora: Optional[datetime] = None
+    service_id: Optional[int] = None
+    descricao: Optional[str] = None
+    duracao_minutos: Optional[int] = None
+    status: Optional[str] = None
 
 class ConversationMessageResponse(ORMBase):
     id: int
