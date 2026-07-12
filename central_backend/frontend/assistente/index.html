@@ -209,6 +209,7 @@
     <button class="tab-btn" data-tab="servicos" onclick="mostrarTab('servicos')">Serviços</button>
     <button class="tab-btn" data-tab="clientes" onclick="mostrarTab('clientes')">Clientes</button>
     <button class="tab-btn" data-tab="personalidade" onclick="mostrarTab('personalidade')">Personalidade</button>
+    <button class="tab-btn" data-tab="bulma" onclick="mostrarTab('bulma')">Bulma</button>
   </div>
 
   <!-- ── ABA: WhatsApp ── -->
@@ -420,6 +421,68 @@
         <label>Número Autorizado</label>
         <input type="text" id="numero_autorizado" placeholder="5543999211099">
         <div class="hint">Apenas este número poderá interagir com o assistente (DDI+DDD+número, sem espaços ou traços)</div>
+      </div>
+    </div>
+
+    <div class="btn-row"><button class="btn" onclick="salvar()">Salvar Configurações</button></div>
+  </div>
+
+  <!-- ── ABA: Bulma ── -->
+  <div class="tab-panel" data-tab="bulma">
+    <div class="card">
+      <div class="toggle-row">
+        <div>
+          <div class="tlabel">Ativar Bulma</div>
+          <div class="tstatus">Uma segunda persona, só pra bate-papo — sem finanças ou agenda</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="bulma_ativo">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="hint" style="margin-top:-4px;margin-bottom:4px;">Diga <strong>"Bulma"</strong> em qualquer parte da mensagem pra falar com ela em vez do Goku. Sem a palavra, continua caindo no Goku normalmente.</div>
+    </div>
+
+    <div class="card">
+      <h2>👧 Personalidade da Bulma</h2>
+      <div class="form-group">
+        <label>Nome</label>
+        <input type="text" id="bulma_nome_assistente" placeholder="Bulma" value="Bulma">
+      </div>
+      <div class="form-group">
+        <label>Tom de Voz</label>
+        <select id="bulma_tom_voz">
+          <option value="casual">Casual — amigável e descontraído</option>
+          <option value="formal">Formal — profissional e educado</option>
+          <option value="tecnico">Técnico — preciso e detalhado</option>
+          <option value="humoristico">Humorístico — divertido e leve</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Personalidade</label>
+        <textarea id="bulma_personalidade" rows="3" placeholder="Ex: Curiosa, bem-humorada, gosta de puxar assunto sobre o dia da pessoa."></textarea>
+        <div class="hint">Descreva como a Bulma deve se comportar nas conversas</div>
+      </div>
+      <div class="form-group">
+        <label>Instruções Extras</label>
+        <textarea id="bulma_instrucoes_extras" rows="3" placeholder="Ex: Nunca fale de finanças ou agenda, mesmo se perguntarem."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🖥️ Modelo (Ollama Local)</h2>
+      <div class="form-group">
+        <label>URL do Servidor</label>
+        <input type="text" id="bulma_ollama_url" placeholder="http://192.168.0.104:11434">
+        <div class="hint">Pode ser o mesmo servidor Ollama já usado pelo Goku</div>
+      </div>
+      <div class="form-group">
+        <label>Modelo</label>
+        <div style="display:flex; gap:6px;">
+          <select id="bulma_ollama_model" style="flex:1;"><option value="">(nenhum modelo selecionado)</option></select>
+          <button type="button" class="btn-test" style="flex-shrink:0;" onclick="buscarModelosOllamaBulma()" title="Buscar modelos instalados">🔄</button>
+        </div>
+        <div class="hint">Clique em 🔄 pra listar os modelos instalados nesse servidor (ex: bulma, hermes3)</div>
       </div>
     </div>
 
@@ -688,6 +751,34 @@ async function buscarModelosOllama(i) {
   }
 }
 
+async function buscarModelosOllamaBulma() {
+  const url = document.getElementById('bulma_ollama_url').value;
+  if (!url) { toast('Preencha a URL do Ollama antes de buscar', 'err'); return; }
+  const select = document.getElementById('bulma_ollama_model');
+  const atual = select.value;
+  select.innerHTML = `<option>Buscando...</option>`;
+  try {
+    const res = await apiCall('GET', `/assistente/ollama/modelos?url=${encodeURIComponent(url)}`);
+    if (!res || !res.ok) {
+      const err = res ? await res.json().catch(() => ({})) : {};
+      toast(err.detail || 'Não foi possível conectar ao Ollama', 'err');
+      select.innerHTML = `<option value="${atual}">${atual || '(nenhum modelo selecionado)'}</option>`;
+      return;
+    }
+    const data = await res.json();
+    if (!data.modelos.length) {
+      toast('Nenhum modelo instalado nesse servidor Ollama', 'err');
+      select.innerHTML = `<option value="">(nenhum modelo instalado)</option>`;
+      return;
+    }
+    select.innerHTML = data.modelos.map(m => `<option value="${m}" ${m === atual ? 'selected' : ''}>${m}</option>`).join('');
+    toast(`${data.modelos.length} modelo(s) encontrado(s)`, 'ok');
+  } catch (e) {
+    toast('Erro ao buscar modelos: ' + e.message, 'err');
+    select.innerHTML = `<option value="${atual}">${atual || '(nenhum modelo selecionado)'}</option>`;
+  }
+}
+
 function adicionarProvedor() {
   document.getElementById('overlayProvedor').classList.add('active');
 }
@@ -851,6 +942,17 @@ async function carregarConfig() {
     document.getElementById('usar_tool_calling').checked = !!data.usar_tool_calling;
     atualizarStatus(data.ativo);
 
+    document.getElementById('bulma_ativo').checked = !!data.bulma_ativo;
+    document.getElementById('bulma_nome_assistente').value = data.bulma_nome_assistente || 'Bulma';
+    document.getElementById('bulma_tom_voz').value = data.bulma_tom_voz || 'casual';
+    document.getElementById('bulma_personalidade').value = data.bulma_personalidade || '';
+    document.getElementById('bulma_instrucoes_extras').value = data.bulma_instrucoes_extras || '';
+    document.getElementById('bulma_ollama_url').value = data.bulma_ollama_url || '';
+    if (data.bulma_ollama_model) {
+      const sel = document.getElementById('bulma_ollama_model');
+      sel.innerHTML = `<option value="${data.bulma_ollama_model}" selected>${data.bulma_ollama_model}</option>`;
+    }
+
     provedores = (data.provedores_llm && data.provedores_llm.length) ? data.provedores_llm : [];
     renderProvedores();
 
@@ -895,6 +997,13 @@ function getPayload() {
     instrucoes_extras: document.getElementById('instrucoes_extras').value || null,
     ativo: document.getElementById('ativo').checked,
     usar_tool_calling: document.getElementById('usar_tool_calling').checked,
+    bulma_ativo: document.getElementById('bulma_ativo').checked,
+    bulma_nome_assistente: document.getElementById('bulma_nome_assistente').value || 'Bulma',
+    bulma_tom_voz: document.getElementById('bulma_tom_voz').value || 'casual',
+    bulma_personalidade: document.getElementById('bulma_personalidade').value || null,
+    bulma_instrucoes_extras: document.getElementById('bulma_instrucoes_extras').value || null,
+    bulma_ollama_url: document.getElementById('bulma_ollama_url').value || null,
+    bulma_ollama_model: document.getElementById('bulma_ollama_model').value || null,
   };
 }
 

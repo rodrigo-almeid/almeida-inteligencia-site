@@ -144,6 +144,83 @@ def montar_system_prompt(config=None) -> str:
     return prompt
 
 
+historico_bulma: dict[str, list] = {}
+
+
+def montar_system_prompt_bulma(config=None) -> str:
+    nome = "Bulma"
+    tom = "casual"
+    personalidade = ""
+    instrucoes = ""
+
+    if config:
+        nome = config.bulma_nome_assistente or "Bulma"
+        tom = config.bulma_tom_voz or "casual"
+        personalidade = config.bulma_personalidade or ""
+        instrucoes = config.bulma_instrucoes_extras or ""
+
+    tons = {
+        "formal": "Responda de forma profissional, educada e formal.",
+        "casual": "Responda de forma amigável, descontraída e direta.",
+        "tecnico": "Responda de forma técnica e precisa, com termos específicos quando necessário.",
+        "humoristico": "Responda com bom humor, use analogias divertidas, mas sem perder a utilidade.",
+    }
+    tom_texto = tons.get(tom, tons["casual"])
+
+    prompt = (
+        f"Você é {nome}, um amigo(a) de verdade pra bater papo — não é um assistente de tarefas. "
+        f"{tom_texto} "
+        "Converse como um amigo próximo: puxe assunto, faça perguntas, tenha opinião própria. "
+        "NÃO fale de finanças, agenda ou registro de gastos — isso é assunto de outro assistente, "
+        "a não ser que o próprio usuário puxe esse papo. "
+        "Responda sempre em português brasileiro."
+    )
+
+    if personalidade:
+        prompt += f"\n\nSua personalidade: {personalidade}"
+    if instrucoes:
+        prompt += f"\n\nInstruções adicionais: {instrucoes}"
+
+    return prompt
+
+
+async def chat_bulma(user_id: str, mensagem: str, config) -> str:
+    """Bate-papo livre com a persona Bulma — sempre via Ollama local (sem fallback
+    pra Gemini/Groq, sem tool-calling, sem tocar no histórico/estado do Goku)."""
+    url = getattr(config, "bulma_ollama_url", None)
+    modelo = getattr(config, "bulma_ollama_model", None)
+    nome = getattr(config, "bulma_nome_assistente", None) or "Bulma"
+
+    if not url or not modelo:
+        return f"Ainda não me configuraram direito 😅 (falta o modelo Ollama da {nome} no painel)."
+
+    system = montar_system_prompt_bulma(config)
+
+    chave = f"bulma:{user_id}"
+    if chave not in historico_bulma:
+        historico_bulma[chave] = []
+    hist = historico_bulma[chave]
+
+    messages = [
+        {"role": "system", "content": system},
+        *[{"role": m["role"], "content": m["content"]} for m in hist[-10:]],
+        {"role": "user", "content": mensagem},
+    ]
+
+    try:
+        resposta = await _gerar_ollama(url, modelo, messages)
+    except Exception as e:
+        print(f"[bulma] erro ao gerar resposta: {e}")
+        return "Deu ruim aqui do meu lado agora 😅 tenta de novo daqui a pouco?"
+
+    hist.append({"role": "user", "content": mensagem})
+    hist.append({"role": "assistant", "content": resposta})
+    if len(hist) > 20:
+        del hist[:len(hist) - 20]
+
+    return resposta
+
+
 async def chat(api_key: str, user_id: str, mensagem: str, config=None) -> str:
     system = montar_system_prompt(config)
     nome = config.nome_assistente if config and config.nome_assistente else "Goku"

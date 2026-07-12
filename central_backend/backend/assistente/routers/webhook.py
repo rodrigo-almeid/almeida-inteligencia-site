@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.core import models
 from backend.core.database import get_db
 from backend.assistente.gemini import (
-    chat, detectar_intencao, extrair_dados_nota, extrair_dados_gasto,
+    chat, chat_bulma, detectar_intencao, extrair_dados_nota, extrair_dados_gasto,
     humanizar_confirmacao, perguntar_campos_faltantes, complementar_dados,
     _gerar,
 )
@@ -106,6 +107,15 @@ def _evolution_to_msg(message: dict, from_number: str, data: dict) -> dict:
     }
 
 
+def _eh_chamada_bulma(texto: str) -> bool:
+    """Palavra-gatilho 'bulma' em qualquer lugar da mensagem (case-insensitive,
+    palavra inteira) chaveia pra a persona de bate-papo — checada ANTES de
+    pendente/tool-calling/intenção, então funciona mesmo com um registro
+    financeiro pendente em aberto (fica salvo, retomado na próxima mensagem
+    sem o gatilho)."""
+    return bool(re.search(r"\bbulma\b", texto, re.IGNORECASE))
+
+
 async def processar_mensagem(msg, config, user, db):
     """3 branches, nessa ordem de prioridade — imagem e pendente ficam FORA do
     tool-calling (são máquinas de estado determinísticas já testadas). Só a
@@ -113,6 +123,9 @@ async def processar_mensagem(msg, config, user, db):
     quando a flag usar_tool_calling está ligada."""
     tipo = msg.get("type")
     texto = msg.get("text", {}).get("body", "")
+
+    if tipo == "text" and texto and config.bulma_ativo and _eh_chamada_bulma(texto):
+        return await chat_bulma(msg.get("from"), texto, config)
 
     if tipo == "image":
         raw_data = msg.get("image", {}).get("raw_data")

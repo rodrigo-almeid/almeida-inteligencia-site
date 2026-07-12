@@ -213,6 +213,13 @@ class AssistenteConfigCreate(BaseModel):
     personalidade: Optional[str] = None
     tom_voz: Optional[str] = "casual"
     instrucoes_extras: Optional[str] = None
+    bulma_ativo: bool = False
+    bulma_nome_assistente: Optional[str] = "Bulma"
+    bulma_personalidade: Optional[str] = None
+    bulma_tom_voz: Optional[str] = "casual"
+    bulma_instrucoes_extras: Optional[str] = None
+    bulma_ollama_url: Optional[str] = None
+    bulma_ollama_model: Optional[str] = None
 
 class AssistenteConfigResponse(ORMBase):
     id: int
@@ -229,6 +236,13 @@ class AssistenteConfigResponse(ORMBase):
     personalidade: Optional[str]
     tom_voz: Optional[str]
     instrucoes_extras: Optional[str]
+    bulma_ativo: bool = False
+    bulma_nome_assistente: Optional[str] = None
+    bulma_personalidade: Optional[str] = None
+    bulma_tom_voz: Optional[str] = None
+    bulma_instrucoes_extras: Optional[str] = None
+    bulma_ollama_url: Optional[str] = None
+    bulma_ollama_model: Optional[str] = None
     user_id: int
 
 

@@ -235,6 +235,16 @@ class AssistenteConfig(Base):
     tom_voz = Column(String, nullable=True, default="casual")
     instrucoes_extras = Column(String, nullable=True)
 
+    # Bulma — segunda persona, só de bate-papo (sem tools de finanças/agenda),
+    # ativada por palavra-gatilho na mensagem (ver webhook.py::_eh_chamada_bulma)
+    bulma_ativo = Column(Boolean, default=False)
+    bulma_nome_assistente = Column(String, nullable=True, default="Bulma")
+    bulma_personalidade = Column(String, nullable=True)
+    bulma_tom_voz = Column(String, nullable=True, default="casual")
+    bulma_instrucoes_extras = Column(String, nullable=True)
+    bulma_ollama_url = Column(String, nullable=True)
+    bulma_ollama_model = Column(String, nullable=True)
+
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
 
 

@@ -114,6 +114,14 @@ migrations = [
     "ALTER TABLE agendamento_config ADD COLUMN IF NOT EXISTS google_calendar_ativo BOOLEAN DEFAULT FALSE",
     # Agenda pessoal — marcar direto sem passo de confirmação, e assunto/descrição livre
     "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS descricao TEXT",
+    # Bulma — segunda persona de bate-papo, ativada por palavra-gatilho na mensagem
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ativo BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_nome_assistente VARCHAR DEFAULT 'Bulma'",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_personalidade VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_tom_voz VARCHAR DEFAULT 'casual'",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_instrucoes_extras VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ollama_url VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ollama_model VARCHAR",
 ]
 for sql in migrations:
     try:
