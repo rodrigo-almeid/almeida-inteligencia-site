@@ -95,7 +95,10 @@ def _montar_system_prompt(assistente_config, agendamento_config, db: Session) ->
     prompt += (
         "\n\n### Finanças:\n"
         "- Para registrar um gasto/receita relatado pelo usuário, use a função registrar_gasto.\n"
-        "- Para perguntas sobre saldo, gastos ou contas, use a função consultar_financas.\n"
+        "- Use SEMPRE a função consultar_financas quando o usuário perguntar sobre saldo, gastos, contas "
+        "a pagar, contas pendentes ou vencimentos — nunca responda essa pergunta sem chamar a função, e "
+        "nunca diga que não tem acesso às contas. O resultado já traz as contas pendentes com data de "
+        "vencimento.\n"
     )
     return prompt
 
