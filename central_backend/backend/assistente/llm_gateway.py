@@ -85,7 +85,11 @@ def _montar_system_prompt(assistente_config, agendamento_config, db: Session) ->
             f"- NUNCA mencione o ID/número interno de um compromisso pro usuário — fale só pelo nome e "
             f"horário (ex: 'sua reunião das 14h', não 'agendamento #7').\n"
             f"- Pode cancelar ou reagendar usando as funções disponíveis.\n"
-            f"- Data de hoje: {datetime.utcnow().strftime('%Y-%m-%d')}"
+            f"- Data de hoje: {datetime.utcnow().strftime('%Y-%m-%d (%A)')}. Use ESSA data como referência "
+            f"pra resolver qualquer data relativa ou incompleta que o usuário disser (ex: 'dia 22', "
+            f"'sexta que vem', 'daqui a 2 semanas'). Se o usuário disser só o dia do mês sem mês/ano "
+            f"(ex: 'dia 22'), assuma a PRÓXIMA ocorrência futura a partir da data de hoje acima — nunca "
+            f"um mês ou ano diferente do calendário real, e nunca uma data já passada.\n"
         )
 
     prompt += (
