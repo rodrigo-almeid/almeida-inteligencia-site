@@ -60,48 +60,11 @@ services:
       PORTAL_SECRET_KEY: ${PORTAL_SECRET_KEY}
       JWT_ALGORITHM: "HS256"
       JWT_EXPIRE_MINUTES: "30"
-      EVOLUTION_API_URL: http://evolution-api:8080
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: evolution-redis
-    command: redis-server --appendonly yes
-    volumes:
-      - evolution_redis:/data
-    restart: unless-stopped
-
-  evolution-api:
-    image: evoapicloud/evolution-api:latest
-    container_name: evolution-api
-    environment:
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
-      SERVER_URL: https://almeidainteligencia.com.br
-      DEL_INSTANCE: "false"
-      DATABASE_ENABLED: "true"
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/evolution"
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
-      DATABASE_SAVE_MESSAGE_UPDATE: "false"
-      DATABASE_SAVE_DATA_CONTACTS: "false"
-      DATABASE_SAVE_DATA_CHATS: "false"
-      CACHE_REDIS_ENABLED: "true"
-      CACHE_REDIS_URI: redis://redis:6379
-      WEBHOOK_GLOBAL_ENABLED: "false"
-      LOG_LEVEL: WARN
-    volumes:
-      - evolution_instances:/evolution/instances
-    depends_on:
-      redis:
-        condition: service_started
       db:
         condition: service_healthy
     restart: unless-stopped
@@ -120,5 +83,3 @@ services:
 volumes:
   almeida_pgdata:
   email_models:
-  evolution_instances:
-  evolution_redis:

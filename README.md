@@ -199,7 +199,7 @@ pytest tests/ --cov=main --cov-report=term-missing
 - **PostgreSQL sem porta exposta na internet** — bind em `127.0.0.1:5432`, acessível apenas via SSH tunnel
 - **CORS restrito** — origens permitidas configuráveis via env var (não mais `allow_origins=["*"]`)
 - **Rate limiting** — register (5/min) e login (10/min) via slowapi
-- **Webhooks validados** — assinatura HMAC SHA-256 no webhook do Agendamento (Meta); o webhook do Assistente (Evolution API/Baileys) é autenticado por um `webhook_secret` próprio, gerado por configuração
+- **Webhooks validados** — assinatura HMAC SHA-256 (`X-Hub-Signature-256`) no webhook do Assistente/Goku (Meta WhatsApp Cloud API), verificada contra `WHATSAPP_APP_SECRET`
 - **SECRET_KEY sem fallback** — backend falha na inicialização se a chave não existir
 - **Erros internos não expostos** — mensagens de erro do banco retornam "Erro interno do servidor"
 - **JWT com validade reduzida** — tokens expiram em 30 minutos (módulos centrais e email)

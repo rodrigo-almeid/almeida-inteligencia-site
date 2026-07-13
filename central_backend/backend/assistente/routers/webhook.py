@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.core import models
 from backend.core.database import get_db
+from backend.agendamento.crypto import decrypt_key
 from backend.assistente.gemini import (
     chat, chat_bulma, detectar_intencao, extrair_dados_nota, extrair_dados_gasto,
     humanizar_confirmacao, perguntar_campos_faltantes, complementar_dados,
@@ -25,81 +26,87 @@ from backend.assistente.agenda_actions import montar_resumo_agenda
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
 
-def get_config_by_secret(secret: Optional[str], db: Session):
-    """Autentica o webhook pelo segredo — a rota é pública (exposta pelo nginx),
-    então não dá pra confiar em campos do próprio corpo da requisição (ex: instance)."""
-    if not secret:
+def get_config_by_phone_id(phone_id: Optional[str], db: Session):
+    if not phone_id:
         return None
     return db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.webhook_secret == secret,
+        models.AssistenteConfig.whatsapp_phone_id == phone_id,
         models.AssistenteConfig.ativo == True
     ).first()
 
 
+@router.get("/webhook")
+def webhook_verify(request: Request, db: Session = Depends(get_db)):
+    """Handshake de verificação exigido pela Meta ao cadastrar a Callback URL."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode != "subscribe" or not token:
+        raise HTTPException(status_code=403, detail="Verificação inválida")
+
+    config = db.query(models.AssistenteConfig).filter(
+        models.AssistenteConfig.whatsapp_verify_token == token,
+        models.AssistenteConfig.ativo == True,
+    ).first()
+
+    if not config:
+        raise HTTPException(status_code=403, detail="Token de verificação inválido")
+
+    return Response(content=challenge, media_type="text/plain")
+
+
 @router.post("/webhook")
-async def webhook_receive(request: Request, secret: Optional[str] = None, db: Session = Depends(get_db)):
+async def webhook_receive(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
 
-    event = body.get("event")
-    if event != "messages.upsert":
-        return {"status": "ignored", "event": event}
+    entry = (body.get("entry") or [{}])[0]
+    changes = (entry.get("changes") or [{}])[0]
+    value = changes.get("value", {})
 
-    config = get_config_by_secret(secret, db)
+    if "messages" not in value:
+        return {"status": "ignored", "reason": "no messages"}
+
+    phone_id = value.get("metadata", {}).get("phone_number_id")
+    config = get_config_by_phone_id(phone_id, db)
     if not config:
         return {"status": "unauthorized"}
 
-    data = body.get("data", {})
-    key = data.get("key", {})
-    from_me = key.get("fromMe", False)
-    if from_me:
-        print(f"[goku] mensagem ignorada (fromMe): remoteJid={key.get('remoteJid', '')!r}")
-        return {"status": "ignored", "reason": "fromMe"}
-
-    user = db.query(models.User).filter(models.User.id == config.user_id).first()
-
-    remote_jid = key.get("remoteJid", "")
-    from_number = remote_jid.split("@")[0]
+    message = value["messages"][0]
+    from_number = message.get("from", "")
 
     if config.numero_autorizado and from_number != config.numero_autorizado:
         print(f"[goku] número não autorizado: recebido={from_number!r} esperado={config.numero_autorizado!r}")
         return {"status": "unauthorized"}
 
-    message = data.get("message", {})
-
-    msg = _evolution_to_msg(message, from_number, data)
+    user = db.query(models.User).filter(models.User.id == config.user_id).first()
+    token = decrypt_key(config.whatsapp_token)
+    msg = _meta_to_msg(message, from_number)
 
     try:
         reply = await processar_mensagem(msg, config, user, db)
         if reply:
-            await enviar_mensagem(
-                config.evolution_url, config.evolution_api_key,
-                config.evolution_instance, from_number, reply
-            )
+            await enviar_mensagem(token, config.whatsapp_phone_id, from_number, reply)
     except Exception as e:
         print(f"[goku] ERRO: {type(e).__name__}: {e}")
         await enviar_mensagem(
-            config.evolution_url, config.evolution_api_key,
-            config.evolution_instance, from_number,
+            token, config.whatsapp_phone_id, from_number,
             "Desculpe, tive um problema. Tente novamente."
         )
 
     return {"status": "ok"}
 
 
-def _evolution_to_msg(message: dict, from_number: str, data: dict) -> dict:
-    if "imageMessage" in message:
-        mime = message.get("imageMessage", {}).get("mimetype", "image/jpeg")
+def _meta_to_msg(message: dict, from_number: str) -> dict:
+    if message.get("type") == "image":
+        image = message.get("image", {})
         return {
             "type": "image",
-            "image": {"raw_data": data, "mime_type": mime},
+            "image": {"media_id": image.get("id"), "mime_type": image.get("mime_type", "image/jpeg")},
             "from": from_number,
         }
 
-    texto = (
-        message.get("conversation")
-        or message.get("extendedTextMessage", {}).get("text")
-        or ""
-    )
+    texto = message.get("text", {}).get("body", "")
     return {
         "type": "text",
         "text": {"body": texto},
@@ -128,14 +135,13 @@ async def processar_mensagem(msg, config, user, db):
         return await chat_bulma(msg.get("from"), texto, config)
 
     if tipo == "image":
-        raw_data = msg.get("image", {}).get("raw_data")
+        media_id = msg.get("image", {}).get("media_id")
         mime = msg.get("image", {}).get("mime_type", "image/jpeg")
-        if not raw_data:
+        if not media_id:
             return "Não consegui acessar a imagem. Tente enviar novamente."
         try:
-            buffer = await baixar_midia(
-                config.evolution_url, config.evolution_api_key, config.evolution_instance, raw_data
-            )
+            token = decrypt_key(config.whatsapp_token)
+            buffer = await baixar_midia(token, media_id)
         except Exception as e:
             print(f"[goku] erro ao baixar mídia: {e}")
             return "Não consegui baixar a imagem. Tente enviar novamente."

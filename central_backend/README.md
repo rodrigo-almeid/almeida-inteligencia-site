@@ -108,7 +108,7 @@ Gestão financeira completa com contas, categorias, recorrências automáticas e
 
 ### 3. Assistente Virtual (Goku)
 
-Bot único de WhatsApp (Evolution API/Baileys, self-hosted — a Meta Cloud API foi removida) que cobre finanças pessoais **e** agendamento de serviços na mesma conversa. Historicamente eram dois módulos separados (Agendamento Inteligente via Meta, nunca usado em produção; Assistente/Goku via Evolution, em uso real) — foram fundidos: o canal Evolution sobrevive e a arquitetura de tool-calling do agendamento foi generalizada para cobrir também as ações financeiras.
+Bot único de WhatsApp (Meta Cloud API) que cobre finanças pessoais **e** agendamento de serviços na mesma conversa. Historicamente eram dois módulos separados (Agendamento Inteligente via Meta; Assistente/Goku, que passou por uma fase self-hosted via Evolution API/Baileys entre 06/2026 e 07/2026) — foram fundidos: a arquitetura de tool-calling do agendamento foi generalizada para cobrir também as ações financeiras, e o canal WhatsApp voltou a ser a Meta Cloud API.
 
 **O que faz:**
 - Usa LLM (Gemini → Groq → Ollama, por prioridade com fallback) pra entender a mensagem — credenciais únicas em `AssistenteConfig.provedores_llm` (cifradas com Fernet)
@@ -120,7 +120,7 @@ Bot único de WhatsApp (Evolution API/Baileys, self-hosted — a Meta Cloud API 
 - **Registro automático** — cria lançamentos no módulo Financeiro; se for mercado (foto ou texto), cria em Mercado em vez de uma conta genérica
 - **Agendamento** — cadastro de serviços/horários, clientes identificados pelo `numero_autorizado` (bot é pessoal, sem clientes externos), sincronização com Google Calendar
 - **Personalidade configurável** — nome do assistente, tom de voz, personalidade, instruções extras
-- **Segurança** — webhook autenticado por `webhook_secret` próprio (query param), só processa mensagens do número autorizado
+- **Segurança** — webhook autenticado por assinatura HMAC SHA-256 (`X-Hub-Signature-256`, validada contra `WHATSAPP_APP_SECRET`) e handshake de verificação da Meta (`hub.challenge`), só processa mensagens do número autorizado
 
 **Ciclo de vida do agendamento:**
 ```
@@ -141,18 +141,16 @@ Foto no WhatsApp → Download da imagem → Gemini Vision (OCR)
 | Tarefa | Intervalo | Descrição |
 |--------|-----------|-----------|
 | Limpar pré-reservas expiradas | 1 min | Remove agendamentos não confirmados |
-| Enviar lembretes | 30 min | WhatsApp de lembrete via Evolution API |
+| Enviar lembretes | 30 min | WhatsApp de lembrete via Meta Cloud API |
 | Sincronizar Google Calendar | 15 min | Busca alterações externas |
 | Renovar canais push | 12h | Renova push notifications do Google |
 
-**WhatsApp:** Evolution API (Baileys, self-hosted) — conexão por QR Code, sem aprovação da Meta; canal único do sistema  
+**WhatsApp:** Meta WhatsApp Cloud API — token de acesso + Phone Number ID por usuário, canal único do sistema  
 **Configurações:** nome_assistente, personalidade, tom_voz, instrucoes_extras, numero_autorizado, usar_tool_calling  
-**Rotas do bot:** `/assistente/config`, `/assistente/validar`, `/assistente/qrcode`, `/assistente/connection-state`, `/assistente/desconectar`, `/assistente/webhook/resync`, `/assistente/webhook` (autenticado por `webhook_secret` na URL, não por JWT — único webhook de WhatsApp do sistema), `/assistente/simulador/*`  
+**Rotas do bot:** `/assistente/config`, `/assistente/validar`, `/assistente/webhook` (`GET` para o handshake de verificação da Meta — `hub.challenge`; `POST` para receber mensagens, autenticado por assinatura HMAC via `WHATSAPP_APP_SECRET`), `/assistente/simulador/*`  
 **Rotas de agendamento (sub-recursos, sem webhook próprio):** `/agendamento/config`, `/agendamento/horarios`, `/agendamento/servicos`, `/agendamento/clients`, `/agendamento/appointments`, `/agendamento/stats`, `/agendamento/google/*`  
-**Código:** `backend/assistente/` (routers, llm_gateway.py, adapters/, tools_agendamento.py, tools_financeiro.py, finance_actions.py, gemini.py, whatsapp.py) + `backend/agendamento/` (routers de sub-recursos, slots.py, google_sync.py, crypto.py, cron.py)  
+**Código:** `backend/assistente/` (routers, llm_gateway.py, adapters/, tools_agendamento.py, tools_financeiro.py, finance_actions.py, gemini.py, whatsapp.py — envio/download de mídia via Graph API) + `backend/agendamento/` (routers de sub-recursos, slots.py, google_sync.py, crypto.py, cron.py) + `backend/core/webhook_security.py` (middleware HMAC)  
 **Frontend:** `frontend/assistente/` (index.html — painel único com abas WhatsApp/IA/E-mail-Agenda/Horários/Serviços/Clientes/Personalidade; dashboard.html; console.html)
-
-**Cuidado com reconexões repetidas:** o WhatsApp pode remover o aparelho vinculado (log da Evolution API: `conflict`/`device_removed`) se a instância for reconectada várias vezes seguidas em pouco tempo — mais comum em números novos. Use `/assistente/webhook/resync` pra atualizar o webhook sem tocar na conexão, e `/assistente/desconectar` (botão "🔌 Desconectar" no painel) se a sessão travar num loop de reconexão.
 
 ---
 
@@ -432,7 +430,7 @@ central_backend/
 │   │   ├── tools_financeiro.py  # Execução das tools financeiras (registrar_gasto, consultar_financas)
 │   │   ├── finance_actions.py   # Lógica pura financeira (reusada pelo fluxo legado e pelas tools)
 │   │   ├── gemini.py           # Motor sem tool-calling: chat livre, detecção de intenção, OCR (fluxo legado)
-│   │   └── whatsapp.py         # Envio de mensagens + download de mídia (Evolution API)
+│   │   └── whatsapp.py         # Envio de mensagens + download de mídia (Meta Graph API)
 │   │
 │   ├── agendamento/             # Sub-recursos de agendamento — SEM webhook próprio
 │   │   ├── routers/
@@ -445,7 +443,7 @@ central_backend/
 │   │   │   └── google_calendar.py # OAuth + sync Google
 │   │   ├── google_sync.py     # Sincronização Google Calendar
 │   │   ├── slots.py           # Cálculo de horários disponíveis
-│   │   ├── cron.py            # Tarefas agendadas (APScheduler) — lembretes via Evolution API
+│   │   ├── cron.py            # Tarefas agendadas (APScheduler) — lembretes via Meta Cloud API
 │   │   └── crypto.py          # Criptografia Fernet (reusada por assistente/config.py)
 │   │
 │   └── main.py                # App FastAPI + registro de routers + scheduler
@@ -559,11 +557,8 @@ email_classifier/
 |--------|------|:----:|-----------|
 | `POST` | `/assistente/validar` | JWT | Validar credenciais |
 | `GET/POST/PUT` | `/assistente/config` | JWT | Configuração (chaves sensíveis mascaradas no GET) |
-| `GET` | `/assistente/qrcode` | JWT | Gerar/renovar QR Code de conexão |
-| `GET` | `/assistente/connection-state` | JWT | Estado da conexão com o WhatsApp |
-| `POST` | `/assistente/desconectar` | JWT | Encerrar sessão do WhatsApp (logout ou apaga instância travada) |
-| `POST` | `/assistente/webhook/resync` | JWT | Reconfigurar webhook na Evolution API sem gerar QR Code |
-| `POST` | `/assistente/webhook?secret=...` | Segredo por URL | Webhook único — Evolution API (WhatsApp), cobre finanças e agendamento |
+| `GET` | `/assistente/webhook` | `hub.verify_token` (query) | Handshake de verificação da Meta ao cadastrar a Callback URL |
+| `POST` | `/assistente/webhook` | Assinatura HMAC (`X-Hub-Signature-256`) | Webhook único — Meta WhatsApp Cloud API, cobre finanças e agendamento |
 | `POST` | `/assistente/simulador/chat` | JWT | Simular mensagem (console) |
 | `DELETE` | `/assistente/simulador/historico` | JWT | Limpar histórico do simulador |
 
@@ -595,7 +590,7 @@ Sub-recursos de agendamento (mesmo bot, sem webhook próprio):
 | Criptografia | Fernet (cryptography) |
 | Frontend | HTML5 + TailwindCSS + Chart.js |
 | IA / LLM | Google Gemini 2.0 Flash, Groq LLaMA 3.3 70B, Ollama |
-| WhatsApp | Evolution API/Baileys self-hosted — canal único (Meta Cloud API removida) |
+| WhatsApp | Meta WhatsApp Cloud API — canal único |
 | Calendário | Google Calendar API v3 (google-auth + google-auth-oauthlib) |
 | HTTP Client | httpx |
 | Relatórios | openpyxl (Excel) + ReportLab (PDF) |

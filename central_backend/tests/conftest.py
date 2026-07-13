@@ -36,6 +36,7 @@ from backend.core.models import (
 )
 from backend.core.database import get_db
 from backend.core.security import get_password_hash
+from backend.agendamento.crypto import encrypt_key
 from backend.main import app
 
 # Garante que as tabelas existam na engine de testes
@@ -212,16 +213,15 @@ def agendamento_config(db, user):
 
 @pytest.fixture
 def assistente_config(db, user):
-    """Config do assistente unificado (WhatsApp Evolution + IA), com tool-calling
+    """Config do assistente unificado (WhatsApp Meta Cloud API + IA), com tool-calling
     ligado — usada pelos testes do llm_gateway/adapters."""
     import json
     cfg = AssistenteConfig(
         user_id=user.id,
-        evolution_url="http://evolution-api:8080",
-        evolution_api_key="test-api-key",
-        evolution_instance="goku-test",
+        whatsapp_token=encrypt_key("test-whatsapp-token"),
+        whatsapp_phone_id="123456789012345",
+        whatsapp_verify_token="test-verify-token",
         numero_autorizado="5543999211099",
-        webhook_secret="test-secret",
         provedores_llm=json.dumps([
             {"tipo": "gemini", "api_key": "test-gemini-key", "ativo": True},
         ]),

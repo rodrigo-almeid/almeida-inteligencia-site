@@ -11,9 +11,9 @@ from backend.agendamento.crypto import decrypt_key
 
 
 CONFIG_BASE = {
-    "evolution_url": "http://evolution-api:8080",
-    "evolution_api_key": "test-api-key",
-    "evolution_instance": "goku",
+    "whatsapp_token": "test-whatsapp-token",
+    "whatsapp_phone_id": "123456789012345",
+    "whatsapp_verify_token": "test-verify-token",
     "gemini_api_key": "AIzaSyXXXXX",
     "numero_autorizado": "5543999211099",
     "nome_assistente": "Goku",
@@ -111,97 +111,130 @@ class TestAtualizarConfig:
         assert res.json()["ativo"] is True
 
 
-class TestWebhookMensagens:
-    def test_post_evento_ignorado(self, client):
-        """Eventos que não são messages.upsert são ignorados mesmo sem secret."""
-        res = client.post("/assistente/webhook", json={
-            "event": "connection.update",
-            "data": {},
-        })
-        assert res.status_code == 200
-        assert res.json()["status"] == "ignored"
+def _meta_payload(phone_id: str, from_number: str, texto: str) -> dict:
+    return {
+        "entry": [{
+            "changes": [{
+                "value": {
+                    "metadata": {"phone_number_id": phone_id},
+                    "messages": [{"from": from_number, "type": "text", "text": {"body": texto}}],
+                },
+            }],
+        }],
+    }
 
-    def test_post_sem_secret(self, client):
-        """Rota é pública (exposta pelo nginx) — sem secret, não autentica."""
-        res = client.post("/assistente/webhook", json={
-            "event": "messages.upsert",
-            "instance": "goku",
-            "data": {
-                "key": {"remoteJid": "5511111111111@s.whatsapp.net", "fromMe": False},
-                "message": {"conversation": "oi"},
-            }
-        })
-        assert res.status_code == 200
-        assert res.json()["status"] == "unauthorized"
 
-    def test_post_secret_invalido(self, client, db, user):
+class TestWebhookVerify:
+    def test_verify_sucesso_retorna_challenge(self, client, db, user):
         config = AssistenteConfig(
-            evolution_instance="goku",
-            evolution_url="http://evolution-api:8080",
-            evolution_api_key="key",
-            numero_autorizado="5500000000000",
-            webhook_secret="segredo-correto",
+            whatsapp_phone_id="123456789012345",
+            whatsapp_token="token-cifrado-fake",
+            whatsapp_verify_token="meu-verify-token",
             ativo=True,
             user_id=user.id,
         )
         db.add(config)
         db.commit()
 
-        res = client.post("/assistente/webhook?secret=segredo-errado", json={
-            "event": "messages.upsert",
-            "data": {
-                "key": {"remoteJid": "5500000000000@s.whatsapp.net", "fromMe": False},
-                "message": {"conversation": "oi"},
-            }
+        res = client.get("/assistente/webhook", params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": "meu-verify-token",
+            "hub.challenge": "12345",
         })
+        assert res.status_code == 200
+        assert res.text == "12345"
+
+    def test_verify_token_invalido(self, client, db, user):
+        config = AssistenteConfig(
+            whatsapp_phone_id="123456789012345",
+            whatsapp_token="token-cifrado-fake",
+            whatsapp_verify_token="meu-verify-token",
+            ativo=True,
+            user_id=user.id,
+        )
+        db.add(config)
+        db.commit()
+
+        res = client.get("/assistente/webhook", params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": "token-errado",
+            "hub.challenge": "12345",
+        })
+        assert res.status_code == 403
+
+    def test_verify_mode_invalido(self, client):
+        res = client.get("/assistente/webhook", params={
+            "hub.mode": "unsubscribe",
+            "hub.verify_token": "qualquer",
+            "hub.challenge": "12345",
+        })
+        assert res.status_code == 403
+
+
+class TestWebhookMensagens:
+    def test_post_sem_campo_messages_e_ignorado(self, client):
+        """Notificações de status (delivered/read) não têm 'messages' no value."""
+        res = client.post("/assistente/webhook", json={
+            "entry": [{"changes": [{"value": {"metadata": {"phone_number_id": "x"}, "statuses": []}}]}],
+        })
+        assert res.status_code == 200
+        assert res.json()["status"] == "ignored"
+
+    def test_post_phone_id_desconhecido(self, client):
+        """Rota é pública (exposta pelo nginx) — phone_number_id sem config correspondente não autentica."""
+        res = client.post("/assistente/webhook", json=_meta_payload("999999999999999", "5511111111111", "oi"))
         assert res.status_code == 200
         assert res.json()["status"] == "unauthorized"
 
     def test_post_numero_nao_autorizado(self, client, db, user):
         config = AssistenteConfig(
-            evolution_instance="goku",
-            evolution_url="http://evolution-api:8080",
-            evolution_api_key="key",
+            whatsapp_phone_id="123456789012345",
+            whatsapp_token="token-cifrado-fake",
             numero_autorizado="5500000000000",
-            webhook_secret="segredo-correto",
             ativo=True,
             user_id=user.id,
         )
         db.add(config)
         db.commit()
 
-        res = client.post("/assistente/webhook?secret=segredo-correto", json={
-            "event": "messages.upsert",
-            "data": {
-                "key": {"remoteJid": "5511111111111@s.whatsapp.net", "fromMe": False},
-                "message": {"conversation": "oi"},
-            }
-        })
+        res = client.post("/assistente/webhook", json=_meta_payload("123456789012345", "5511111111111", "oi"))
         assert res.status_code == 200
         assert res.json()["status"] == "unauthorized"
 
+    def test_post_mensagem_autorizada_processa_e_responde(self, client, db, user):
+        from backend.agendamento.crypto import encrypt_key
+        config = AssistenteConfig(
+            whatsapp_phone_id="123456789012345",
+            whatsapp_token=encrypt_key("token-real"),
+            numero_autorizado="5500000000000",
+            usar_tool_calling=False,
+            ativo=True,
+            user_id=user.id,
+        )
+        db.add(config)
+        db.commit()
 
-class TestWebhookSecret:
-    def test_webhook_secret_gerado_automaticamente(self, client, auth_headers, db):
-        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-        config = db.query(AssistenteConfig).first()
-        assert config.webhook_secret
-        assert len(config.webhook_secret) >= 16
+        with patch("backend.assistente.routers.webhook.enviar_mensagem", new=AsyncMock()) as mock_enviar, \
+             patch("backend.assistente.routers.webhook.detectar_intencao", new=AsyncMock(return_value="outro")), \
+             patch("backend.assistente.routers.webhook.chat", new=AsyncMock(return_value="Oi, tudo bem?")):
+            res = client.post("/assistente/webhook", json=_meta_payload("123456789012345", "5500000000000", "oi"))
 
-    def test_webhook_secret_nao_aparece_na_resposta(self, client, auth_headers):
-        res = client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-        assert "webhook_secret" not in res.json()
-        res_get = client.get("/assistente/config", headers=auth_headers)
-        assert "webhook_secret" not in res_get.json()
+        assert res.status_code == 200
+        assert res.json()["status"] == "ok"
+        mock_enviar.assert_called_once()
+        args = mock_enviar.call_args.args
+        assert args[0] == "token-real"
+        assert args[1] == "123456789012345"
+        assert args[2] == "5500000000000"
 
 
 class TestMascaramentoDeChaves:
-    def test_evolution_api_key_mascarada_no_get(self, client, auth_headers):
+    def test_whatsapp_token_mascarado_no_get(self, client, auth_headers):
         client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
         res = client.get("/assistente/config", headers=auth_headers)
         data = res.json()
-        assert data["evolution_api_key"] != CONFIG_BASE["evolution_api_key"]
-        assert CONFIG_BASE["evolution_api_key"] not in data["evolution_api_key"]
+        assert data["whatsapp_token"] != CONFIG_BASE["whatsapp_token"]
+        assert CONFIG_BASE["whatsapp_token"] not in data["whatsapp_token"]
 
     def test_provedores_llm_api_key_mascarada_no_get(self, client, auth_headers):
         payload = {
@@ -223,19 +256,19 @@ class TestMascaramentoDeChaves:
 
         get_res = client.get("/assistente/config", headers=auth_headers)
         provedores_mascarados = get_res.json()["provedores_llm"]
-        chave_mascarada_evolution = get_res.json()["evolution_api_key"]
+        chave_mascarada_whatsapp = get_res.json()["whatsapp_token"]
 
         # Simula o painel reenviando o formulário sem o usuário ter tocado nas chaves
         put_payload = {
             **CONFIG_BASE,
-            "evolution_api_key": chave_mascarada_evolution,
+            "whatsapp_token": chave_mascarada_whatsapp,
             "provedores_llm": provedores_mascarados,
         }
         put_res = client.put("/assistente/config", json=put_payload, headers=auth_headers)
         assert put_res.status_code == 200
 
         config = db.query(AssistenteConfig).first()
-        assert config.evolution_api_key == CONFIG_BASE["evolution_api_key"]
+        assert decrypt_key(config.whatsapp_token) == CONFIG_BASE["whatsapp_token"]
         provedores_salvos = json.loads(config.provedores_llm)
         assert decrypt_key(provedores_salvos[0]["api_key"]) == "AIzaSyREALKEY1234567890"
 
@@ -249,46 +282,45 @@ class TestMascaramentoDeChaves:
         client.post("/assistente/config", json=payload, headers=auth_headers)
 
         get_res = client.get("/assistente/config", headers=auth_headers)
-        chave_mascarada_evolution = get_res.json()["evolution_api_key"]
+        chave_mascarada_whatsapp = get_res.json()["whatsapp_token"]
         chave_mascarada_gemini = get_res.json()["provedores_llm"][0]["api_key"]
-        assert "…" in chave_mascarada_evolution
+        assert "…" in chave_mascarada_whatsapp
         assert "…" in chave_mascarada_gemini
 
         gemini_response = MagicMock()
         gemini_response.status_code = 200
 
-        evolution_response = MagicMock()
-        evolution_response.status_code = 200
-        evolution_response.json.return_value = {"instance": {"state": "open"}}
+        whatsapp_response = MagicMock()
+        whatsapp_response.status_code = 200
+        whatsapp_response.json.return_value = {"verified_name": "Goku"}
 
         with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
             mock_instance.__aexit__ = AsyncMock(return_value=False)
             mock_instance.post = AsyncMock(return_value=gemini_response)
-            mock_instance.get = AsyncMock(return_value=evolution_response)
+            mock_instance.get = AsyncMock(return_value=whatsapp_response)
             mock_client.return_value = mock_instance
 
             res = client.post("/assistente/validar", json={
                 "gemini_api_key": chave_mascarada_gemini,
-                "evolution_api_key": chave_mascarada_evolution,
-                "evolution_url": CONFIG_BASE["evolution_url"],
-                "evolution_instance": CONFIG_BASE["evolution_instance"],
+                "whatsapp_token": chave_mascarada_whatsapp,
+                "whatsapp_phone_id": CONFIG_BASE["whatsapp_phone_id"],
             }, headers=auth_headers)
 
         assert res.status_code == 200
         data = res.json()
         gemini_result = next(r for r in data["resultados"] if r["nome"] == "Google Gemini")
         assert gemini_result["ok"] is True
-        evolution_result = next(r for r in data["resultados"] if r["nome"] == "Evolution API")
-        assert evolution_result["ok"] is True
+        whatsapp_result = next(r for r in data["resultados"] if r["nome"] == "Meta WhatsApp")
+        assert whatsapp_result["ok"] is True
 
         gemini_call_url = mock_instance.post.call_args.args[0]
         assert "AIzaSyREALKEY1234567890" in gemini_call_url
         assert "…" not in gemini_call_url
 
-        evolution_call_headers = mock_instance.get.call_args.kwargs["headers"]
-        assert evolution_call_headers["apikey"] == "test-api-key"
+        whatsapp_call_headers = mock_instance.get.call_args.kwargs["headers"]
+        assert whatsapp_call_headers["Authorization"] == "Bearer test-whatsapp-token"
 
     def test_atualizar_com_chave_nova_sobrescreve_valor_real(self, client, auth_headers, db):
         payload = {
@@ -299,13 +331,13 @@ class TestMascaramentoDeChaves:
 
         put_payload = {
             **CONFIG_BASE,
-            "evolution_api_key": "nova-evolution-key",
+            "whatsapp_token": "novo-whatsapp-token",
             "provedores_llm": [{"tipo": "gemini", "api_key": "AIzaSyNOVACHAVE000000", "ativo": True}],
         }
         client.put("/assistente/config", json=put_payload, headers=auth_headers)
 
         config = db.query(AssistenteConfig).first()
-        assert config.evolution_api_key == "nova-evolution-key"
+        assert decrypt_key(config.whatsapp_token) == "novo-whatsapp-token"
         provedores_salvos = json.loads(config.provedores_llm)
         assert decrypt_key(provedores_salvos[0]["api_key"]) == "AIzaSyNOVACHAVE000000"
 
@@ -345,126 +377,6 @@ class TestListarModelosOllama:
     def test_lista_modelos_sem_auth(self, client):
         res = client.get("/assistente/ollama/modelos?url=http://localhost:11434")
         assert res.status_code == 401
-
-
-class TestDesconectar:
-    def test_desconectar_com_sessao_ativa_faz_logout(self, client, auth_headers):
-        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-
-        logout_response = MagicMock()
-        logout_response.is_success = True
-
-        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=False)
-            mock_instance.delete = AsyncMock(return_value=logout_response)
-            mock_client.return_value = mock_instance
-
-            res = client.post("/assistente/desconectar", headers=auth_headers)
-
-        assert res.status_code == 200
-        assert res.json()["status"] == "desconectado"
-        mock_instance.delete.assert_called_once()
-        assert "/instance/logout/" in mock_instance.delete.call_args.args[0]
-
-    def test_desconectar_com_sessao_travada_apaga_instancia(self, client, auth_headers):
-        """Regressão: sessão derrubada pelo WhatsApp (conflict/device_removed) fica
-        'not connected' — logout falha com 400, precisa cair pro delete da instância
-        pra parar o loop de reconexão automática."""
-        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-
-        logout_response = MagicMock()
-        logout_response.is_success = False
-        logout_response.status_code = 400
-        logout_response.text = '{"message":["The instance is not connected"]}'
-
-        delete_response = MagicMock()
-        delete_response.is_success = True
-
-        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=False)
-            mock_instance.delete = AsyncMock(side_effect=[logout_response, delete_response])
-            mock_client.return_value = mock_instance
-
-            res = client.post("/assistente/desconectar", headers=auth_headers)
-
-        assert res.status_code == 200
-        assert res.json()["status"] == "instancia_removida"
-        assert mock_instance.delete.call_count == 2
-
-    def test_desconectar_sem_config(self, client, auth_headers):
-        res = client.post("/assistente/desconectar", headers=auth_headers)
-        assert res.status_code == 404
-
-
-class TestWebhookResync:
-    def test_resync_atualiza_webhook_sem_gerar_qrcode(self, client, auth_headers, db):
-        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-
-        state_response = MagicMock()
-        state_response.status_code = 200
-
-        webhook_set_response = MagicMock()
-        webhook_set_response.is_success = True
-
-        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=False)
-            mock_instance.get = AsyncMock(return_value=state_response)
-            mock_instance.post = AsyncMock(return_value=webhook_set_response)
-            mock_client.return_value = mock_instance
-
-            res = client.post("/assistente/webhook/resync", headers=auth_headers)
-
-        assert res.status_code == 200
-        assert res.json()["status"] == "ok"
-
-        # Só chamou connectionState (get) e webhook/set (post) — nunca instance/connect
-        get_urls = [c.args[0] for c in mock_instance.get.call_args_list]
-        assert all("instance/connect/" not in u for u in get_urls)
-        mock_instance.post.assert_called_once()
-        assert "/webhook/set/" in mock_instance.post.call_args.args[0]
-
-
-class TestGarantirInstanceWebhook:
-    """Regressão: sem 'enabled': true, a Evolution API aceita o /webhook/set mas
-    nunca dispara o webhook — mensagens reais chegam e são silenciosamente ignoradas."""
-
-    def test_qrcode_configura_webhook_com_enabled_true_e_secret(self, client, auth_headers, db):
-        client.post("/assistente/config", json=CONFIG_BASE, headers=auth_headers)
-
-        state_response = MagicMock()
-        state_response.status_code = 200
-
-        webhook_set_response = MagicMock()
-        webhook_set_response.is_success = True
-
-        connect_response = MagicMock()
-        connect_response.is_success = True
-        connect_response.json.return_value = {"code": "fake-qrcode"}
-
-        with patch("backend.assistente.routers.config.httpx.AsyncClient") as mock_client:
-            mock_instance = AsyncMock()
-            mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
-            mock_instance.__aexit__ = AsyncMock(return_value=False)
-            mock_instance.get = AsyncMock(side_effect=[state_response, connect_response])
-            mock_instance.post = AsyncMock(return_value=webhook_set_response)
-            mock_client.return_value = mock_instance
-
-            res = client.get("/assistente/qrcode", headers=auth_headers)
-
-        assert res.status_code == 200
-
-        webhook_payload = mock_instance.post.call_args.kwargs["json"]["webhook"]
-        assert webhook_payload["enabled"] is True
-        assert "secret=" in webhook_payload["url"]
-
-        config = db.query(AssistenteConfig).first()
-        assert config.webhook_secret in webhook_payload["url"]
 
 
 class TestRegistroDeMercadoPorTexto:

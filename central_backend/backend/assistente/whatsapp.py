@@ -1,41 +1,37 @@
-import base64
 import httpx
 
+GRAPH_API_VERSION = "v21.0"
 
-async def enviar_mensagem(evolution_url: str, api_key: str, instance: str, to: str, text: str):
-    url = f"{evolution_url.rstrip('/')}/message/sendText/{instance}"
+
+async def enviar_mensagem(token: str, phone_id: str, to: str, text: str):
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_id}/messages"
     async with httpx.AsyncClient(timeout=15) as client:
         res = await client.post(
             url,
-            headers={"apikey": api_key, "Content-Type": "application/json"},
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             json={
-                "number": to,
-                "text": text,
+                "messaging_product": "whatsapp",
+                "to": to,
+                "type": "text",
+                "text": {"body": text},
             },
         )
         if not res.is_success:
             print(f"[whatsapp] erro ao enviar: {res.text}")
 
 
-async def baixar_midia(evolution_url: str, api_key: str, instance: str, message_data: dict) -> bytes:
-    # No Baileys a mídia vem criptografada (imageMessage.url é um .enc no CDN do WhatsApp).
-    # A própria mensagem do webhook já traz mediaKey/fileEncSha256 necessários para decriptar,
-    # então repassamos key+message originais em vez de depender do store da Evolution API.
-    url = f"{evolution_url.rstrip('/')}/chat/getBase64FromMediaMessage/{instance}"
+async def baixar_midia(token: str, media_id: str) -> bytes:
+    headers = {"Authorization": f"Bearer {token}"}
     async with httpx.AsyncClient(timeout=30) as client:
-        res = await client.post(
-            url,
-            headers={"apikey": api_key, "Content-Type": "application/json"},
-            json={
-                "message": {
-                    "key": message_data.get("key", {}),
-                    "message": message_data.get("message", {}),
-                },
-                "convertToMp4": False,
-            },
+        meta_res = await client.get(
+            f"https://graph.facebook.com/{GRAPH_API_VERSION}/{media_id}",
+            headers=headers,
         )
-        res.raise_for_status()
-        b64 = res.json().get("base64")
-        if not b64:
-            raise ValueError("Evolution API não retornou base64 da mídia")
-        return base64.b64decode(b64)
+        meta_res.raise_for_status()
+        media_url = meta_res.json().get("url")
+        if not media_url:
+            raise ValueError("Meta não retornou a URL da mídia")
+
+        file_res = await client.get(media_url, headers=headers)
+        file_res.raise_for_status()
+        return file_res.content

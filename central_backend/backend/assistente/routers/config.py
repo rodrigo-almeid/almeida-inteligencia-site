@@ -1,9 +1,6 @@
 import json
-import os
-import secrets
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -15,51 +12,12 @@ from backend.agendamento.crypto import encrypt_key, decrypt_key
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual"])
 
-# Nome do serviço do central-backend na rede interna do Docker Compose — a Evolution API
-# roda como container irmão e alcança o webhook direto por aí, sem depender do Cloudflare Tunnel.
-CENTRAL_BACKEND_INTERNAL_URL = os.getenv("CENTRAL_BACKEND_INTERNAL_URL", "http://central-backend:8000")
-
-
-async def _garantir_instance(base: str, api_key: str, instance: str, webhook_url: str):
-    headers = {"apikey": api_key, "Content-Type": "application/json"}
-    webhook_payload = {
-        "webhook": {
-            "enabled": True,
-            "url": webhook_url,
-            "byEvents": False,
-            "base64": False,
-            "events": ["MESSAGES_UPSERT"],
-        }
-    }
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.get(f"{base}/instance/connectionState/{instance}", headers=headers)
-        if res.status_code == 404:
-            create_res = await client.post(
-                f"{base}/instance/create",
-                headers=headers,
-                json={
-                    "instanceName": instance,
-                    "qrcode": True,
-                    "integration": "WHATSAPP-BAILEYS",
-                    **webhook_payload,
-                },
-            )
-            if not create_res.is_success:
-                raise HTTPException(status_code=502, detail=f"Erro ao criar instância na Evolution API: {create_res.text}")
-        else:
-            # Instância já existe — garante que o webhook está configurado (idempotente).
-            try:
-                webhook_res = await client.post(f"{base}/webhook/set/{instance}", headers=headers, json=webhook_payload)
-                if not webhook_res.is_success:
-                    print(f"[assistente] erro ao configurar webhook na Evolution API: {webhook_res.status_code} {webhook_res.text}")
-            except Exception as e:
-                print(f"[assistente] erro ao configurar webhook na Evolution API: {e}")
+GRAPH_API_VERSION = "v21.0"
 
 
 class ValidacaoRequest(BaseModel):
-    evolution_url: Optional[str] = None
-    evolution_api_key: Optional[str] = None
-    evolution_instance: Optional[str] = None
+    whatsapp_token: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     ollama_url: Optional[str] = None
@@ -80,8 +38,8 @@ async def validar_configuracoes(
         models.AssistenteConfig.user_id == current_user.id
     ).first()
     if config:
-        if payload.evolution_api_key and payload.evolution_api_key == _mask_key(config.evolution_api_key):
-            payload.evolution_api_key = config.evolution_api_key
+        if payload.whatsapp_token and payload.whatsapp_token == _mask_key(_decifrar_com_fallback(config.whatsapp_token)):
+            payload.whatsapp_token = _decifrar_com_fallback(config.whatsapp_token)
         chave_gemini_atual = _chave_atual_provedor(config, "gemini")
         if payload.gemini_api_key and payload.gemini_api_key == _mask_key(chave_gemini_atual):
             payload.gemini_api_key = chave_gemini_atual
@@ -140,31 +98,30 @@ async def validar_configuracoes(
         except Exception as e:
             resultados.append({"nome": "Ollama", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
 
-    if payload.evolution_url and payload.evolution_api_key and payload.evolution_instance:
+    if payload.whatsapp_token and payload.whatsapp_phone_id:
         try:
-            base = payload.evolution_url.rstrip("/")
             async with httpx.AsyncClient(timeout=10) as client:
                 res = await client.get(
-                    f"{base}/instance/connectionState/{payload.evolution_instance}",
-                    headers={"apikey": payload.evolution_api_key},
+                    f"https://graph.facebook.com/{GRAPH_API_VERSION}/{payload.whatsapp_phone_id}",
+                    headers={"Authorization": f"Bearer {payload.whatsapp_token}"},
+                    params={"fields": "verified_name,display_phone_number"},
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    state = data.get("instance", {}).get("state", data.get("state", "unknown"))
-                    if state == "open":
-                        resultados.append({"nome": "Evolution API", "ok": True, "mensagem": "Conectado ao WhatsApp"})
-                    else:
-                        resultados.append({"nome": "Evolution API", "ok": True, "mensagem": f"API acessível — WhatsApp: {state} (escaneie o QR Code)"})
+                    nome = data.get("verified_name") or data.get("display_phone_number") or "número"
+                    resultados.append({"nome": "Meta WhatsApp", "ok": True, "mensagem": f"Conectado — {nome}"})
+                elif res.status_code == 401:
+                    resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": "Token de acesso inválido ou expirado"})
                 elif res.status_code == 404:
-                    resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Instância '{payload.evolution_instance}' não encontrada"})
+                    resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": "Phone Number ID não encontrado"})
                 else:
-                    resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Erro {res.status_code}"})
+                    resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": f"Erro {res.status_code}"})
         except Exception as e:
-            resultados.append({"nome": "Evolution API", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
-    elif payload.evolution_url or payload.evolution_api_key or payload.evolution_instance:
-        resultados.append({"nome": "Evolution API", "ok": False, "mensagem": "Preencha URL, API Key e Nome da Instância"})
+            resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": f"Erro de conexão: {str(e)}"})
+    elif payload.whatsapp_token or payload.whatsapp_phone_id:
+        resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": "Preencha o Token de Acesso e o Phone Number ID"})
     else:
-        resultados.append({"nome": "Evolution API", "ok": False, "mensagem": "Não configurado"})
+        resultados.append({"nome": "Meta WhatsApp", "ok": False, "mensagem": "Não configurado"})
 
     return {"resultados": resultados, "todos_ok": all(r["ok"] for r in resultados)}
 
@@ -185,131 +142,6 @@ async def listar_modelos_ollama(
         return {"modelos": modelos}
     except httpx.RequestError as e:
         raise HTTPException(status_code=502, detail=f"Não foi possível conectar ao Ollama: {str(e)}")
-
-
-@router.get("/qrcode")
-async def get_qrcode(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    config = db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.user_id == current_user.id
-    ).first()
-
-    if not config or not config.evolution_url:
-        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
-
-    if not config.webhook_secret:
-        config.webhook_secret = secrets.token_hex(16)
-        db.commit()
-        db.refresh(config)
-
-    base = config.evolution_url.rstrip("/")
-    instance = config.evolution_instance
-    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook?secret={config.webhook_secret}"
-
-    await _garantir_instance(base, config.evolution_api_key, instance, webhook_url)
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.get(
-            f"{base}/instance/connect/{instance}",
-            headers={"apikey": config.evolution_api_key},
-        )
-
-    if not res.is_success:
-        raise HTTPException(status_code=502, detail=f"Erro ao obter QR Code: {res.text}")
-
-    return res.json()
-
-
-@router.get("/connection-state")
-async def get_connection_state(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    config = db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.user_id == current_user.id
-    ).first()
-
-    if not config or not config.evolution_url:
-        return {"state": "disconnected"}
-
-    base = config.evolution_url.rstrip("/")
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(
-                f"{base}/instance/connectionState/{config.evolution_instance}",
-                headers={"apikey": config.evolution_api_key},
-            )
-        if res.is_success:
-            data = res.json()
-            state = data.get("instance", {}).get("state", data.get("state", "unknown"))
-            return {"state": state}
-    except Exception:
-        pass
-    return {"state": "error"}
-
-
-@router.post("/desconectar")
-async def desconectar_whatsapp(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    """Encerra a sessão do WhatsApp na Evolution API. Tenta logout normal; se a
-    instância já não estiver conectada (sessão travada/derrubada pelo WhatsApp),
-    apaga a instância pra parar o loop de reconexão automática — mesma limpeza
-    manual feita via docker exec quando o WhatsApp derruba o device (conflict/device_removed)."""
-    config = db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.user_id == current_user.id
-    ).first()
-
-    if not config or not config.evolution_url or not config.evolution_instance:
-        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
-
-    base = config.evolution_url.rstrip("/")
-    instance = config.evolution_instance
-    headers = {"apikey": config.evolution_api_key}
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        logout_res = await client.delete(f"{base}/instance/logout/{instance}", headers=headers)
-        if logout_res.is_success:
-            return {"status": "desconectado"}
-
-        delete_res = await client.delete(f"{base}/instance/delete/{instance}", headers=headers)
-        if delete_res.is_success:
-            return {"status": "instancia_removida"}
-
-        raise HTTPException(
-            status_code=502,
-            detail=f"Erro ao desconectar: {delete_res.status_code} {delete_res.text}",
-        )
-
-
-@router.post("/webhook/resync")
-async def resync_webhook(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    """Reconfigura o webhook na Evolution API sem tocar na conexão (sem gerar QR Code).
-    Existe pra não precisar passar pelo fluxo de 'Conectar WhatsApp' só pra atualizar
-    o secret/URL do webhook — repetir esse fluxo à toa foi o que ajudou a instabilizar
-    uma sessão real em produção."""
-    config = db.query(models.AssistenteConfig).filter(
-        models.AssistenteConfig.user_id == current_user.id
-    ).first()
-
-    if not config or not config.evolution_url:
-        raise HTTPException(status_code=404, detail="Configure a Evolution API primeiro.")
-
-    if not config.webhook_secret:
-        config.webhook_secret = secrets.token_hex(16)
-        db.commit()
-        db.refresh(config)
-
-    base = config.evolution_url.rstrip("/")
-    webhook_url = f"{CENTRAL_BACKEND_INTERNAL_URL}/assistente/webhook?secret={config.webhook_secret}"
-    await _garantir_instance(base, config.evolution_api_key, config.evolution_instance, webhook_url)
-    return {"status": "ok"}
 
 
 def _mask_key(key: Optional[str]) -> Optional[str]:
@@ -333,9 +165,9 @@ def _provedores_atuais(config) -> list:
 
 
 def _decifrar_com_fallback(valor: Optional[str]) -> Optional[str]:
-    """Decripta uma api_key salva em provedores_llm. Cai pro valor bruto se não
-    for um token Fernet válido — cobre linhas gravadas antes da chave passar a
-    ser cifrada (dado legado em texto plano continua funcionando)."""
+    """Decripta um valor cifrado (api_key, whatsapp_token). Cai pro valor bruto
+    se não for um token Fernet válido — cobre dado legado gravado em texto
+    plano antes de o campo passar a ser cifrado."""
     if not valor:
         return valor
     try:
@@ -385,8 +217,7 @@ def _merge_provedores_secrets(config, novos_provedores: list) -> list:
 
 def _config_to_response(config):
     data = {c.name: getattr(config, c.name) for c in config.__table__.columns}
-    data.pop("webhook_secret", None)
-    data["evolution_api_key"] = _mask_key(data.get("evolution_api_key"))
+    data["whatsapp_token"] = _mask_key(_decifrar_com_fallback(data.get("whatsapp_token")))
     if data.get("provedores_llm"):
         try:
             provedores = json.loads(data["provedores_llm"])
@@ -424,6 +255,18 @@ def _serialize_provedores(payload_dict: dict, config=None) -> dict:
     return payload_dict
 
 
+def _serialize_whatsapp_token(payload_dict: dict, config=None) -> dict:
+    """Cifra whatsapp_token se for um valor novo; preserva a cifra existente se
+    o painel reenviou a versão mascarada sem o usuário ter alterado o campo."""
+    if "whatsapp_token" in payload_dict and payload_dict["whatsapp_token"] is not None:
+        valor = payload_dict["whatsapp_token"]
+        if config and valor == _mask_key(_decifrar_com_fallback(config.whatsapp_token)):
+            payload_dict["whatsapp_token"] = config.whatsapp_token
+        else:
+            payload_dict["whatsapp_token"] = encrypt_key(valor)
+    return payload_dict
+
+
 @router.get("/config")
 def get_config(
     db: Session = Depends(get_db),
@@ -453,7 +296,8 @@ def criar_config(
         raise HTTPException(status_code=400, detail="Configuração já existe. Use PUT para atualizar.")
 
     data = _serialize_provedores(payload.model_dump())
-    config = models.AssistenteConfig(**data, user_id=current_user.id, webhook_secret=secrets.token_hex(16))
+    data = _serialize_whatsapp_token(data)
+    config = models.AssistenteConfig(**data, user_id=current_user.id)
     db.add(config)
     db.commit()
     db.refresh(config)
@@ -478,16 +322,12 @@ def atualizar_config(
     # Preserva a chave real quando o painel reenvia o valor mascarado (campo não editado)
     if payload.provedores_llm is not None:
         payload_dict["provedores_llm"] = _merge_provedores_secrets(config, payload.provedores_llm)
-    if payload_dict.get("evolution_api_key") == _mask_key(config.evolution_api_key):
-        payload_dict["evolution_api_key"] = config.evolution_api_key
 
     data = _serialize_provedores(payload_dict, config)
+    data = _serialize_whatsapp_token(data, config)
     for key, value in data.items():
         if value is not None:
             setattr(config, key, value)
-
-    if not config.webhook_secret:
-        config.webhook_secret = secrets.token_hex(16)
 
     db.commit()
     db.refresh(config)

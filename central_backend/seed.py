@@ -124,6 +124,14 @@ migrations = [
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS bulma_ollama_model VARCHAR",
     # Calendário visual do Agendamento — duração própria do compromisso (fallback pro Service quando null)
     "ALTER TABLE agendamento_appointments ADD COLUMN IF NOT EXISTS duracao_minutos INTEGER",
+    # Migração Evolution API → Meta Cloud API (volta 100% pra Meta)
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS whatsapp_token VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS whatsapp_phone_id VARCHAR",
+    "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS whatsapp_verify_token VARCHAR",
+    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS evolution_url",
+    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS evolution_api_key",
+    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS evolution_instance",
+    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS webhook_secret",
 ]
 for sql in migrations:
     try:

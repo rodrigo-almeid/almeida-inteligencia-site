@@ -142,8 +142,8 @@ class TestFallbackEntreProviders:
     async def test_fallback_para_proximo_provider_em_erro(self, db, user):
         config = AssistenteConfig(
             user_id=user.id,
-            evolution_url="http://evolution:8080", evolution_api_key="k", evolution_instance="i",
-            numero_autorizado="5543999211099", webhook_secret="s",
+            whatsapp_token="k", whatsapp_phone_id="i",
+            numero_autorizado="5543999211099",
             provedores_llm=json.dumps([
                 {"tipo": "gemini", "api_key": "chave-gemini", "ativo": True},
                 {"tipo": "groq", "api_key": "chave-groq", "ativo": True},

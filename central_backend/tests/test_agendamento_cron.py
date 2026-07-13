@@ -50,8 +50,8 @@ class TestLimparPreReservasExpiradas:
 
 
 class TestEnviarLembretes:
-    """cron.py::enviar_lembretes migrou de Meta Cloud API pra Evolution API
-    (backend.assistente.whatsapp) na fusão com o Assistente Virtual."""
+    """cron.py::enviar_lembretes usa backend.assistente.whatsapp (Meta Cloud API),
+    compartilhado com o Assistente Virtual desde a fusão dos dois módulos."""
 
     def _criar_appointment(self, db, agendamento_config, agendamento_client, agendamento_servico, data_hora, lembrete_enviado=False):
         appt = Appointment(

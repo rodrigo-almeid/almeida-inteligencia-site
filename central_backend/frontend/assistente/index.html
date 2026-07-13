@@ -235,28 +235,23 @@
     </div>
 
     <div class="card">
-      <h2>📱 Evolution API — WhatsApp</h2>
+      <h2>📱 Meta WhatsApp Cloud API</h2>
       <div class="form-group">
-        <label>URL da Evolution API</label>
-        <input type="text" id="evolution_url" placeholder="http://evolution-api:8080">
-        <div class="hint">Endereço interno do container da Evolution API</div>
-      </div>
-      <div class="form-group">
-        <label>API Key</label>
-        <input type="password" id="evolution_api_key" placeholder="sua-api-key-aqui">
-        <div class="hint">Chave de autenticação da Evolution API (AUTHENTICATION_API_KEY no .env)</div>
+        <label>Token de Acesso</label>
+        <input type="password" id="whatsapp_token" placeholder="EAAxxxxxxxxxxxxx...">
+        <div class="hint">Token de acesso permanente (System User) gerado no Meta for Developers</div>
       </div>
       <div class="form-group">
-        <label>Nome da Instância</label>
-        <input type="text" id="evolution_instance" placeholder="goku">
-        <div class="hint">Nome da instância do WhatsApp na Evolution (será criada se não existir)</div>
+        <label>Phone Number ID</label>
+        <input type="text" id="whatsapp_phone_id" placeholder="123456789012345">
+        <div class="hint">ID do número de telefone no painel do WhatsApp Business (Meta for Developers)</div>
       </div>
-      <div class="btn-row">
-        <button class="btn-outline" onclick="verQRCode()">📷 Conectar WhatsApp (QR Code)</button>
-        <button class="btn-outline" onclick="verificarConexao()">🔄 Verificar Conexão</button>
-        <button class="btn-outline" onclick="desconectarWhatsapp()" style="color:var(--red);border-color:var(--red);">🔌 Desconectar</button>
+      <div class="form-group">
+        <label>Verify Token</label>
+        <input type="text" id="whatsapp_verify_token" placeholder="escolha uma string qualquer">
+        <div class="hint">Cadastre o mesmo valor na Callback URL do Meta (Configuração de webhook)</div>
       </div>
-      <div id="whatsapp-connection-info" style="margin-top:12px;font-size:12px;color:var(--gray);"></div>
+      <div class="hint" style="margin-top:8px;">Callback URL: <code>https://almeidainteligencia.com.br/assistente/webhook</code></div>
     </div>
 
     <div class="btn-row"><button class="btn" onclick="salvar()">Salvar Configurações</button></div>
@@ -503,20 +498,6 @@
     <div class="modal-actions" id="modalActions" style="display:none;">
       <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
       <button class="btn" id="btnConfirmarSalvar" onclick="confirmarSalvar()">Salvar mesmo assim</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal QR Code -->
-<div class="overlay" id="overlayQR">
-  <div class="modal" style="width:400px;">
-    <h3>📱 Conectar <span>WhatsApp</span></h3>
-    <div class="qr-container" id="qrContainer">
-      <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
-      <div class="qr-status">Carregando QR Code...</div>
-    </div>
-    <div class="modal-actions" style="margin-top:16px;">
-      <button class="btn-cancel" onclick="fecharModalQR()" style="width:100%;">Fechar</button>
     </div>
   </div>
 </div>
@@ -833,96 +814,6 @@ document.getElementById('overlayProvedor').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModalProvedor();
 });
 
-// ── QR Code ──
-
-async function verQRCode() {
-  document.getElementById('overlayQR').classList.add('active');
-  const container = document.getElementById('qrContainer');
-  container.innerHTML = '<div class="spinner" style="width:32px;height:32px;border-width:3px;"></div><div class="qr-status">Carregando QR Code...</div>';
-
-  const res = await apiCall('GET', '/assistente/qrcode');
-  if (!res || !res.ok) {
-    const err = res ? await res.json().catch(() => ({})) : {};
-    container.innerHTML = `<div class="qr-status" style="color:var(--red);">${err.detail || 'Erro ao obter QR Code. Verifique a configuração da Evolution API.'}</div>`;
-    return;
-  }
-
-  const data = await res.json();
-
-  if (data.base64) {
-    container.innerHTML = `
-      <img src="${data.base64}" alt="QR Code WhatsApp">
-      <div class="qr-status">Escaneie com o WhatsApp</div>
-      <div class="qr-hint">Abra o WhatsApp no celular → Menu (⋮) → Aparelhos conectados → Conectar aparelho → Escaneie este QR Code</div>
-    `;
-  } else if (data.pairingCode) {
-    container.innerHTML = `
-      <div style="font-size:32px;font-weight:600;letter-spacing:4px;color:var(--green);padding:20px;">${data.pairingCode}</div>
-      <div class="qr-status">Use o código de pareamento</div>
-      <div class="qr-hint">Abra o WhatsApp no celular → Menu (⋮) → Aparelhos conectados → Conectar aparelho → Conectar com número de telefone</div>
-    `;
-  } else if (data.instance && data.instance.state === 'open') {
-    container.innerHTML = `
-      <div style="font-size:48px;margin-bottom:8px;">✅</div>
-      <div class="qr-status" style="color:var(--green);">WhatsApp já está conectado!</div>
-    `;
-  } else {
-    container.innerHTML = `<div class="qr-status">${JSON.stringify(data)}</div>`;
-  }
-}
-
-function fecharModalQR() {
-  document.getElementById('overlayQR').classList.remove('active');
-}
-
-document.getElementById('overlayQR').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModalQR();
-});
-
-// ── Verificar Conexão ──
-
-async function verificarConexao() {
-  const info = document.getElementById('whatsapp-connection-info');
-  info.innerHTML = '<span style="color:var(--yellow);">Verificando...</span>';
-
-  const res = await apiCall('GET', '/assistente/connection-state');
-  if (!res || !res.ok) {
-    info.innerHTML = '<span style="color:var(--red);">Erro ao verificar conexão</span>';
-    return;
-  }
-
-  const data = await res.json();
-  const state = data.state;
-
-  if (state === 'open') {
-    info.innerHTML = '<span style="color:var(--green);">✅ WhatsApp conectado</span>';
-    atualizarStatus(true);
-  } else if (state === 'close' || state === 'disconnected') {
-    info.innerHTML = '<span style="color:var(--red);">❌ WhatsApp desconectado — clique em "Conectar WhatsApp" para escanear o QR Code</span>';
-  } else {
-    info.innerHTML = `<span style="color:var(--yellow);">Status: ${state}</span>`;
-  }
-}
-
-// ── Desconectar ──
-
-async function desconectarWhatsapp() {
-  if (!confirm('Isso encerra a sessão do WhatsApp conectada. Você vai precisar escanear o QR Code de novo depois. Continuar?')) return;
-
-  const info = document.getElementById('whatsapp-connection-info');
-  info.innerHTML = '<span style="color:var(--yellow);">Desconectando...</span>';
-
-  const res = await apiCall('POST', '/assistente/desconectar');
-  if (!res || !res.ok) {
-    const err = res ? await res.json().catch(() => ({})) : {};
-    info.innerHTML = `<span style="color:var(--red);">${err.detail || 'Erro ao desconectar'}</span>`;
-    return;
-  }
-
-  info.innerHTML = '<span style="color:var(--gray);">🔌 Sessão encerrada. Clique em "Conectar WhatsApp" quando quiser parear de novo.</span>';
-  atualizarStatus(false);
-}
-
 // ── Config (Assistente — WhatsApp/IA/Personalidade) ──
 
 async function carregarConfig() {
@@ -930,9 +821,9 @@ async function carregarConfig() {
   if (res && res.ok) {
     configExiste = true;
     const data = await res.json();
-    document.getElementById('evolution_url').value = data.evolution_url || '';
-    document.getElementById('evolution_api_key').value = data.evolution_api_key || '';
-    document.getElementById('evolution_instance').value = data.evolution_instance || '';
+    document.getElementById('whatsapp_token').value = data.whatsapp_token || '';
+    document.getElementById('whatsapp_phone_id').value = data.whatsapp_phone_id || '';
+    document.getElementById('whatsapp_verify_token').value = data.whatsapp_verify_token || '';
     document.getElementById('numero_autorizado').value = data.numero_autorizado || '';
     document.getElementById('nome_assistente').value = data.nome_assistente || 'Goku';
     document.getElementById('tom_voz').value = data.tom_voz || 'casual';
@@ -955,10 +846,6 @@ async function carregarConfig() {
 
     provedores = (data.provedores_llm && data.provedores_llm.length) ? data.provedores_llm : [];
     renderProvedores();
-
-    if (data.evolution_url && data.ativo) {
-      verificarConexao();
-    }
   }
 }
 
@@ -982,9 +869,9 @@ function getPayload() {
   const ollama = provedores.find(p => p.tipo === 'ollama' && p.ativo !== false);
 
   return {
-    evolution_url: document.getElementById('evolution_url').value || null,
-    evolution_api_key: document.getElementById('evolution_api_key').value || null,
-    evolution_instance: document.getElementById('evolution_instance').value || null,
+    whatsapp_token: document.getElementById('whatsapp_token').value || null,
+    whatsapp_phone_id: document.getElementById('whatsapp_phone_id').value || null,
+    whatsapp_verify_token: document.getElementById('whatsapp_verify_token').value || null,
     gemini_api_key: gemini ? gemini.api_key : null,
     groq_api_key: groq ? groq.api_key : null,
     ollama_url: ollama ? ollama.url : null,
@@ -1015,9 +902,8 @@ async function salvar() {
 
   const loadingItems = [];
   const validarPayload = {
-    evolution_url: payloadPendente.evolution_url,
-    evolution_api_key: payloadPendente.evolution_api_key,
-    evolution_instance: payloadPendente.evolution_instance,
+    whatsapp_token: payloadPendente.whatsapp_token,
+    whatsapp_phone_id: payloadPendente.whatsapp_phone_id,
   };
 
   provedores.filter(p => p.ativo !== false).forEach(p => {
@@ -1028,7 +914,7 @@ async function salvar() {
     if (p.tipo === 'ollama') { validarPayload.ollama_url = p.url; validarPayload.ollama_model = p.modelo; }
   });
 
-  loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">Evolution API</div><div class="check-msg">Testando conexão...</div></div></div>`);
+  loadingItems.push(`<div class="check-item loading"><div class="check-icon"><div class="spinner"></div></div><div><div class="check-name">Meta WhatsApp</div><div class="check-msg">Testando conexão...</div></div></div>`);
 
   document.getElementById('checkList').innerHTML = loadingItems.join('');
 
@@ -1086,7 +972,7 @@ document.getElementById('overlayValidacao').addEventListener('click', e => {
   if (e.target === e.currentTarget) fecharModal();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); fecharModalQR(); }
+  if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); }
 });
 
 // ── Config (Agenda — catálogo/Google/mensagens) ──
