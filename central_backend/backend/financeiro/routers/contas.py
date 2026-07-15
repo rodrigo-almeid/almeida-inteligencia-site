@@ -57,6 +57,54 @@ def criar_conta(conta: schemas.ContaCreate, db: Session = Depends(get_db),
         return nova_conta
 
 
+@router.post("/migrar", response_model=schemas.MigrarContasResponse)
+def migrar_contas(payload: schemas.MigrarContasRequest, db: Session = Depends(get_db),
+                   current_user: models.User = Depends(get_current_user)):
+    """Duplica as contas selecionadas para o mês seguinte (mesmo valor, vencimento +1 mês,
+    competência +1 mês), deixando a conta original intacta no mês atual."""
+    contas = db.query(models.Conta).filter(
+        models.Conta.id.in_(payload.conta_ids),
+        models.Conta.user_id == current_user.id
+    ).all()
+
+    if not contas:
+        raise HTTPException(status_code=404, detail="Nenhuma conta encontrada para migrar")
+
+    novas_contas = []
+    for conta in contas:
+        novo_vencimento = somar_meses(conta.vencimento, 1)
+
+        nova_competencia = None
+        if conta.competencia:
+            comp_base = somar_meses(date(int(conta.competencia[:4]), int(conta.competencia[5:7]), 1), 1)
+            nova_competencia = f"{comp_base.year}-{comp_base.month:02d}"
+
+        nova_conta = models.Conta(
+            descricao=conta.descricao,
+            vencimento=novo_vencimento,
+            competencia=nova_competencia,
+            valor=conta.valor,
+            natureza=conta.natureza,
+            status="pendente",
+            tipo_recorrencia=conta.tipo_recorrencia,
+            parcela_atual=conta.parcela_atual,
+            total_parcelas=conta.total_parcelas,
+            mes_seguinte_processado=0,
+            origem=conta.origem,
+            forma_pagamento=conta.forma_pagamento,
+            categoria_id=conta.categoria_id,
+            user_id=current_user.id,
+        )
+        db.add(nova_conta)
+        novas_contas.append(nova_conta)
+
+    db.commit()
+    for nova_conta in novas_contas:
+        db.refresh(nova_conta)
+
+    return schemas.MigrarContasResponse(migradas=len(novas_contas), novas_contas=novas_contas)
+
+
 @router.get("/", response_model=list[schemas.ContaResponse])
 async def listar_contas(
         mes: Optional[int] = None,

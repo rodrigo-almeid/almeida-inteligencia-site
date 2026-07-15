@@ -320,6 +320,70 @@ class TestContasParcelamento:
         assert competencias == ["2026-01", "2026-02", "2026-03"]
 
 
+class TestMigrarContas:
+    def test_migrar_duplica_para_proximo_mes(self, client, auth_headers, conta, db):
+        """conta fixture: vencimento=2025-06-10, sem competencia — deve duplicar para 2025-07-10,
+        mesmo valor, status resetado para pendente, original intacta."""
+        from backend.core.models import Conta
+        res = client.post("/contas/migrar", json={"conta_ids": [conta.id]}, headers=auth_headers)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["migradas"] == 1
+        nova = data["novas_contas"][0]
+        assert nova["id"] != conta.id
+        assert nova["vencimento"] == "2025-07-10"
+        assert nova["valor"] == conta.valor
+        assert nova["status"] == "pendente"
+        assert nova["descricao"] == conta.descricao
+
+        db.expire_all()
+        original = db.get(Conta, conta.id)
+        assert original is not None
+        assert original.vencimento == date(2025, 6, 10)
+
+    def test_migrar_avanca_competencia(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        c = Conta(descricao="Internet", vencimento=date(2026, 1, 31), competencia="2026-01",
+                   valor=99.9, natureza="despesa", status="paga", tipo_recorrencia="unica", user_id=user.id)
+        db.add(c); db.commit(); db.refresh(c)
+        res = client.post("/contas/migrar", json={"conta_ids": [c.id]}, headers=auth_headers)
+        assert res.status_code == 200
+        nova = res.json()["novas_contas"][0]
+        # Janeiro tem 31 dias, fevereiro só 28/29 — deve ajustar o dia (rollover)
+        assert nova["vencimento"] == "2026-02-28"
+        assert nova["competencia"] == "2026-02"
+
+    def test_migrar_reseta_status_pago(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        c = Conta(descricao="Cartão", vencimento=date(2026, 3, 5), valor=300.0,
+                   natureza="despesa", status="paga", tipo_recorrencia="unica", user_id=user.id)
+        db.add(c); db.commit(); db.refresh(c)
+        res = client.post("/contas/migrar", json={"conta_ids": [c.id]}, headers=auth_headers)
+        nova = res.json()["novas_contas"][0]
+        assert nova["status"] == "pendente"
+
+    def test_migrar_multiplas_contas(self, client, auth_headers, db, user):
+        from backend.core.models import Conta
+        c1 = Conta(descricao="A", vencimento=date(2026, 4, 1), valor=10.0, natureza="despesa", status="pendente", tipo_recorrencia="unica", user_id=user.id)
+        c2 = Conta(descricao="B", vencimento=date(2026, 4, 2), valor=20.0, natureza="despesa", status="pendente", tipo_recorrencia="unica", user_id=user.id)
+        db.add_all([c1, c2]); db.commit(); db.refresh(c1); db.refresh(c2)
+        res = client.post("/contas/migrar", json={"conta_ids": [c1.id, c2.id]}, headers=auth_headers)
+        assert res.status_code == 200
+        assert res.json()["migradas"] == 2
+
+    def test_migrar_ignora_conta_de_outro_usuario(self, client, auth_headers2, conta):
+        res = client.post("/contas/migrar", json={"conta_ids": [conta.id]}, headers=auth_headers2)
+        assert res.status_code == 404
+
+    def test_migrar_ids_inexistentes(self, client, auth_headers):
+        res = client.post("/contas/migrar", json={"conta_ids": [99999]}, headers=auth_headers)
+        assert res.status_code == 404
+
+    def test_migrar_sem_auth(self, client, conta):
+        res = client.post("/contas/migrar", json={"conta_ids": [conta.id]})
+        assert res.status_code == 401
+
+
 class TestRelatorios:
     def test_exportar_excel(self, client, auth_headers, conta):
         res = client.get("/relatorios/excel/contas", headers=auth_headers)

@@ -97,8 +97,12 @@ def _montar_system_prompt(assistente_config, agendamento_config, db: Session) ->
         "- Para registrar um gasto/receita relatado pelo usuário, use a função registrar_gasto.\n"
         "- Use SEMPRE a função consultar_financas quando o usuário perguntar sobre saldo, gastos, contas "
         "a pagar, contas pendentes ou vencimentos — nunca responda essa pergunta sem chamar a função, e "
-        "nunca diga que não tem acesso às contas. O resultado já traz as contas pendentes com data de "
-        "vencimento.\n"
+        "nunca diga que não tem acesso às contas. O resultado traz o resumo completo do mês (pagas + "
+        "pendentes) — filtre e responda só a parte que o usuário pediu, não jogue o resumo inteiro de "
+        "volta. Preste atenção em palavras que indicam filtro: 'ainda', 'falta(m) pagar', 'que faltam', "
+        "'pendente(s)' → responda SÓ com as contas pendentes (não pagas) da lista 'Próximas contas "
+        "pendentes'; 'já paguei', 'pagas' → responda só com o que já foi pago; sem esses termos → pode "
+        "dar o resumo completo.\n"
     )
     return prompt
 

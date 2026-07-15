@@ -108,6 +108,13 @@ class ContaResponse(ORMBase):
     categoria_id: Optional[int]
     user_id: int
 
+class MigrarContasRequest(BaseModel):
+    conta_ids: List[int]
+
+class MigrarContasResponse(BaseModel):
+    migradas: int
+    novas_contas: List[ContaResponse]
+
 class DividaCreate(BaseModel):
     devedor: str
     descricao: str
