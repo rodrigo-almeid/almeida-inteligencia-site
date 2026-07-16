@@ -40,13 +40,13 @@ async def criar_evento_google(config: models.AgendamentoConfig, appointment: mod
 
         service_obj = db.query(models.Service).filter(models.Service.id == appointment.service_id).first()
 
-        nome_servico = service_obj.nome if service_obj else "Compromisso"
+        nome_servico = service_obj.nome if service_obj else (appointment.descricao or "Compromisso")
         duracao = appointment.duracao_minutos or (service_obj.duracao_minutos if service_obj else 30)
 
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
 
-        descricao_partes = [appointment.descricao] if appointment.descricao else []
+        descricao_partes = [appointment.descricao] if (appointment.descricao and service_obj) else []
         descricao_partes.append("Agendado via assistente WhatsApp")
 
         event = {
@@ -115,13 +115,16 @@ async def atualizar_evento_google(config: models.AgendamentoConfig, appointment:
         service_obj = db.query(models.Service).filter(models.Service.id == appointment.service_id).first()
         duracao = appointment.duracao_minutos or (service_obj.duracao_minutos if service_obj else 30)
 
+        nome_servico = service_obj.nome if service_obj else (appointment.descricao or "Compromisso")
+
         start = appointment.data_hora
         end = start + timedelta(minutes=duracao)
 
-        descricao_partes = [appointment.descricao] if appointment.descricao else []
+        descricao_partes = [appointment.descricao] if (appointment.descricao and service_obj) else []
         descricao_partes.append("Agendado via assistente WhatsApp")
 
         patch = {
+            "summary": nome_servico,
             "start": {"dateTime": start.isoformat(), "timeZone": "America/Sao_Paulo"},
             "end": {"dateTime": end.isoformat(), "timeZone": "America/Sao_Paulo"},
             "description": "\n\n".join(descricao_partes),
