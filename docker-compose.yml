@@ -1,5 +1,30 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    container_name: almeida-redis
+    restart: unless-stopped
+
+  criador-worker:
+    build: ./central_backend
+    container_name: almeida-criador-worker
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MEDIA_DIR: /app/media/transcricoes
+      WHISPER_DEVICE: cpu
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - transcricoes_media:/app/media/transcricoes
+    restart: unless-stopped
+    command: arq backend.criador.worker.WorkerSettings
+
   db:
     image: postgres:15-alpine
     container_name: almeida-db
@@ -64,9 +89,17 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MEDIA_DIR: /app/media/transcricoes
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - transcricoes_media:/app/media/transcricoes
     restart: unless-stopped
 
   site:
@@ -83,3 +116,4 @@ services:
 volumes:
   almeida_pgdata:
   email_models:
+  transcricoes_media:

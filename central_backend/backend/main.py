@@ -8,6 +8,7 @@ load_dotenv()
 
 from backend.core.database import engine
 from backend.core import models
+import backend.criador.models  # noqa: F401 — registra tabelas criador no mesmo Base
 
 from backend.auth.routers import auth, perfis as perfis_router
 from backend.credenciais.routers import senhas, pessoas, csv as csv_router
@@ -15,6 +16,7 @@ from backend.financeiro.routers import contas, categorias, dividas, recorrencias
 from backend.combustivel.routers import abastecimentos
 from backend.mercado.routers import compras as mercado_compras
 from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook, simulador as assistente_simulador
+from backend.criador import router as criador_router
 from backend.agendamento.routers import (
     config as agendamento_config,
     horarios as agendamento_horarios,
@@ -97,7 +99,15 @@ app.include_router(agendamento_appointments.router)
 app.include_router(agendamento_stats.router)
 app.include_router(agendamento_google.router)
 
+# Modo Criador
+app.include_router(criador_router.router)
+
 # Frontends estáticos
+import pathlib as _pathlib
+_media_path = _pathlib.Path(os.getenv("MEDIA_DIR", "/app/media/transcricoes"))
+_media_path.mkdir(parents=True, exist_ok=True)
+app.mount("/media/transcricoes", StaticFiles(directory=str(_media_path)), name="media_transcricoes")
+
 app.mount("/shared", StaticFiles(directory="frontend/shared"), name="shared")
 app.mount("/credenciais", StaticFiles(directory="frontend/credenciais", html=True), name="credenciais")
 app.mount("/financeiro",  StaticFiles(directory="frontend/financeiro",  html=True), name="financeiro")

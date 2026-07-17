@@ -16,3 +16,7 @@ apscheduler==3.10.4
 groq==0.12.0
 google-auth==2.36.0
 google-auth-oauthlib==1.2.1
+# ── Modo Criador ──────────────────────────────────────────────────────
+arq==0.25.0
+yt-dlp
+faster-whisper
