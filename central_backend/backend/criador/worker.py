@@ -144,13 +144,12 @@ def _fmt_srt(segundos: float) -> str:
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
+from arq.connections import RedisSettings as _RedisSettings
+
+
 class WorkerSettings:
     functions = [transcrever_video]
-
-    @classmethod
-    def get_redis_settings(cls):
-        from arq.connections import RedisSettings
-        return RedisSettings(
-            host=os.getenv("REDIS_HOST", "redis"),
-            port=int(os.getenv("REDIS_PORT", 6379)),
-        )
+    redis_settings = _RedisSettings(
+        host=os.getenv("REDIS_HOST", "redis"),
+        port=int(os.getenv("REDIS_PORT", "6379")),
+    )
