@@ -17,7 +17,7 @@ def _build_ollama_tools(tools_schema: list) -> list:
     ]
 
 
-async def call(messages: list[dict], system_prompt: str, url: str, model: str, tools_schema: list = None, timeout: float = 15.0) -> LlmResponse:
+async def call(messages: list[dict], system_prompt: str, url: str, model: str, tools_schema: list = None, timeout: float = 300.0) -> LlmResponse:
     ollama_messages = [{"role": "system", "content": system_prompt}]
     for m in messages:
         ollama_messages.append({"role": m["role"], "content": m["content"]})
@@ -26,7 +26,8 @@ async def call(messages: list[dict], system_prompt: str, url: str, model: str, t
         "model": model,
         "messages": ollama_messages,
         "stream": False,
-        "options": {"temperature": 0.3},
+        "keep_alive": 600,
+        "options": {"temperature": 0.3, "num_gpu": 99},
     }
     if tools_schema:
         body["tools"] = _build_ollama_tools(tools_schema)
