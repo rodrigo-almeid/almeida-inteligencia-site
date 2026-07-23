@@ -21,7 +21,7 @@ if not SECRET_KEY:  # pragma: no cover
     raise ValueError("ERRO: A variável JWT_SECRET_KEY não foi encontrada no ficheiro .env!")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 

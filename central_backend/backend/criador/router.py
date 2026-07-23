@@ -3,17 +3,35 @@ import os
 import re
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
 import httpx
 from arq.connections import RedisSettings, create_pool
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
+from backend.core.rate_limit import limiter
 from backend.core.security import get_current_user
 from backend.core.models import User
 from backend.criador.models import TranscricaoJob
 from backend.criador.schemas import TranscricaoCreate, TranscricaoJobOut, Segmento
+
+_YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}
+
+
+def _validar_url_youtube(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        if parsed.hostname not in _YOUTUBE_HOSTS:
+            return False
+        if parsed.hostname == "youtu.be":
+            return bool(parsed.path.strip("/"))
+        return bool(parse_qs(parsed.query).get("v") or parsed.path.startswith("/shorts/"))
+    except Exception:
+        return False
 
 router = APIRouter(prefix="/api/transcricoes", tags=["criador"])
 
@@ -102,11 +120,15 @@ def _nome_arquivo(canal: str, titulo: str) -> str:
 
 
 @router.post("", status_code=202)
+@limiter.limit("10/hour")
 async def criar_transcricao(
+    request: Request,
     payload: TranscricaoCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if not _validar_url_youtube(payload.url):
+        raise HTTPException(400, "URL inválida. Informe um link do YouTube (youtube.com ou youtu.be).")
     if payload.model_size not in MODELOS_PERMITIDOS:
         raise HTTPException(400, f"model_size inválido. Use: {MODELOS_PERMITIDOS}")
 
@@ -193,7 +215,9 @@ def payload_gemini(
 
 
 @router.post("/{job_id}/sugestoes", status_code=200)
+@limiter.limit("5/hour")
 async def gerar_sugestoes(
+    request: Request,
     job_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
