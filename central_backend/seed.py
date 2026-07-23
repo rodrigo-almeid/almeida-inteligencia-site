@@ -81,13 +81,10 @@ migrations = [
     "UPDATE perfis SET nome = 'combustivel' WHERE nome = 'abastecimento'",
     "UPDATE perfis SET nome = 'mercado' WHERE nome = 'financeiro'",
     "DELETE FROM perfis WHERE nome = 'games'",
-    # Migração Meta Cloud API → Evolution API
+    # Migração Meta Cloud API → Evolution API (DROP das colunas Meta removido — já aplicado, não repetir)
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS evolution_url VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS evolution_api_key VARCHAR",
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS evolution_instance VARCHAR",
-    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_token",
-    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_phone_id",
-    "ALTER TABLE assistente_config DROP COLUMN IF EXISTS whatsapp_verify_token",
     # Segredo do webhook — autentica chamadas em /assistente/webhook (endpoint é público)
     "ALTER TABLE assistente_config ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR",
     # Agendamento — sincronização com Google Calendar (coluna existia só no model, faltava a migration)
