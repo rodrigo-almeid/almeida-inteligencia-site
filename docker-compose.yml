@@ -1,9 +1,16 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
 
   redis:
     image: redis:7-alpine
     container_name: almeida-redis
     restart: unless-stopped
+    logging: *default-logging
 
   criador-worker:
     build: ./central_backend
@@ -24,6 +31,7 @@ services:
       - transcricoes_media:/app/media/transcricoes
     restart: unless-stopped
     command: arq backend.criador.worker.WorkerSettings
+    logging: *default-logging
 
   db:
     image: postgres:15-alpine
@@ -42,6 +50,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    logging: *default-logging
 
   backend:
     build: ./backend
@@ -57,6 +66,7 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging: *default-logging
 
   email-backend:
     build: ./email_classifier
@@ -74,6 +84,7 @@ services:
     volumes:
       - email_models:/app/models
     restart: unless-stopped
+    logging: *default-logging
 
   central-backend:
     build: ./central_backend
@@ -101,6 +112,7 @@ services:
     volumes:
       - transcricoes_media:/app/media/transcricoes
     restart: unless-stopped
+    logging: *default-logging
 
   site:
     build: .
@@ -112,6 +124,7 @@ services:
       - email-backend
       - central-backend
     restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   almeida_pgdata:
