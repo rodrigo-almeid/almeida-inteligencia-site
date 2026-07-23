@@ -16,7 +16,7 @@ if DATABASE_URL is None:  # pragma: no cover
 else:
     print("Sucesso: DATABASE_URL carregada do ambiente Docker!")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=20, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
