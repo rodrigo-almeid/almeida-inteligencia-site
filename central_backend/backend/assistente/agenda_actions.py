@@ -15,7 +15,6 @@ def montar_resumo_agenda(config: models.AgendamentoConfig, client: models.Client
 
     compromissos = db.query(models.Appointment).filter(
         models.Appointment.config_id == config.id,
-        models.Appointment.client_id == client.id,
         models.Appointment.status.in_(["confirmado", "pre_reservado"]),
         models.Appointment.data_hora >= agora - timedelta(hours=1),
         models.Appointment.data_hora <= limite,
