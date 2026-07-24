@@ -232,9 +232,10 @@ async def consultar_financeiro(texto, user, db, config=None):
         f"O usuário perguntou: \"{texto}\"\n\n"
         f"Dados financeiros do mês atual:\n{dados_financeiros}\n"
         "Responda a pergunta do usuário de forma direta e natural, como um amigo. "
-        "Use os dados acima para dar uma resposta precisa. "
+        "Use APENAS os dados acima — NUNCA invente valores, datas ou contas que não estejam listados. "
+        "Se a pergunta for sobre uma data específica (ex: 'dia 31/07'), procure nas contas pendentes "
+        "pela data de vencimento correspondente e liste-as. "
         "Formate valores como R$ X.XX. Use emoji com moderação (1-2). "
-        "Se o usuário perguntou sobre vencimentos de hoje e não tem nenhum, diga que está tranquilo. "
         "Seja breve — máximo 4-5 linhas."
     )
 
