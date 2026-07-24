@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from backend.core import models
 
 
-def montar_resumo_agenda(config: models.AgendamentoConfig, client: models.Client, db, dias: int = 7) -> str:
+def montar_resumo_agenda(config: models.AgendamentoConfig, client: models.Client, db, dias: int = 30) -> str:
     if not config.ativo:
         return "O módulo de agendamento não está ativo — nenhum compromisso é gerenciado por aqui."
 
@@ -27,7 +27,7 @@ def montar_resumo_agenda(config: models.AgendamentoConfig, client: models.Client
     linhas = [f"Compromissos nos próximos {dias} dias:"]
     for appt in compromissos:
         servico = db.query(models.Service).filter(models.Service.id == appt.service_id).first()
-        nome_servico = servico.nome if servico else "Compromisso"
+        nome_servico = servico.nome if servico else (appt.descricao or "Compromisso")
         status_txt = "confirmado" if appt.status == "confirmado" else "pré-reservado (aguardando confirmação)"
         linhas.append(f"  - {appt.data_hora.strftime('%d/%m %H:%M')} — {nome_servico} ({status_txt})")
     return "\n".join(linhas)
