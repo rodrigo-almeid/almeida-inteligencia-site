@@ -83,20 +83,23 @@ def montar_resumo_financeiro(user, db) -> str:
         f"Saldo (receitas - despesas): R$ {saldo:.2f}\n"
         f"Total já pago: R$ {total_pago:.2f}\n"
         f"Total pendente: R$ {total_pendente:.2f}\n"
-        f"Contas vencendo hoje ({hoje.strftime('%d/%m')}): {len(vencendo_hoje)}\n"
     )
 
     if vencendo_hoje:
-        resumo += "\nDetalhes das contas de hoje:\n"
+        resumo += f"\nContas vencendo HOJE ({hoje.strftime('%d/%m')}):\n"
         for c in vencendo_hoje:
             resumo += f"  - {c.descricao}: R$ {c.valor:.2f}\n"
+    else:
+        resumo += f"Contas vencendo hoje ({hoje.strftime('%d/%m')}): nenhuma\n"
 
     if pendentes:
-        resumo += f"\nPróximas contas pendentes ({len(pendentes)}):\n"
         pendentes_ord = sorted(pendentes, key=lambda c: c.vencimento or hoje)
-        for c in pendentes_ord[:10]:
-            venc = c.vencimento.strftime("%d/%m") if c.vencimento else "sem data"
-            resumo += f"  - {c.descricao}: R$ {c.valor:.2f} (vence {venc})\n"
+        from itertools import groupby
+        resumo += f"\nContas pendentes por data de vencimento ({len(pendentes)} total):\n"
+        for venc_date, group in groupby(pendentes_ord[:20], key=lambda c: c.vencimento):
+            data_str = venc_date.strftime("%d/%m") if venc_date else "sem data"
+            itens = ", ".join(f"{c.descricao} R${c.valor:.2f}" for c in group)
+            resumo += f"  {data_str}: {itens}\n"
 
     return resumo
 
