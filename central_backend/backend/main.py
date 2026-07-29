@@ -12,7 +12,7 @@ import backend.criador.models  # noqa: F401 — registra tabelas criador no mesm
 
 from backend.auth.routers import auth, perfis as perfis_router
 from backend.credenciais.routers import senhas, pessoas, csv as csv_router
-from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios, cartoes, faturas, itens_fatura
+from backend.financeiro.routers import contas, categorias, dividas, recorrencias, relatorios, cartoes, faturas, itens_fatura, pagamentos_fatura
 from backend.combustivel.routers import abastecimentos
 from backend.mercado.routers import compras as mercado_compras
 from backend.assistente.routers import config as assistente_config, webhook as assistente_webhook, simulador as assistente_simulador
@@ -81,6 +81,7 @@ app.include_router(relatorios.router)
 app.include_router(cartoes.router)
 app.include_router(faturas.router)
 app.include_router(itens_fatura.router)
+app.include_router(pagamentos_fatura.router)
 
 # Combustível
 app.include_router(abastecimentos.router)

@@ -419,3 +419,15 @@ class ItemFaturaResponse(ORMBase):
     categoria_id: Optional[int]
     categoria: Optional[CategoriaResponse] = None
     user_id: int
+
+class PagamentoFaturaCreate(BaseModel):
+    fatura_id: int
+    valor: float
+    data_pagamento: date
+
+class PagamentoFaturaResponse(ORMBase):
+    id: int
+    fatura_id: int
+    valor: float
+    data_pagamento: date
+    user_id: int

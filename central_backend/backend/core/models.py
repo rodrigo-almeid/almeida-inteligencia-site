@@ -394,6 +394,7 @@ class FaturaCartao(Base):
 
     cartao = relationship("Cartao", back_populates="faturas")
     itens = relationship("ItemFatura", back_populates="fatura", cascade="all, delete-orphan")
+    pagamentos = relationship("PagamentoFatura", back_populates="fatura", cascade="all, delete-orphan")
     conta = relationship("Conta")
 
 
@@ -410,6 +411,18 @@ class ItemFatura(Base):
 
     fatura = relationship("FaturaCartao", back_populates="itens")
     categoria = relationship("Categoria")
+
+
+class PagamentoFatura(Base):
+    __tablename__ = "pagamentos_fatura"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fatura_id = Column(Integer, ForeignKey("faturas_cartao.id", ondelete="CASCADE"), nullable=False)
+    valor = Column(Float, nullable=False)
+    data_pagamento = Column(Date, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    fatura = relationship("FaturaCartao", back_populates="pagamentos")
 
 
 class LlmLog(Base):

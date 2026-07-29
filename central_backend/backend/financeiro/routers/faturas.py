@@ -74,6 +74,12 @@ def fechar_fatura(
         models.ItemFatura.fatura_id == fatura.id
     ).scalar() or 0.0
 
+    total_pago = db.query(func.sum(models.PagamentoFatura.valor)).filter(
+        models.PagamentoFatura.fatura_id == fatura.id
+    ).scalar() or 0.0
+
+    saldo_restante = max(total - total_pago, 0.0)
+
     ano_ref = int(fatura.mes_referencia[:4])
     mes_ref = int(fatura.mes_referencia[5:7])
     mes_venc = mes_ref + 1
@@ -88,7 +94,7 @@ def fechar_fatura(
         descricao=f"Fatura {cartao.nome} {fatura.mes_referencia}",
         vencimento=vencimento,
         competencia=fatura.mes_referencia,
-        valor=total,
+        valor=saldo_restante,
         natureza="despesa",
         status="pendente",
         tipo_recorrencia="unica",

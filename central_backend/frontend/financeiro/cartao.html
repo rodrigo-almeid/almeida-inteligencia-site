@@ -200,6 +200,27 @@
   </div>
 </div>
 
+<!-- Modal Pagamento Parcial -->
+<div class="modal-backdrop" id="modal-pagamento">
+  <div class="modal">
+    <h3>Pagamento Parcial</h3>
+    <div class="field-row">
+      <div class="field">
+        <label>Valor Pago (R$)</label>
+        <input type="number" id="p-valor" step="0.01" min="0.01" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Data do Pagamento</label>
+        <input type="date" id="p-data">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalPagamento()">Cancelar</button>
+      <button class="btn-save" onclick="salvarPagamento()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="/shared/sidebar.js"></script>
 <script>
 const API = '';
@@ -211,6 +232,7 @@ let categorias = [];
 let cartaoAtivo = null;
 let faturaAtual = null;
 let itensAtuais = [];
+let pagamentosAtuais = [];
 let mesAtual = new Date().getMonth() + 1;
 let anoAtual = new Date().getFullYear();
 let editandoCartaoId = null;
@@ -286,7 +308,10 @@ async function carregarFatura() {
   document.getElementById('conteudo-principal').innerHTML = '<p style="color:var(--gray);font-size:13px;padding:24px 0;">Carregando...</p>';
   faturaAtual = await req('GET', `/central/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
   if (!faturaAtual) return;
-  itensAtuais = await req('GET', `/central/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  [itensAtuais, pagamentosAtuais] = await Promise.all([
+    req('GET', `/central/itens-fatura/?fatura_id=${faturaAtual.id}`).then(r => r || []),
+    req('GET', `/central/pagamentos-fatura/?fatura_id=${faturaAtual.id}`).then(r => r || []),
+  ]);
   renderConteudo();
 }
 
@@ -301,6 +326,9 @@ function renderEmptyState() {
 
 function renderConteudo() {
   const aberta = faturaAtual.status === 'aberta';
+  const totalPago = pagamentosAtuais.reduce((s, p) => s + p.valor, 0);
+  const saldo = Math.max(faturaAtual.valor_total - totalPago, 0);
+
   const html = `
     <div class="mes-nav">
       <button onclick="mudarMes(-1)">&#8592;</button>
@@ -314,12 +342,46 @@ function renderConteudo() {
         <div class="valor">${fmt(faturaAtual.valor_total)}</div>
         ${faturaAtual.conta_id ? `<div class="conta-link">Conta gerada (ID ${faturaAtual.conta_id})</div>` : ''}
       </div>
+      ${totalPago > 0 ? `
+      <div class="fatura-total-wrap">
+        <div class="label">Pago Parcialmente</div>
+        <div class="valor" style="color:var(--green);font-size:18px;">${fmt(totalPago)}</div>
+      </div>
+      <div class="fatura-total-wrap">
+        <div class="label">Saldo Restante</div>
+        <div class="valor" style="font-size:18px;color:var(--yellow)">${fmt(saldo)}</div>
+      </div>` : ''}
       <div class="fatura-spacer"></div>
       <span class="badge-status ${faturaAtual.status}">${faturaAtual.status.toUpperCase()}</span>
       ${aberta
-        ? `<button class="btn-fatura-action btn-fechar" onclick="fecharFatura()">Fechar Fatura e gerar Conta</button>`
+        ? `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+             <button class="btn-fatura-action btn-fechar" onclick="fecharFatura()">Fechar e gerar Conta${totalPago > 0 ? ' (' + fmt(saldo) + ')' : ''}</button>
+             <button class="btn-fatura-action btn-reabrir" style="font-size:12px;padding:6px 14px;" onclick="abrirModalPagamento()">+ Pagamento Parcial</button>
+           </div>`
         : `<button class="btn-fatura-action btn-reabrir" onclick="reabrirFatura()">Reabrir Fatura</button>`}
     </div>
+
+    ${aberta && pagamentosAtuais.length > 0 ? `
+    <div class="section-header" style="margin-top:8px;">
+      <span class="section-title" style="font-size:13px;color:var(--gray-l);">Pagamentos Parciais</span>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <table>
+        <thead><tr>
+          <th>Data</th>
+          <th style="text-align:right">Valor Pago</th>
+          <th style="width:40px"></th>
+        </tr></thead>
+        <tbody>
+          ${pagamentosAtuais.map(p => `
+            <tr>
+              <td>${fmtData(p.data_pagamento)}</td>
+              <td style="text-align:right;color:var(--green);font-weight:500">${fmt(p.valor)}</td>
+              <td><button class="icon-btn del" onclick="removerPagamento(${p.id})">✕</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
 
     <div class="section-header">
       <span class="section-title">Itens da Fatura <span style="color:var(--gray);font-weight:400;font-size:13px;">(${itensAtuais.length})</span></span>
@@ -516,9 +578,45 @@ async function deletarItem(id) {
   renderConteudo();
 }
 
+// ─── Pagamentos Parciais ─────────────────────────────────────────────────────
+
+function abrirModalPagamento() {
+  document.getElementById('p-valor').value = '';
+  document.getElementById('p-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-pagamento').classList.add('show');
+}
+
+function fecharModalPagamento() {
+  document.getElementById('modal-pagamento').classList.remove('show');
+}
+
+async function salvarPagamento() {
+  const valor = parseFloat(document.getElementById('p-valor').value);
+  const data_pagamento = document.getElementById('p-data').value;
+  if (!valor || !data_pagamento) { alert('Preencha o valor e a data.'); return; }
+
+  const res = await req('POST', '/central/pagamentos-fatura/', {
+    fatura_id: faturaAtual.id,
+    valor,
+    data_pagamento,
+  });
+  if (!res) return;
+  fecharModalPagamento();
+  pagamentosAtuais = await req('GET', `/central/pagamentos-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  renderConteudo();
+}
+
+async function removerPagamento(id) {
+  if (!confirm('Remover este pagamento parcial?')) return;
+  await req('DELETE', `/central/pagamentos-fatura/${id}`);
+  pagamentosAtuais = pagamentosAtuais.filter(p => p.id !== id);
+  renderConteudo();
+}
+
 // Fecha modais ao clicar no backdrop
 document.getElementById('modal-cartao').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalCartao(); });
 document.getElementById('modal-item').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalItem(); });
+document.getElementById('modal-pagamento').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalPagamento(); });
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
