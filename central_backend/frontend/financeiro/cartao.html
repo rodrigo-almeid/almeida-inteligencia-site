@@ -243,8 +243,8 @@ async function req(method, path, body) {
 
 async function init() {
   [cartoes, categorias] = await Promise.all([
-    req('GET', '/cartoes/'),
-    req('GET', '/categorias/'),
+    req('GET', '/central/cartoes/'),
+    req('GET', '/central/categorias/'),
   ]);
   renderCardsRow();
   if (cartoes.length > 0) {
@@ -284,9 +284,9 @@ async function selecionarCartao(cartao) {
 async function carregarFatura() {
   if (!cartaoAtivo) return;
   document.getElementById('conteudo-principal').innerHTML = '<p style="color:var(--gray);font-size:13px;padding:24px 0;">Carregando...</p>';
-  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  faturaAtual = await req('GET', `/central/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
   if (!faturaAtual) return;
-  itensAtuais = await req('GET', `/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  itensAtuais = await req('GET', `/central/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
   renderConteudo();
 }
 
@@ -367,14 +367,14 @@ async function mudarMes(delta) {
 async function fecharFatura() {
   if (!faturaAtual) return;
   if (!confirm(`Fechar a fatura de ${MESES[mesAtual-1]} ${anoAtual}?\nUma Conta de ${fmt(faturaAtual.valor_total)} será criada automaticamente no módulo Contas.`)) return;
-  const res = await req('POST', `/faturas/${faturaAtual.id}/fechar`);
+  const res = await req('POST', `/central/faturas/${faturaAtual.id}/fechar`);
   if (res) { faturaAtual = res; renderConteudo(); }
 }
 
 async function reabrirFatura() {
   if (!faturaAtual) return;
   if (!confirm('Reabrir esta fatura? A Conta gerada (se ainda pendente) será removida.')) return;
-  const res = await req('POST', `/faturas/${faturaAtual.id}/reabrir`);
+  const res = await req('POST', `/central/faturas/${faturaAtual.id}/reabrir`);
   if (res) { faturaAtual = res; renderConteudo(); }
 }
 
@@ -423,12 +423,12 @@ async function salvarCartao() {
   };
 
   const res = editandoCartaoId
-    ? await req('PUT', `/cartoes/${editandoCartaoId}`, body)
-    : await req('POST', '/cartoes/', body);
+    ? await req('PUT', `/central/cartoes/${editandoCartaoId}`, body)
+    : await req('POST', '/central/cartoes/', body);
 
   if (!res) return;
   fecharModalCartao();
-  cartoes = await req('GET', '/cartoes/');
+  cartoes = await req('GET', '/central/cartoes/');
   if (!cartaoAtivo && cartoes.length > 0) {
     cartaoAtivo = cartoes[0];
   } else if (editandoCartaoId) {
@@ -442,8 +442,8 @@ async function salvarCartao() {
 
 async function desativarCartao(id) {
   if (!confirm('Remover este cartão? Faturas e itens existentes serão mantidos.')) return;
-  await req('DELETE', `/cartoes/${id}`);
-  cartoes = await req('GET', '/cartoes/');
+  await req('DELETE', `/central/cartoes/${id}`);
+  cartoes = await req('GET', '/central/cartoes/');
   if (cartaoAtivo?.id === id) {
     cartaoAtivo = cartoes[0] || null;
   }
@@ -497,22 +497,22 @@ async function salvarItem() {
 
   let res;
   if (editandoItemId) {
-    res = await req('PUT', `/itens-fatura/${editandoItemId}`, body);
+    res = await req('PUT', `/central/itens-fatura/${editandoItemId}`, body);
   } else {
-    res = await req('POST', '/itens-fatura/', { ...body, fatura_id: faturaAtual.id });
+    res = await req('POST', '/central/itens-fatura/', { ...body, fatura_id: faturaAtual.id });
   }
   if (!res) return;
   fecharModalItem();
-  itensAtuais = await req('GET', `/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
-  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  itensAtuais = await req('GET', `/central/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  faturaAtual = await req('GET', `/central/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
   renderConteudo();
 }
 
 async function deletarItem(id) {
   if (!confirm('Remover este item?')) return;
-  await req('DELETE', `/itens-fatura/${id}`);
+  await req('DELETE', `/central/itens-fatura/${id}`);
   itensAtuais = itensAtuais.filter(x => x.id !== id);
-  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  faturaAtual = await req('GET', `/central/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
   renderConteudo();
 }
 
