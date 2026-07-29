@@ -93,7 +93,7 @@ def fechar_fatura(
     nova_conta = models.Conta(
         descricao=f"Fatura {cartao.nome} {fatura.mes_referencia}",
         vencimento=vencimento,
-        competencia=fatura.mes_referencia,
+        competencia=f"{ano_venc}-{mes_venc:02d}",
         valor=saldo_restante,
         natureza="despesa",
         status="pendente",
