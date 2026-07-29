@@ -129,6 +129,11 @@ migrations = [
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS evolution_api_key",
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS evolution_instance",
     "ALTER TABLE assistente_config DROP COLUMN IF EXISTS webhook_secret",
+    # Cartão — suporte a compras parceladas
+    "ALTER TABLE itens_fatura ADD COLUMN IF NOT EXISTS parcela_atual INTEGER",
+    "ALTER TABLE itens_fatura ADD COLUMN IF NOT EXISTS total_parcelas INTEGER",
+    "ALTER TABLE itens_fatura ADD COLUMN IF NOT EXISTS grupo_parcela_id INTEGER",
+    "CREATE INDEX IF NOT EXISTS ix_itens_fatura_grupo_parcela_id ON itens_fatura(grupo_parcela_id)",
 ]
 for sql in migrations:
     try:
