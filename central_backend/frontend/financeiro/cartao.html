@@ -179,7 +179,7 @@
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Valor (R$)</label>
+        <label>Valor (R$) <span style="color:var(--gray);font-weight:400;">por parcela</span></label>
         <input type="number" id="i-valor" step="0.01" min="0.01" placeholder="0,00">
       </div>
       <div class="field">
@@ -192,6 +192,24 @@
       <select id="i-categoria">
         <option value="">— Sem categoria —</option>
       </select>
+    </div>
+    <div class="field" style="border-top:0.5px solid var(--border);padding-top:14px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:normal;font-weight:400;color:#fff;">
+        <input type="checkbox" id="i-parcelado" onchange="toggleParcelado()" style="width:auto;accent-color:var(--green);cursor:pointer;">
+        Compra parcelada
+      </label>
+    </div>
+    <div id="parcelas-fields" style="display:none;">
+      <div class="field-row">
+        <div class="field">
+          <label>Parcela atual (nº)</label>
+          <input type="number" id="i-parcela-atual" min="1" value="1" placeholder="ex: 2">
+        </div>
+        <div class="field">
+          <label>Total de parcelas</label>
+          <input type="number" id="i-total-parcelas" min="2" placeholder="ex: 10">
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="fecharModalItem()">Cancelar</button>
@@ -516,12 +534,25 @@ async function desativarCartao(id) {
 
 // ─── Modal Item ──────────────────────────────────────────────────────────────
 
+function toggleParcelado() {
+  document.getElementById('parcelas-fields').style.display =
+    document.getElementById('i-parcelado').checked ? 'block' : 'none';
+}
+
+function _resetParceladoFields() {
+  document.getElementById('i-parcelado').checked = false;
+  document.getElementById('parcelas-fields').style.display = 'none';
+  document.getElementById('i-parcela-atual').value = '1';
+  document.getElementById('i-total-parcelas').value = '';
+}
+
 function abrirModalItem() {
   editandoItemId = null;
   document.getElementById('modal-item-titulo').textContent = 'Adicionar Item';
   document.getElementById('i-descricao').value = '';
   document.getElementById('i-valor').value = '';
   document.getElementById('i-data').value = new Date().toISOString().split('T')[0];
+  _resetParceladoFields();
   preencherCategoriasSelect('');
   document.getElementById('modal-item').classList.add('show');
 }
@@ -535,6 +566,16 @@ function editarItem(id) {
   document.getElementById('i-valor').value = item.valor;
   document.getElementById('i-data').value = item.data_compra;
   preencherCategoriasSelect(item.categoria_id || '');
+
+  if (item.total_parcelas && item.total_parcelas > 1) {
+    document.getElementById('i-parcelado').checked = true;
+    document.getElementById('parcelas-fields').style.display = 'block';
+    document.getElementById('i-parcela-atual').value = item.parcela_atual || 1;
+    document.getElementById('i-total-parcelas').value = item.total_parcelas;
+  } else {
+    _resetParceladoFields();
+  }
+
   document.getElementById('modal-item').classList.add('show');
 }
 
@@ -555,7 +596,23 @@ async function salvarItem() {
   const categoria_id = document.getElementById('i-categoria').value || null;
   if (!descricao || !valor || !data_compra) { alert('Preencha descrição, valor e data.'); return; }
 
-  const body = { descricao, valor, data_compra, categoria_id: categoria_id ? parseInt(categoria_id) : null };
+  const parcelado = document.getElementById('i-parcelado').checked;
+  const total_parcelas = parcelado ? parseInt(document.getElementById('i-total-parcelas').value) || null : null;
+  const parcela_atual = parcelado ? parseInt(document.getElementById('i-parcela-atual').value) || 1 : null;
+
+  if (parcelado && (!total_parcelas || total_parcelas < 2)) {
+    alert('Informe o total de parcelas (mínimo 2).'); return;
+  }
+  if (parcelado && parcela_atual > total_parcelas) {
+    alert('A parcela atual não pode ser maior que o total.'); return;
+  }
+
+  const body = {
+    descricao, valor, data_compra,
+    categoria_id: categoria_id ? parseInt(categoria_id) : null,
+    parcela_atual,
+    total_parcelas,
+  };
 
   let res;
   if (editandoItemId) {
@@ -571,8 +628,17 @@ async function salvarItem() {
 }
 
 async function deletarItem(id) {
-  if (!confirm('Remover este item?')) return;
-  await req('DELETE', `/central/itens-fatura/${id}`);
+  const item = itensAtuais.find(x => x.id === id);
+  if (!item) return;
+  if (!confirm(`Remover "${item.descricao}"?`)) return;
+
+  let cancelarFuturas = false;
+  if (item.total_parcelas && item.parcela_atual && item.parcela_atual < item.total_parcelas) {
+    const restantes = item.total_parcelas - item.parcela_atual;
+    cancelarFuturas = confirm(`Cancelar também as ${restantes} parcela(s) futura(s)?`);
+  }
+
+  await req('DELETE', `/central/itens-fatura/${id}${cancelarFuturas ? '?cancelar_futuras=true' : ''}`);
   itensAtuais = itensAtuais.filter(x => x.id !== id);
   faturaAtual = await req('GET', `/central/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
   renderConteudo();

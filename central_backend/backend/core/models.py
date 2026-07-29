@@ -407,6 +407,9 @@ class ItemFatura(Base):
     valor = Column(Float, nullable=False)
     data_compra = Column(Date, nullable=False)
     categoria_id = Column(Integer, ForeignKey("categorias.id", ondelete="SET NULL"), nullable=True)
+    parcela_atual = Column(Integer, nullable=True)
+    total_parcelas = Column(Integer, nullable=True)
+    grupo_parcela_id = Column(Integer, nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     fatura = relationship("FaturaCartao", back_populates="itens")

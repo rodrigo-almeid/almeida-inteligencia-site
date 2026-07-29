@@ -403,12 +403,16 @@ class ItemFaturaCreate(BaseModel):
     valor: float
     data_compra: date
     categoria_id: Optional[int] = None
+    parcela_atual: Optional[int] = None
+    total_parcelas: Optional[int] = None
 
 class ItemFaturaUpdate(BaseModel):
     descricao: str
     valor: float
     data_compra: date
     categoria_id: Optional[int] = None
+    parcela_atual: Optional[int] = None
+    total_parcelas: Optional[int] = None
 
 class ItemFaturaResponse(ORMBase):
     id: int
@@ -418,6 +422,8 @@ class ItemFaturaResponse(ORMBase):
     data_compra: date
     categoria_id: Optional[int]
     categoria: Optional[CategoriaResponse] = None
+    parcela_atual: Optional[int] = None
+    total_parcelas: Optional[int] = None
     user_id: int
 
 class PagamentoFaturaCreate(BaseModel):
