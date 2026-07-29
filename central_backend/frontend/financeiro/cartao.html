@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financeiro — Cartão</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/sidebar.css">
+  <style>
+    :root{--green:#3DDB82;--black:#0A0F0A;--bg2:#1A241C;--bg3:#0E1810;--gray:#5C6B5E;--gray-l:#A8B8AA;--red:#E24B4A;--yellow:#F5A623;--border:rgba(61,219,130,0.12);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--black);color:#fff;min-height:100vh;display:flex;}
+
+    .main{flex:1;padding:32px;overflow-y:auto;}
+    .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+    .page-header h1{font-size:22px;font-weight:600;}
+    .page-header p{font-size:13px;color:var(--gray);margin-top:4px;}
+
+    /* Seletor de cartões */
+    .cards-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;border-bottom:0.5px solid var(--border);}
+    .card-chip{display:flex;flex-direction:column;gap:3px;padding:12px 18px;border-radius:12px;border:0.5px solid var(--border);background:var(--bg2);cursor:pointer;transition:all .2s;min-width:110px;}
+    .card-chip:hover{border-color:rgba(61,219,130,.3);}
+    .card-chip.ativo{border-color:var(--green);background:rgba(61,219,130,.08);}
+    .card-chip .chip-nome{font-size:13px;font-weight:600;}
+    .card-chip .chip-digits{font-size:11px;color:var(--gray-l);}
+    .card-chip .chip-actions{display:none;gap:4px;margin-top:6px;}
+    .card-chip.ativo .chip-actions{display:flex;}
+    .chip-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--gray-l);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+    .chip-btn:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .chip-btn.del:hover{border-color:rgba(226,75,74,.4);color:var(--red);}
+    .btn-novo{background:none;border:0.5px dashed rgba(61,219,130,.3);border-radius:12px;padding:12px 18px;color:var(--green);cursor:pointer;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap;}
+    .btn-novo:hover{background:rgba(61,219,130,.06);}
+
+    /* Navegador de mês */
+    .mes-nav{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+    .mes-nav button{background:none;border:0.5px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--gray-l);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;transition:all .2s;}
+    .mes-nav button:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .mes-nav .mes-label{font-size:14px;font-weight:600;min-width:140px;text-align:center;}
+
+    /* Painel da fatura */
+    .fatura-panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:20px 24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:24px;}
+    .fatura-total-wrap .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+    .fatura-total-wrap .valor{font-size:26px;font-weight:600;color:var(--green);}
+    .fatura-spacer{flex:1;}
+    .badge-status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.06em;}
+    .badge-status.aberta{background:rgba(245,166,35,.15);color:var(--yellow);}
+    .badge-status.fechada{background:rgba(61,219,130,.15);color:var(--green);}
+    .btn-fatura-action{border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-fechar{background:var(--green);color:var(--black);}
+    .btn-reabrir{background:rgba(245,166,35,.2);color:var(--yellow);border:0.5px solid rgba(245,166,35,.3)!important;}
+    .btn-fatura-action:hover{opacity:.8;}
+    .conta-link{font-size:12px;color:var(--gray-l);margin-top:4px;}
+
+    /* Seção de itens */
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+    .section-title{font-size:15px;font-weight:600;}
+    .btn-add{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.85;}
+    .btn-add:disabled{opacity:.4;cursor:not-allowed;}
+
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:0.5px solid var(--border);}
+    td{padding:12px 12px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,.04);vertical-align:middle;}
+    tr:hover td{background:rgba(255,255,255,.02);}
+    .badge-cat{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;background:rgba(61,219,130,.08);color:var(--green);border:0.5px solid rgba(61,219,130,.2);}
+    .icon-btn{background:none;border:0.5px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--gray-l);transition:all .2s;font-size:12px;}
+    .icon-btn:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .icon-btn.del:hover{border-color:rgba(226,75,74,.4);color:var(--red);}
+    .empty{text-align:center;padding:48px 0;color:var(--gray);font-size:13px;}
+
+    /* Estado vazio (sem cartão) */
+    .empty-state{text-align:center;padding:64px 24px;}
+    .empty-state svg{opacity:.25;margin-bottom:16px;}
+    .empty-state h3{font-size:17px;font-weight:600;margin-bottom:8px;}
+    .empty-state p{font-size:13px;color:var(--gray);}
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;}
+    .modal-backdrop.show{display:flex;}
+    .modal{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:17px;font-weight:600;margin-bottom:20px;}
+    .field{margin-bottom:14px;}
+    .field label{font-size:11px;color:var(--gray-l);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+    .field input,.field select{width:100%;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus{border-color:rgba(61,219,130,.4);}
+    .field select option{background:var(--bg2);}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+    .btn-cancel{background:none;border:0.5px solid var(--border);border-radius:8px;padding:9px 18px;color:var(--gray-l);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;}
+    .btn-cancel:hover{border-color:rgba(61,219,130,.3);color:#fff;}
+    .btn-save{background:var(--green);color:var(--black);border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:opacity .2s;}
+    .btn-save:hover{opacity:.85;}
+  </style>
+  <script>
+  window.SIDEBAR_CONFIG = {
+    tag: 'Financeiro',
+    ativo: 'cartao',
+    items: [
+      { id: 'dashboard',   href: '/financeiro/dashboard.html',   icon: 'dashboard',   label: 'Dashboard' },
+      { id: 'contas',      href: '/financeiro/contas.html',      icon: 'contas',      label: 'Contas' },
+      { id: 'cartao',      href: '/financeiro/cartao.html',      icon: 'cartao',      label: 'Cartão' },
+      { id: 'combustivel', href: '/financeiro/combustivel.html', icon: 'combustivel', label: 'Combustível' },
+      { id: 'mercado',     href: '/financeiro/mercado.html',     icon: 'mercado',     label: 'Mercado' },
+    ],
+    breadcrumb: [
+      { label: 'Portal',     href: 'https://almeidainteligencia.com.br/dashboard/' },
+      { label: 'Financeiro', href: '/financeiro/dashboard.html' },
+      { label: 'Cartão' },
+    ],
+  };
+  </script>
+</head>
+<body>
+<div id="sidebar-root"></div>
+
+<div class="main">
+  <div id="breadcrumb-root"></div>
+
+  <div class="page-header">
+    <div>
+      <h1>Cartão de Crédito</h1>
+      <p>Registre gastos por cartão e gere faturas mensais automaticamente</p>
+    </div>
+    <button class="btn-novo" onclick="abrirModalCartao()">+ Novo Cartão</button>
+  </div>
+
+  <!-- Seletor de cartões -->
+  <div class="cards-row" id="cards-row">
+    <span style="color:var(--gray);font-size:13px;">Carregando...</span>
+  </div>
+
+  <!-- Conteúdo dinâmico -->
+  <div id="conteudo-principal"></div>
+</div>
+
+<!-- Modal Cartão -->
+<div class="modal-backdrop" id="modal-cartao">
+  <div class="modal">
+    <h3 id="modal-cartao-titulo">Novo Cartão</h3>
+    <div class="field">
+      <label>Nome do cartão</label>
+      <input type="text" id="c-nome" placeholder="ex: Nubank, Itaú Visa">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Últimos 4 dígitos</label>
+        <input type="text" id="c-digitos" maxlength="4" placeholder="1234">
+      </div>
+      <div class="field">
+        <label>Limite (R$)</label>
+        <input type="number" id="c-limite" step="0.01" min="0" placeholder="Opcional">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Dia de fechamento</label>
+        <input type="number" id="c-fechamento" min="1" max="28" placeholder="ex: 20">
+      </div>
+      <div class="field">
+        <label>Dia de vencimento</label>
+        <input type="number" id="c-vencimento" min="1" max="28" placeholder="ex: 10">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalCartao()">Cancelar</button>
+      <button class="btn-save" onclick="salvarCartao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Item -->
+<div class="modal-backdrop" id="modal-item">
+  <div class="modal">
+    <h3 id="modal-item-titulo">Adicionar Item</h3>
+    <div class="field">
+      <label>Descrição</label>
+      <input type="text" id="i-descricao" placeholder="ex: Netflix, Posto BR, Restaurante X">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Valor (R$)</label>
+        <input type="number" id="i-valor" step="0.01" min="0.01" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Data da compra</label>
+        <input type="date" id="i-data">
+      </div>
+    </div>
+    <div class="field">
+      <label>Categoria</label>
+      <select id="i-categoria">
+        <option value="">— Sem categoria —</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalItem()">Cancelar</button>
+      <button class="btn-save" onclick="salvarItem()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/shared/sidebar.js"></script>
+<script>
+const API = '';
+let token = localStorage.getItem('central_token');
+
+// Estado
+let cartoes = [];
+let categorias = [];
+let cartaoAtivo = null;
+let faturaAtual = null;
+let itensAtuais = [];
+let mesAtual = new Date().getMonth() + 1;
+let anoAtual = new Date().getFullYear();
+let editandoCartaoId = null;
+let editandoItemId = null;
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function fmt(v) {
+  return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtData(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+async function req(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401) { location.href = '/financeiro/index.html'; return null; }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ─── Inicialização ───────────────────────────────────────────────────────────
+
+async function init() {
+  [cartoes, categorias] = await Promise.all([
+    req('GET', '/cartoes/'),
+    req('GET', '/categorias/'),
+  ]);
+  renderCardsRow();
+  if (cartoes.length > 0) {
+    selecionarCartao(cartoes[0]);
+  } else {
+    renderEmptyState();
+  }
+}
+
+// ─── Cartões ────────────────────────────────────────────────────────────────
+
+function renderCardsRow() {
+  const row = document.getElementById('cards-row');
+  if (cartoes.length === 0) {
+    row.innerHTML = '<span style="color:var(--gray);font-size:13px;">Nenhum cartão cadastrado</span>';
+  } else {
+    row.innerHTML = cartoes.map(c => `
+      <div class="card-chip${cartaoAtivo?.id === c.id ? ' ativo' : ''}" onclick="selecionarCartao(${JSON.stringify(c).replace(/"/g,'&quot;')})">
+        <div class="chip-nome">${c.nome}</div>
+        <div class="chip-digits">${c.ultimos_digitos ? '****' + c.ultimos_digitos : 'Cartão'}</div>
+        <div class="chip-actions">
+          <button class="chip-btn" onclick="event.stopPropagation();editarCartao(${c.id})">Editar</button>
+          <button class="chip-btn del" onclick="event.stopPropagation();desativarCartao(${c.id})">Remover</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  row.innerHTML += '<button class="btn-novo" onclick="abrirModalCartao()">+ Novo Cartão</button>';
+}
+
+async function selecionarCartao(cartao) {
+  cartaoAtivo = cartao;
+  renderCardsRow();
+  await carregarFatura();
+}
+
+async function carregarFatura() {
+  if (!cartaoAtivo) return;
+  document.getElementById('conteudo-principal').innerHTML = '<p style="color:var(--gray);font-size:13px;padding:24px 0;">Carregando...</p>';
+  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  if (!faturaAtual) return;
+  itensAtuais = await req('GET', `/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  renderConteudo();
+}
+
+function renderEmptyState() {
+  document.getElementById('conteudo-principal').innerHTML = `
+    <div class="empty-state">
+      <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <h3>Nenhum cartão cadastrado</h3>
+      <p>Cadastre seu primeiro cartão para começar a registrar gastos e controlar faturas.</p>
+    </div>`;
+}
+
+function renderConteudo() {
+  const aberta = faturaAtual.status === 'aberta';
+  const html = `
+    <div class="mes-nav">
+      <button onclick="mudarMes(-1)">&#8592;</button>
+      <span class="mes-label">${MESES[mesAtual - 1]} ${anoAtual}</span>
+      <button onclick="mudarMes(1)">&#8594;</button>
+    </div>
+
+    <div class="fatura-panel">
+      <div class="fatura-total-wrap">
+        <div class="label">Total da Fatura</div>
+        <div class="valor">${fmt(faturaAtual.valor_total)}</div>
+        ${faturaAtual.conta_id ? `<div class="conta-link">Conta gerada (ID ${faturaAtual.conta_id})</div>` : ''}
+      </div>
+      <div class="fatura-spacer"></div>
+      <span class="badge-status ${faturaAtual.status}">${faturaAtual.status.toUpperCase()}</span>
+      ${aberta
+        ? `<button class="btn-fatura-action btn-fechar" onclick="fecharFatura()">Fechar Fatura e gerar Conta</button>`
+        : `<button class="btn-fatura-action btn-reabrir" onclick="reabrirFatura()">Reabrir Fatura</button>`}
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">Itens da Fatura <span style="color:var(--gray);font-weight:400;font-size:13px;">(${itensAtuais.length})</span></span>
+      <button class="btn-add" onclick="abrirModalItem()" ${!aberta ? 'disabled title="Reabra a fatura para adicionar itens"' : ''}>+ Adicionar Item</button>
+    </div>
+
+    <div class="table-wrap">
+      ${itensAtuais.length === 0
+        ? `<div class="empty">${aberta ? 'Nenhum item registrado. Adicione o primeiro gasto.' : 'Nenhum item nesta fatura.'}</div>`
+        : `<table>
+            <thead><tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th style="text-align:right">Valor</th>
+              ${aberta ? '<th style="width:80px"></th>' : ''}
+            </tr></thead>
+            <tbody>
+              ${itensAtuais.map(i => `
+                <tr>
+                  <td>${fmtData(i.data_compra)}</td>
+                  <td>${i.descricao}</td>
+                  <td>${i.categoria ? `<span class="badge-cat">${i.categoria.nome}</span>` : '<span style="color:var(--gray)">—</span>'}</td>
+                  <td style="text-align:right;font-weight:500">${fmt(i.valor)}</td>
+                  ${aberta ? `<td>
+                    <button class="icon-btn" onclick="editarItem(${i.id})">Editar</button>
+                    <button class="icon-btn del" onclick="deletarItem(${i.id})">✕</button>
+                  </td>` : ''}
+                </tr>`).join('')}
+            </tbody>
+          </table>`}
+    </div>`;
+  document.getElementById('conteudo-principal').innerHTML = html;
+}
+
+async function mudarMes(delta) {
+  mesAtual += delta;
+  if (mesAtual > 12) { mesAtual = 1; anoAtual++; }
+  if (mesAtual < 1)  { mesAtual = 12; anoAtual--; }
+  await carregarFatura();
+}
+
+// ─── Fechar / Reabrir fatura ─────────────────────────────────────────────────
+
+async function fecharFatura() {
+  if (!faturaAtual) return;
+  if (!confirm(`Fechar a fatura de ${MESES[mesAtual-1]} ${anoAtual}?\nUma Conta de ${fmt(faturaAtual.valor_total)} será criada automaticamente no módulo Contas.`)) return;
+  const res = await req('POST', `/faturas/${faturaAtual.id}/fechar`);
+  if (res) { faturaAtual = res; renderConteudo(); }
+}
+
+async function reabrirFatura() {
+  if (!faturaAtual) return;
+  if (!confirm('Reabrir esta fatura? A Conta gerada (se ainda pendente) será removida.')) return;
+  const res = await req('POST', `/faturas/${faturaAtual.id}/reabrir`);
+  if (res) { faturaAtual = res; renderConteudo(); }
+}
+
+// ─── Modal Cartão ────────────────────────────────────────────────────────────
+
+function abrirModalCartao() {
+  editandoCartaoId = null;
+  document.getElementById('modal-cartao-titulo').textContent = 'Novo Cartão';
+  document.getElementById('c-nome').value = '';
+  document.getElementById('c-digitos').value = '';
+  document.getElementById('c-limite').value = '';
+  document.getElementById('c-fechamento').value = '';
+  document.getElementById('c-vencimento').value = '';
+  document.getElementById('modal-cartao').classList.add('show');
+}
+
+function editarCartao(id) {
+  const c = cartoes.find(x => x.id === id);
+  if (!c) return;
+  editandoCartaoId = id;
+  document.getElementById('modal-cartao-titulo').textContent = 'Editar Cartão';
+  document.getElementById('c-nome').value = c.nome;
+  document.getElementById('c-digitos').value = c.ultimos_digitos || '';
+  document.getElementById('c-limite').value = c.limite || '';
+  document.getElementById('c-fechamento').value = c.dia_fechamento;
+  document.getElementById('c-vencimento').value = c.dia_vencimento;
+  document.getElementById('modal-cartao').classList.add('show');
+}
+
+function fecharModalCartao() {
+  document.getElementById('modal-cartao').classList.remove('show');
+}
+
+async function salvarCartao() {
+  const nome = document.getElementById('c-nome').value.trim();
+  const dia_fechamento = parseInt(document.getElementById('c-fechamento').value);
+  const dia_vencimento = parseInt(document.getElementById('c-vencimento').value);
+  if (!nome || !dia_fechamento || !dia_vencimento) { alert('Preencha nome, dia de fechamento e vencimento.'); return; }
+
+  const body = {
+    nome,
+    ultimos_digitos: document.getElementById('c-digitos').value.trim() || null,
+    limite: parseFloat(document.getElementById('c-limite').value) || null,
+    dia_fechamento,
+    dia_vencimento,
+  };
+
+  const res = editandoCartaoId
+    ? await req('PUT', `/cartoes/${editandoCartaoId}`, body)
+    : await req('POST', '/cartoes/', body);
+
+  if (!res) return;
+  fecharModalCartao();
+  cartoes = await req('GET', '/cartoes/');
+  if (!cartaoAtivo && cartoes.length > 0) {
+    cartaoAtivo = cartoes[0];
+  } else if (editandoCartaoId) {
+    cartaoAtivo = cartoes.find(c => c.id === editandoCartaoId) || cartaoAtivo;
+  } else {
+    cartaoAtivo = res;
+  }
+  renderCardsRow();
+  if (cartaoAtivo) await carregarFatura();
+}
+
+async function desativarCartao(id) {
+  if (!confirm('Remover este cartão? Faturas e itens existentes serão mantidos.')) return;
+  await req('DELETE', `/cartoes/${id}`);
+  cartoes = await req('GET', '/cartoes/');
+  if (cartaoAtivo?.id === id) {
+    cartaoAtivo = cartoes[0] || null;
+  }
+  renderCardsRow();
+  if (cartaoAtivo) await carregarFatura();
+  else renderEmptyState();
+}
+
+// ─── Modal Item ──────────────────────────────────────────────────────────────
+
+function abrirModalItem() {
+  editandoItemId = null;
+  document.getElementById('modal-item-titulo').textContent = 'Adicionar Item';
+  document.getElementById('i-descricao').value = '';
+  document.getElementById('i-valor').value = '';
+  document.getElementById('i-data').value = new Date().toISOString().split('T')[0];
+  preencherCategoriasSelect('');
+  document.getElementById('modal-item').classList.add('show');
+}
+
+function editarItem(id) {
+  const item = itensAtuais.find(x => x.id === id);
+  if (!item) return;
+  editandoItemId = id;
+  document.getElementById('modal-item-titulo').textContent = 'Editar Item';
+  document.getElementById('i-descricao').value = item.descricao;
+  document.getElementById('i-valor').value = item.valor;
+  document.getElementById('i-data').value = item.data_compra;
+  preencherCategoriasSelect(item.categoria_id || '');
+  document.getElementById('modal-item').classList.add('show');
+}
+
+function preencherCategoriasSelect(selecionado) {
+  const sel = document.getElementById('i-categoria');
+  sel.innerHTML = '<option value="">— Sem categoria —</option>' +
+    categorias.map(c => `<option value="${c.id}" ${c.id == selecionado ? 'selected' : ''}>${c.nome}</option>`).join('');
+}
+
+function fecharModalItem() {
+  document.getElementById('modal-item').classList.remove('show');
+}
+
+async function salvarItem() {
+  const descricao = document.getElementById('i-descricao').value.trim();
+  const valor = parseFloat(document.getElementById('i-valor').value);
+  const data_compra = document.getElementById('i-data').value;
+  const categoria_id = document.getElementById('i-categoria').value || null;
+  if (!descricao || !valor || !data_compra) { alert('Preencha descrição, valor e data.'); return; }
+
+  const body = { descricao, valor, data_compra, categoria_id: categoria_id ? parseInt(categoria_id) : null };
+
+  let res;
+  if (editandoItemId) {
+    res = await req('PUT', `/itens-fatura/${editandoItemId}`, body);
+  } else {
+    res = await req('POST', '/itens-fatura/', { ...body, fatura_id: faturaAtual.id });
+  }
+  if (!res) return;
+  fecharModalItem();
+  itensAtuais = await req('GET', `/itens-fatura/?fatura_id=${faturaAtual.id}`) || [];
+  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  renderConteudo();
+}
+
+async function deletarItem(id) {
+  if (!confirm('Remover este item?')) return;
+  await req('DELETE', `/itens-fatura/${id}`);
+  itensAtuais = itensAtuais.filter(x => x.id !== id);
+  faturaAtual = await req('GET', `/faturas/?cartao_id=${cartaoAtivo.id}&mes=${mesAtual}&ano=${anoAtual}`);
+  renderConteudo();
+}
+
+// Fecha modais ao clicar no backdrop
+document.getElementById('modal-cartao').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalCartao(); });
+document.getElementById('modal-item').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalItem(); });
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

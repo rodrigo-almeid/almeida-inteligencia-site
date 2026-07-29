@@ -365,3 +365,57 @@ class LlmLogResponse(ORMBase):
     erro: Optional[str]
     criado_em: Optional[datetime]
     config_id: int
+
+
+# =====================================================================
+# BLOCO 7: CARTÃO DE CRÉDITO
+# =====================================================================
+
+class CartaoCreate(BaseModel):
+    nome: str
+    ultimos_digitos: Optional[str] = None
+    limite: Optional[float] = None
+    dia_fechamento: int
+    dia_vencimento: int
+
+class CartaoResponse(ORMBase):
+    id: int
+    nome: str
+    ultimos_digitos: Optional[str]
+    limite: Optional[float]
+    dia_fechamento: int
+    dia_vencimento: int
+    ativo: bool
+    user_id: int
+
+class FaturaCartaoResponse(ORMBase):
+    id: int
+    cartao_id: int
+    mes_referencia: str
+    valor_total: float
+    conta_id: Optional[int]
+    status: str
+    user_id: int
+
+class ItemFaturaCreate(BaseModel):
+    fatura_id: int
+    descricao: str
+    valor: float
+    data_compra: date
+    categoria_id: Optional[int] = None
+
+class ItemFaturaUpdate(BaseModel):
+    descricao: str
+    valor: float
+    data_compra: date
+    categoria_id: Optional[int] = None
+
+class ItemFaturaResponse(ORMBase):
+    id: int
+    fatura_id: int
+    descricao: str
+    valor: float
+    data_compra: date
+    categoria_id: Optional[int]
+    categoria: Optional[CategoriaResponse] = None
+    user_id: int

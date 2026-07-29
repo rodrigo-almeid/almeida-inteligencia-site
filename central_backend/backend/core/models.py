@@ -42,6 +42,7 @@ class User(Base):
     categorias = relationship("Categoria", back_populates="user", cascade="all, delete-orphan")
     contas = relationship("Conta", back_populates="user", cascade="all, delete-orphan")
     dividas = relationship("DividaTerceiro", back_populates="user", cascade="all, delete-orphan")
+    cartoes = relationship("Cartao", back_populates="user", cascade="all, delete-orphan")
     agendamento_config = relationship("AgendamentoConfig", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
@@ -357,6 +358,58 @@ class ConversationMessage(Base):
 
     config = relationship("AgendamentoConfig", back_populates="messages")
     client = relationship("Client", back_populates="messages")
+
+
+# =====================================================================
+# BLOCO 7: CARTÃO DE CRÉDITO
+# =====================================================================
+
+class Cartao(Base):
+    __tablename__ = "cartoes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    ultimos_digitos = Column(String(4), nullable=True)
+    limite = Column(Float, nullable=True)
+    dia_fechamento = Column(Integer, nullable=False)
+    dia_vencimento = Column(Integer, nullable=False)
+    ativo = Column(Boolean, default=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    user = relationship("User", back_populates="cartoes")
+    faturas = relationship("FaturaCartao", back_populates="cartao", cascade="all, delete-orphan")
+
+
+class FaturaCartao(Base):
+    __tablename__ = "faturas_cartao"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cartao_id = Column(Integer, ForeignKey("cartoes.id", ondelete="CASCADE"), nullable=False)
+    mes_referencia = Column(String, nullable=False)  # "YYYY-MM"
+    valor_total = Column(Float, nullable=False, default=0.0)
+    conta_id = Column(Integer, ForeignKey("contas.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String, nullable=False, default="aberta")  # aberta | fechada
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    cartao = relationship("Cartao", back_populates="faturas")
+    itens = relationship("ItemFatura", back_populates="fatura", cascade="all, delete-orphan")
+    conta = relationship("Conta")
+
+
+class ItemFatura(Base):
+    __tablename__ = "itens_fatura"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fatura_id = Column(Integer, ForeignKey("faturas_cartao.id", ondelete="CASCADE"), nullable=False)
+    descricao = Column(String, nullable=False)
+    valor = Column(Float, nullable=False)
+    data_compra = Column(Date, nullable=False)
+    categoria_id = Column(Integer, ForeignKey("categorias.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    fatura = relationship("FaturaCartao", back_populates="itens")
+    categoria = relationship("Categoria")
 
 
 class LlmLog(Base):
