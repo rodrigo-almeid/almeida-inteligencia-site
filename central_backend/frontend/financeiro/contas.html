@@ -300,8 +300,9 @@ function toggleSelecionado(id, checked) {
 }
 
 function toggleSelecionarTodos(checked) {
-  if (checked) listaAtual.forEach(c => selecionados.add(c.id));
-  else listaAtual.forEach(c => selecionados.delete(c.id));
+  const selecionaveis = listaAtual.filter(c => !c._virtual);
+  if (checked) selecionaveis.forEach(c => selecionados.add(c.id));
+  else selecionaveis.forEach(c => selecionados.delete(c.id));
   renderTabela();
 }
 
@@ -347,12 +348,32 @@ async function api(path, opts={}) {
 }
 
 async function carregar() {
-  const [resContas, resCats] = await Promise.all([
+  const [resContas, resCats, resResumo] = await Promise.all([
     api(`/contas/?mes=${mesAtual}&ano=${anoAtual}`),
-    api('/categorias/')
+    api('/categorias/'),
+    api(`/faturas/resumo-mes?mes=${mesAtual}&ano=${anoAtual}`),
   ]);
   if (!resContas) return;
   contasRaw = await resContas.json();
+
+  // Entrada virtual para faturas de cartão ainda abertas
+  if (resResumo?.ok) {
+    const resumo = await resResumo.json();
+    if (resumo.total_aberto > 0) {
+      contasRaw.unshift({
+        id: '_cartoes_simulado',
+        descricao: 'Cartões Simulado',
+        vencimento: null,
+        competencia: `${anoAtual}-${String(mesAtual).padStart(2,'0')}`,
+        valor: resumo.total_aberto,
+        natureza: 'despesa',
+        status: 'pendente',
+        categoria_id: null,
+        _virtual: true,
+      });
+    }
+  }
+
   if (resCats?.ok) {
     categorias = await resCats.json();
     const sel = document.getElementById('fil-categoria');
@@ -395,7 +416,9 @@ function ordenarPor(campo) {
 }
 
 function renderTabela() {
-  let lista = contasRaw;
+  // Separa entradas virtuais das reais
+  const virtuais = contasRaw.filter(c => c._virtual);
+  let lista = contasRaw.filter(c => !c._virtual);
 
   // Filtro rápido (tabs)
   if (filtroAtivo === 'pendente') lista = lista.filter(c => c.status === 'pendente');
@@ -418,9 +441,8 @@ function renderTabela() {
     String(c.valor).includes(busca)
   );
 
-  // Ordenação
+  // Ordenação (apenas entradas reais)
   lista = [...lista].sort((a, b) => {
-    // Se não houver sort explícito em natureza, manter despesas primeiro
     if (ordemCampo !== 'natureza' && a.natureza !== b.natureza) return a.natureza === 'despesa' ? -1 : 1;
     let va, vb;
     if (ordemCampo === 'valor') { va = Number(a.valor); vb = Number(b.valor); }
@@ -432,15 +454,43 @@ function renderTabela() {
     return ordemDir === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
 
-  listaAtual = lista;
-  // Remove da seleção itens que não estão mais na lista carregada (evita ids fantasmas)
+  // Decide quais virtuais exibir com base no filtro ativo e comboboxes
+  const virtuaisVisiveis = ['todos','despesa','pendente'].includes(filtroAtivo)
+    ? virtuais.filter(v => {
+        if (filNat && filNat !== 'despesa') return false;
+        if (filSta && filSta !== 'pendente') return false;
+        if (filCat) return false;
+        if (busca && !v.descricao.toLowerCase().includes(busca)) return false;
+        return true;
+      })
+    : [];
+
+  listaAtual = [...virtuaisVisiveis, ...lista];
+
+  // Remove da seleção itens que não estão mais na lista
   const idsVisiveis = new Set(lista.map(c => c.id));
   [...selecionados].forEach(id => { if (!idsVisiveis.has(id)) selecionados.delete(id); });
 
   const tbody = document.getElementById('tbody');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum lançamento neste período.</td></tr>'; document.getElementById('check-todos').checked = false; atualizarBotaoMigrar(); return; }
+  if (!listaAtual.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum lançamento neste período.</td></tr>'; document.getElementById('check-todos').checked = false; atualizarBotaoMigrar(); return; }
 
-  tbody.innerHTML = lista.map(c => {
+  tbody.innerHTML = listaAtual.map(c => {
+    if (c._virtual) {
+      return `
+      <tr style="border-left:2px solid rgba(245,166,35,.5)">
+        <td class="col-check"></td>
+        <td>
+          <span style="font-style:italic">${esc(c.descricao)}</span>
+          <span style="font-size:10px;color:var(--gray);margin-left:6px">estimado</span>
+        </td>
+        <td style="color:var(--gray)">—</td>
+        <td style="font-size:12px;color:var(--gray-l)">—</td>
+        <td><span class="badge despesa">despesa</span></td>
+        <td style="font-weight:500;color:var(--yellow)">${fmt(c.valor)}</td>
+        <td><span class="badge pendente">pendente</span></td>
+        <td></td>
+      </tr>`;
+    }
     const vencMes = c.vencimento ? c.vencimento.substring(0,7) : null;
     const compDiferente = c.competencia && c.competencia !== vencMes;
     const compLabel = compDiferente ? `<div style="font-size:10px;color:var(--gray);margin-top:2px">Comp: ${fmtMes(c.competencia)}</div>` : '';
@@ -462,7 +512,8 @@ function renderTabela() {
     </tr>`;
   }).join('');
 
-  document.getElementById('check-todos').checked = lista.every(c => selecionados.has(c.id));
+  const selecionaveis = listaAtual.filter(c => !c._virtual);
+  document.getElementById('check-todos').checked = selecionaveis.length > 0 && selecionaveis.every(c => selecionados.has(c.id));
   atualizarBotaoMigrar();
 }
 

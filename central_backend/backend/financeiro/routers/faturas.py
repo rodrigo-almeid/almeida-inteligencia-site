@@ -53,6 +53,53 @@ def buscar_ou_criar_fatura(
     return fatura
 
 
+@router.get("/resumo-mes")
+def resumo_mes_cartoes(
+    mes: int,
+    ano: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    mes_ref = f"{ano}-{mes:02d}"
+    faturas = db.query(models.FaturaCartao).filter(
+        models.FaturaCartao.user_id == current_user.id,
+        models.FaturaCartao.mes_referencia == mes_ref,
+    ).all()
+
+    total_geral = 0.0
+    total_aberto = 0.0
+    n_abertas = 0
+    n_fechadas = 0
+
+    for fatura in faturas:
+        total_itens = (
+            db.query(func.sum(models.ItemFatura.valor))
+            .filter(models.ItemFatura.fatura_id == fatura.id)
+            .scalar() or 0.0
+        )
+        if fatura.status == "aberta":
+            total_pago = (
+                db.query(func.sum(models.PagamentoFatura.valor))
+                .filter(models.PagamentoFatura.fatura_id == fatura.id)
+                .scalar() or 0.0
+            )
+            saldo = max(total_itens - total_pago, 0.0)
+            total_aberto += saldo
+            total_geral += saldo
+            n_abertas += 1
+        else:
+            total_geral += fatura.valor_total
+            n_fechadas += 1
+
+    return {
+        "mes": mes_ref,
+        "total_geral": round(total_geral, 2),
+        "total_aberto": round(total_aberto, 2),
+        "faturas_abertas": n_abertas,
+        "faturas_fechadas": n_fechadas,
+    }
+
+
 @router.post("/{fatura_id}/fechar", response_model=schemas.FaturaCartaoResponse)
 def fechar_fatura(
     fatura_id: int,
