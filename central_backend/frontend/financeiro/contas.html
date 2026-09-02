@@ -653,7 +653,6 @@ async function exportar(tipo) {
   } catch { toast('Erro ao exportar.','err'); }
 }
 
-document.getElementById('modal').addEventListener('click', e => { if(e.target===document.getElementById('modal')) fecharModal(); });
 
 atualizarLabel();
 carregar();

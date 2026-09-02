@@ -707,10 +707,6 @@ async function removerPagamento(id) {
   renderConteudo();
 }
 
-// Fecha modais ao clicar no backdrop
-document.getElementById('modal-cartao').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalCartao(); });
-document.getElementById('modal-item').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalItem(); });
-document.getElementById('modal-pagamento').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModalPagamento(); });
 
 document.addEventListener('DOMContentLoaded', init);
 </script>

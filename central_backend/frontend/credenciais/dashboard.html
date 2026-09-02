@@ -265,10 +265,6 @@ function logout() {
   location.href = '/credenciais/';
 }
 
-// Fechar modal clicando fora
-document.querySelectorAll('.modal-backdrop').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
-});
 
 carregarPerfis();
 </script>

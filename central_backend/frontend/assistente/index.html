@@ -553,7 +553,7 @@
 </div>
 
 <!-- Modal Detalhe Cliente -->
-<div class="modal-backdrop" id="modal-cliente" onclick="if(event.target===this)fecharModalCliente()">
+<div class="modal-backdrop" id="modal-cliente">
   <div class="modal">
     <h3 id="cli-detail-nome">—</h3>
     <div class="sub" id="cli-detail-telefone">—</div>
@@ -810,9 +810,6 @@ function dragEnd(e) {
   document.querySelectorAll('.prov-card').forEach(c => c.classList.remove('drag-over'));
 }
 
-document.getElementById('overlayProvedor').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModalProvedor();
-});
 
 // ── Config (Assistente — WhatsApp/IA/Personalidade) ──
 
@@ -968,9 +965,6 @@ function fecharModal() {
   payloadPendente = null;
 }
 
-document.getElementById('overlayValidacao').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModal();
-});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { fecharModal(); fecharModalProvedor(); }
 });
