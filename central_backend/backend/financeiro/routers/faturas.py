@@ -60,7 +60,14 @@ def resumo_mes_cartoes(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    mes_ref = f"{ano}-{mes:02d}"
+    # O simulado representa faturas do mês anterior que ainda não foram fechadas.
+    # Quando todas do mês anterior fecham, as Contas reais já existem e o simulado some.
+    mes_anterior = mes - 1
+    ano_anterior = ano
+    if mes_anterior == 0:
+        mes_anterior = 12
+        ano_anterior = ano - 1
+    mes_ref = f"{ano_anterior}-{mes_anterior:02d}"
     faturas = db.query(models.FaturaCartao).filter(
         models.FaturaCartao.user_id == current_user.id,
         models.FaturaCartao.mes_referencia == mes_ref,
