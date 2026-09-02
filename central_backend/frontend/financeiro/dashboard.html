@@ -267,6 +267,8 @@ const CAT_COLORS = [
 ];
 
 function renderCharts(mesesData) {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.color = '#A8B8AA';
   const labels = mesesData.map(m => `${MESES[m.mes-1].substring(0,3)}/${String(m.ano).substring(2)}`);
   const sumRec = mesesData.map(m => m.data.filter(c=>c.natureza==='receita').reduce((a,c)=>a+Number(c.valor),0));
   const sumDes = mesesData.map(m => m.data.filter(c=>c.natureza==='despesa').reduce((a,c)=>a+Number(c.valor),0));
@@ -350,8 +352,6 @@ function renderCharts(mesesData) {
     }
   });
 }
-
-Chart.defaults.color = '#A8B8AA';
 
 atualizarLabel();
 carregar();
