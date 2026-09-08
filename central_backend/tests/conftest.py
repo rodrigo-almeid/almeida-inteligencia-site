@@ -13,6 +13,7 @@ os.environ.setdefault("FERNET_SECRET_KEY", _FERNET_KEY)
 os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key-para-testes-unitarios!")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./central_test.db")
 os.environ.setdefault("PORTAL_SECRET_KEY", "test-portal-secret-key")
+os.environ.setdefault("WHATSAPP_APP_SECRET", "ci-test-secret")
 os.environ["TESTING"] = "1"
 # ─────────────────────────────────────────────────────────────────────
 

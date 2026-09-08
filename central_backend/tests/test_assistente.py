@@ -1,5 +1,8 @@
 """Testes do módulo assistente virtual: /assistente/config e /assistente/webhook."""
+import hmac
+import hashlib
 import json
+import os
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -111,6 +114,18 @@ class TestAtualizarConfig:
         assert res.json()["ativo"] is True
 
 
+def _signed_webhook_post(client, payload: dict):
+    """Envia POST ao webhook com assinatura HMAC válida."""
+    body = json.dumps(payload).encode()
+    secret = os.environ.get("WHATSAPP_APP_SECRET", "ci-test-secret").encode()
+    sig = "sha256=" + hmac.new(secret, body, hashlib.sha256).hexdigest()
+    return client.post(
+        "/assistente/webhook",
+        content=body,
+        headers={"Content-Type": "application/json", "X-Hub-Signature-256": sig},
+    )
+
+
 def _meta_payload(phone_id: str, from_number: str, texto: str) -> dict:
     return {
         "entry": [{
@@ -174,7 +189,7 @@ class TestWebhookVerify:
 class TestWebhookMensagens:
     def test_post_sem_campo_messages_e_ignorado(self, client):
         """Notificações de status (delivered/read) não têm 'messages' no value."""
-        res = client.post("/assistente/webhook", json={
+        res = _signed_webhook_post(client, {
             "entry": [{"changes": [{"value": {"metadata": {"phone_number_id": "x"}, "statuses": []}}]}],
         })
         assert res.status_code == 200
@@ -182,7 +197,7 @@ class TestWebhookMensagens:
 
     def test_post_phone_id_desconhecido(self, client):
         """Rota é pública (exposta pelo nginx) — phone_number_id sem config correspondente não autentica."""
-        res = client.post("/assistente/webhook", json=_meta_payload("999999999999999", "5511111111111", "oi"))
+        res = _signed_webhook_post(client, _meta_payload("999999999999999", "5511111111111", "oi"))
         assert res.status_code == 200
         assert res.json()["status"] == "unauthorized"
 
@@ -197,7 +212,7 @@ class TestWebhookMensagens:
         db.add(config)
         db.commit()
 
-        res = client.post("/assistente/webhook", json=_meta_payload("123456789012345", "5511111111111", "oi"))
+        res = _signed_webhook_post(client, _meta_payload("123456789012345", "5511111111111", "oi"))
         assert res.status_code == 200
         assert res.json()["status"] == "unauthorized"
 
@@ -217,7 +232,7 @@ class TestWebhookMensagens:
         with patch("backend.assistente.routers.webhook.enviar_mensagem", new=AsyncMock()) as mock_enviar, \
              patch("backend.assistente.routers.webhook.detectar_intencao", new=AsyncMock(return_value="outro")), \
              patch("backend.assistente.routers.webhook.chat", new=AsyncMock(return_value="Oi, tudo bem?")):
-            res = client.post("/assistente/webhook", json=_meta_payload("123456789012345", "5500000000000", "oi"))
+            res = _signed_webhook_post(client, _meta_payload("123456789012345", "5500000000000", "oi"))
 
         assert res.status_code == 200
         assert res.json()["status"] == "ok"
