@@ -1,0 +1,41 @@
+[config]
+output_file_name = almeida-inteligencia.txt
+max_file_size = 200000
+
+[ignore]
+# Compilados Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / ferramentas locais
+.idea/
+.claude/
+*.sh
+
+# Infraestrutura (menos relevante para contexto de código)
+Dockerfile
+*/Dockerfile
+nginx.conf
+.github/
+
+# Dados e migrações (arquivos grandes, não são lógica)
+*.sql
+central_backend/migrar_competencia.py
+
+# Documentação não-técnica
+docs/
+
+# Frontends estáticos (HTML/JS grande — foca no backend Python)
+central_backend/frontend/
+email_classifier/frontend/
+admin/
+dashboard/
+index.html
+auth-guard.js
+
+# Artefatos temporários do repositório
+REDACTED
+replacements.txt
+git
+nul
