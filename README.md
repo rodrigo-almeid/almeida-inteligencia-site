@@ -46,10 +46,12 @@ internet
 | Admin | `/admin/` | Gestão de usuários, perfis e sistemas |
 | Classificador de E-mails | `/email/` | Extração, classificação ML e triagem de e-mails IMAP |
 | Gerenciador de Credenciais | `/credenciais/` | Cofre de senhas corporativas com criptografia Fernet |
-| Automação Financeira | `/financeiro/` | Controle de contas, despesas, dívidas e relatórios |
+| Automação Financeira | `/financeiro/` | Controle de contas, despesas, cartões, dívidas e relatórios |
 | Combustível | `/central/abastecimentos/` | Registro e estatísticas de abastecimentos |
-| Assistente Virtual (Goku) | `/assistente/` | Bot WhatsApp multi-LLM para registro financeiro e consultas |
+| Mercado | `/central/mercado/` | Compras de supermercado com itens detalhados |
+| Assistente Virtual (Goku) | `/assistente/` | Bot WhatsApp multi-LLM para registro financeiro, OCR de cupons e consultas |
 | Agendamento Inteligente | `/agendamento/` | Bot WhatsApp para agendamento com Google Calendar |
+| Criador / Transcrição | — | Worker assíncrono: download e transcrição de vídeos com Whisper |
 
 ---
 
@@ -73,7 +75,8 @@ O deploy é **automático via GitHub Actions**. A cada push na branch `main`:
 
 1. **Testes unitários** — pytest com cobertura (central_backend)
 2. **Deploy** — webhook dispara rebuild no servidor via `curl` com token seguro
-3. **Testes de integração** — Newman (Postman) roda contra a API em produção
+
+> Testes de integração Newman estão desabilitados no pipeline (requerem configuração de ambiente de staging).
 
 O workflow está em `.github/workflows/deploy.yml`.
 
@@ -110,6 +113,8 @@ O `docker-compose.yml` referencia variáveis do arquivo `.env`. Copie o `.env.ex
 cp .env.example .env
 nano .env
 ```
+
+Variáveis obrigatórias: `DB_*`, `ADMIN_EMAIL`, `ADMIN_SENHA`, `PORTAL_SECRET_KEY`, `EMAIL_FERNET_SECRET_KEY`, `EMAIL_JWT_SECRET_KEY`, `CENTRAL_FERNET_SECRET_KEY`, `CENTRAL_JWT_SECRET_KEY`, `WHATSAPP_APP_SECRET`, `DEPLOY_TOKEN`. As demais (`GOOGLE_*`, `GEMINI_API_KEY`) são opcionais conforme os módulos em uso.
 
 Para gerar chaves seguras:
 ```bash
@@ -204,7 +209,7 @@ pytest tests/ --cov=main --cov-report=term-missing
 - **Erros internos não expostos** — mensagens de erro do banco retornam "Erro interno do servidor"
 - **JWT com validade reduzida** — tokens expiram em 30 minutos (módulos centrais e email)
 - **Logs sanitizados** — mensagens do WhatsApp, telefones e respostas da IA não são mais logados
-- **Hash do admin protegido** — removido do init.sql, criação via seed.py
+- **Credenciais do admin sem hardcode** — seed.py usa `os.environ["ADMIN_EMAIL"]` e `os.environ["ADMIN_SENHA"]`, sem valores default no código
 - **Headers de segurança** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
 - **Senhas de usuários** — hash bcrypt (cost 12)
 - **Senhas de sistemas** — criptografia Fernet (AES-128-CBC)
