@@ -33,8 +33,8 @@ for nome in perfis:
 db.commit()
 
 # Usuário admin
-admin_email = os.getenv("ADMIN_EMAIL", "almeidainteligencia@gmail.com")
-admin_senha = os.getenv("ADMIN_SENHA", "REDACTED")
+admin_email = os.environ["ADMIN_EMAIL"]
+admin_senha = os.environ["ADMIN_SENHA"]
 
 user = db.query(User).filter(User.email == admin_email).first()
 if not user:

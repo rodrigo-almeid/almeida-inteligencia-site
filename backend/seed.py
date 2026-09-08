@@ -86,13 +86,14 @@ cur.execute("SELECT id FROM portal_perfis WHERE slug = 'admin'")
 admin_perfil_id = cur.fetchone()[0]
 
 # Usuário admin
-senha_hash = bcrypt.hashpw(b"REDACTED", bcrypt.gensalt(12)).decode()
+admin_email = os.environ["ADMIN_EMAIL"]
+admin_senha = os.environ["ADMIN_SENHA"]
+senha_hash = bcrypt.hashpw(admin_senha.encode(), bcrypt.gensalt(12)).decode()
 cur.execute("""
     INSERT INTO usuarios (nome, email, senha_hash, perfil_id)
     VALUES (%s,%s,%s,%s) ON CONFLICT (email) DO UPDATE SET perfil_id = EXCLUDED.perfil_id
-""", ("Almeida Admin", "almeidainteligencia@gmail.com", senha_hash, admin_perfil_id))
+""", ("Almeida Admin", admin_email, senha_hash, admin_perfil_id))
 
 conn.commit()
 conn.close()
 print("Banco inicializado com sucesso.")
-print("Admin: almeidainteligencia@gmail.com / REDACTED")
