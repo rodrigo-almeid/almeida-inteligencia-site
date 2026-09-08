@@ -108,7 +108,7 @@ app.include_router(criador_router.router)
 
 # Frontends estáticos
 import pathlib as _pathlib
-_media_path = _pathlib.Path(os.getenv("MEDIA_DIR", "/app/media/transcricoes"))
+_media_path = _pathlib.Path(os.getenv("MEDIA_DIR", "media/transcricoes"))
 _media_path.mkdir(parents=True, exist_ok=True)
 app.mount("/media/transcricoes", StaticFiles(directory=str(_media_path)), name="media_transcricoes")
 
