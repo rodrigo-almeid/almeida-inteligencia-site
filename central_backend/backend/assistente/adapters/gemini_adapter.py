@@ -38,7 +38,7 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, tools_sch
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             res = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}",
                 json=body,
             )
 
@@ -68,7 +68,7 @@ async def call(messages: list[dict], system_prompt: str, api_key: str, tools_sch
             tool_calls=tool_calls,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
     except httpx.TimeoutException:
