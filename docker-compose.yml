@@ -89,8 +89,12 @@ services:
   central-backend:
     build: ./central_backend
     container_name: central-backend
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_SENHA: ${ADMIN_SENHA}
       FERNET_SECRET_KEY: ${CENTRAL_FERNET_SECRET_KEY}
       JWT_SECRET_KEY: ${CENTRAL_JWT_SECRET_KEY}
       PORTAL_SECRET_KEY: ${PORTAL_SECRET_KEY}
